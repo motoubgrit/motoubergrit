@@ -57,7 +57,7 @@
         /* Mobile-first full screen, desktop frame optimization */
         #root-container {
             width: 100vw;
-            height: 100vh;
+            height: 100dvh;
             background-color: #0b0f19;
             display: flex;
             flex-direction: column;
@@ -478,7 +478,7 @@
                     <div className="flex flex-col h-full bg-[#0b0f19] text-white">
                         <HeaderNav title={`Acceso - ${title}`} onBack={() => setView('landing')} />
                         
-                        <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center">
+                        <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center pb-12">
                             <div className="bg-white text-gray-900 rounded-3xl max-w-[320px] w-full p-6 shadow-2xl">
                                 
                                 {mode === 'login' && (
@@ -559,24 +559,154 @@
                 );
             };
 
-            const Dashboard = ({ role, title, icon, color, bg }) => {
-                const handleServiceRequest = () => {
-                    let msg = "";
-                    let actionType = "";
-                    if(role === 'client') { msg = "Hola Admin, necesito un traslado (Soy Cliente). ¿Me puedes enviar una moto a mi ubicación registrada?"; actionType = "Traslado"; }
-                    if(role === 'store') { msg = "Hola Admin, tengo una encomienda lista para enviar..."; actionType = "Encomienda"; }
-                    if(role === 'driver') { msg = "Hola Admin, estoy activo y en línea para recibir viajes."; actionType = "Conductor_Activo"; }
+            const RideRequestFlow = ({ role, user, onBack, onComplete }) => {
+                const [step, setStep] = useState('pickup'); // 'pickup', 'dropoff', 'confirm'
+                const [pickupLoc, setPickupLoc] = useState(LA_GRITA_COORDS);
+                const [dropoffLoc, setDropoffLoc] = useState(null);
+                const [pickupText, setPickupText] = useState(user.address || '');
+                const [dropoffText, setDropoffText] = useState('');
+                const [routeDetails, setRouteDetails] = useState(null);
 
-                    // Enviar copia a Sheets
+                const mapRef = useRef(null);
+                const mapInst = useRef(null);
+                const markerInst = useRef(null);
+
+                useEffect(() => {
+                    if (step === 'pickup' || step === 'dropoff') {
+                        setTimeout(() => {
+                            if (!mapInst.current && mapRef.current) {
+                                mapInst.current = L.map(mapRef.current, { zoomControl: false }).setView(LA_GRITA_COORDS, 15);
+                                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInst.current);
+                                
+                                const icon = L.divIcon({ html: `<div class="w-4 h-4 bg-red-600 rounded-full border-2 border-white shadow-lg"></div>`, className: '' });
+                                markerInst.current = L.marker(LA_GRITA_COORDS, {icon, draggable: true}).addTo(mapInst.current);
+                                
+                                mapInst.current.on('click', (e) => {
+                                    markerInst.current.setLatLng(e.latlng);
+                                    if(step === 'pickup') setPickupLoc([e.latlng.lat, e.latlng.lng]);
+                                    if(step === 'dropoff') setDropoffLoc([e.latlng.lat, e.latlng.lng]);
+                                });
+                                
+                                markerInst.current.on('dragend', () => {
+                                    const pos = markerInst.current.getLatLng();
+                                    if(step === 'pickup') setPickupLoc([pos.lat, pos.lng]);
+                                    if(step === 'dropoff') setDropoffLoc([pos.lat, pos.lng]);
+                                });
+                            }
+                        }, 200);
+                    }
+                }, [step]);
+
+                useEffect(() => {
+                    if (mapInst.current && markerInst.current) {
+                        if (step === 'pickup' && pickupLoc) markerInst.current.setLatLng(pickupLoc);
+                        if (step === 'dropoff') {
+                            if (dropoffLoc) markerInst.current.setLatLng(dropoffLoc);
+                            else markerInst.current.setLatLng(pickupLoc); 
+                        }
+                    }
+                }, [step, pickupLoc, dropoffLoc]);
+
+                const handleNext = () => {
+                    if (step === 'pickup') {
+                        if(!pickupText) return showAlert("Escribe la dirección de origen.");
+                        setStep('dropoff');
+                    } else if (step === 'dropoff') {
+                        if(!dropoffLoc || !dropoffText) return showAlert("Marca el destino y escribe la dirección.");
+                        const dist = calculateDistance(pickupLoc[0], pickupLoc[1], dropoffLoc[0], dropoffLoc[1]);
+                        const fares = calculateFares(dist);
+                        setRouteDetails({ distance: dist.toFixed(1), ...fares });
+                        setStep('confirm');
+                    }
+                };
+
+                const handleConfirm = () => {
+                    const typeStr = role === 'store' ? 'Encomienda' : 'Traslado';
+                    const msg = `Hola Admin, necesito un ${typeStr}.\n\n*Origen:* ${pickupText}\nMapa: https://www.google.com/maps/search/?api=1&query=${pickupLoc[0]},${pickupLoc[1]}\n\n*Destino:* ${dropoffText}\nMapa: https://www.google.com/maps/search/?api=1&query=${dropoffLoc[0]},${dropoffLoc[1]}\n\n*Distancia:* ${routeDetails.distance} km\n*Costo Estimado:* ${routeDetails.cop.toLocaleString()} COP`;
+                    
                     logToSheets({
                         action: 'service_request',
                         passenger: user.name,
                         phone: user.phone,
-                        type: actionType,
+                        type: typeStr,
+                        pickup: pickupText,
+                        dropoff: dropoffText,
+                        distance: routeDetails.distance,
+                        cop: routeDetails.cop,
+                        adminCut: routeDetails.admin,
                         date: new Date().toLocaleString()
                     });
 
-                    // Abrir WhatsApp con el número oficial único
+                    window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
+                    onComplete();
+                };
+
+                return (
+                    <div className="flex flex-col h-full bg-gray-50 absolute inset-0 z-50">
+                        <HeaderNav title={step === 'pickup' ? '1. ¿Dónde estás?' : (step === 'dropoff' ? '2. ¿A dónde vas?' : '3. Confirmar')} onBack={() => {
+                            if(step === 'pickup') onBack();
+                            if(step === 'dropoff') setStep('pickup');
+                            if(step === 'confirm') setStep('dropoff');
+                        }} />
+                        
+                        {(step === 'pickup' || step === 'dropoff') && (
+                            <div className="flex-1 flex flex-col relative">
+                                <div className="bg-white p-4 shadow-md z-10 shrink-0 space-y-2">
+                                    <p className="text-xs font-bold text-gray-600"><i className="fa-solid fa-location-dot text-grita-red"></i> {step === 'pickup' ? 'Ubica el punto de partida (Origen)' : 'Ubica el punto de llegada (Destino)'}</p>
+                                    <input type="text" placeholder={step === 'pickup' ? "Ej. Plaza Bolívar (Origen)" : "Ej. Sector El Sur (Destino)"} className="w-full p-3 border rounded-lg bg-gray-50 text-xs font-medium focus:ring-2 focus:ring-grita-red outline-none" value={step === 'pickup' ? pickupText : dropoffText} onChange={e => step === 'pickup' ? setPickupText(e.target.value) : setDropoffText(e.target.value)} />
+                                </div>
+                                <div className="flex-1 relative min-h-[250px]">
+                                    <div ref={mapRef} className="absolute inset-0 z-0"></div>
+                                </div>
+                                <div className="p-4 bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-10 pb-8">
+                                    <button onClick={handleNext} className="w-full bg-grita-red text-white font-bold py-3.5 rounded-xl shadow-lg text-sm">Continuar <i className="fa-solid fa-arrow-right ml-2"></i></button>
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 'confirm' && routeDetails && (
+                            <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center pb-24">
+                                <div className="bg-white w-full rounded-3xl p-6 shadow-xl border border-gray-100">
+                                    <div className="w-16 h-16 bg-red-50 text-grita-red rounded-full flex items-center justify-center mx-auto mb-4 border border-red-100"><i className="fa-solid fa-route text-2xl"></i></div>
+                                    <h3 className="text-center font-black text-lg mb-6 text-gray-800">Resumen del Viaje</h3>
+                                    
+                                    <div className="space-y-4 mb-6 relative">
+                                        <div className="absolute left-3 top-4 bottom-4 w-0.5 bg-gray-200"></div>
+                                        <div className="flex items-start gap-3 relative">
+                                            <div className="w-6 h-6 bg-gray-800 text-white rounded-full flex items-center justify-center shrink-0 z-10 border-2 border-white text-[10px]"><i className="fa-solid fa-A"></i></div>
+                                            <div><p className="text-[10px] text-gray-500 font-bold uppercase">Origen</p><p className="text-xs font-medium text-gray-800">{pickupText}</p></div>
+                                        </div>
+                                        <div className="flex items-start gap-3 relative">
+                                            <div className="w-6 h-6 bg-grita-red text-white rounded-full flex items-center justify-center shrink-0 z-10 border-2 border-white text-[10px]"><i className="fa-solid fa-B"></i></div>
+                                            <div><p className="text-[10px] text-gray-500 font-bold uppercase">Destino</p><p className="text-xs font-medium text-gray-800">{dropoffText}</p></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-6">
+                                        <div className="flex justify-between mb-2"><span className="text-xs text-gray-500">Distancia Estimada</span><span className="font-bold text-sm text-gray-800">{routeDetails.distance} km</span></div>
+                                        <div className="flex justify-between items-center"><span className="text-sm font-black text-gray-800">Costo del Traslado</span><span className="text-xl font-black text-green-600">{routeDetails.cop.toLocaleString()} COP</span></div>
+                                    </div>
+
+                                    <button onClick={handleConfirm} className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition text-sm">
+                                        <i className="fa-brands fa-whatsapp text-xl"></i> Solicitar Ahora
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            const Dashboard = ({ role, title, icon, color, bg }) => {
+                const [requestingRide, setRequestingRide] = useState(false);
+
+                if (requestingRide) {
+                    return <RideRequestFlow role={role} user={user} onBack={() => setRequestingRide(false)} onComplete={() => { setRequestingRide(false); handleOrderComplete(); }} />;
+                }
+
+                const handleDriverReport = () => {
+                    const msg = "Hola Admin, estoy activo y en línea para recibir viajes.";
+                    logToSheets({ action: 'service_request', passenger: user.name, phone: user.phone, type: "Conductor_Activo", date: new Date().toLocaleString() });
                     window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
                     handleOrderComplete();
                 };
@@ -590,12 +720,18 @@
                             {role === 'driver' && <p className="text-xs text-green-600 font-bold mb-6 flex items-center justify-center gap-1"><span className="w-2 h-2 bg-green-500 rounded-full inline-block animate-pulse"></span> Conectado</p>}
                             {role !== 'driver' && <p className="text-xs text-gray-500 font-medium mb-8 bg-gray-200 px-3 py-1 rounded-full">{user.email}</p>}
                             
-                            <button onClick={handleServiceRequest} className={`w-full max-w-[280px] ${role === 'store' ? 'bg-amber-600' : (role === 'driver' ? 'bg-green-600' : 'bg-grita-red')} text-white font-bold py-4 rounded-xl shadow-lg mb-3 text-sm flex items-center justify-center gap-2 transition hover:scale-105`}>
-                                <i className="fa-brands fa-whatsapp text-lg"></i> {role === 'driver' ? 'Reportarse con Central' : 'Solicitar Servicio / Moto'}
-                            </button>
+                            {role === 'driver' ? (
+                                <button onClick={handleDriverReport} className="w-full max-w-[280px] bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg mb-3 text-sm flex items-center justify-center gap-2 transition hover:scale-105">
+                                    <i className="fa-brands fa-whatsapp text-lg"></i> Reportarse con Central
+                                </button>
+                            ) : (
+                                <button onClick={() => setRequestingRide(true)} className={`w-full max-w-[280px] ${role === 'store' ? 'bg-amber-600' : 'bg-grita-red'} text-white font-bold py-4 rounded-xl shadow-lg mb-3 text-sm flex items-center justify-center gap-2 transition hover:scale-105`}>
+                                    <i className="fa-solid fa-map-location-dot text-lg"></i> Solicitar {role === 'store' ? 'Encomienda' : 'Traslado'}
+                                </button>
+                            )}
                             
                             {role !== 'driver' && role !== 'admin' && (
-                                <button onClick={() => setView('mercadoDash')} className="w-full max-w-[280px] bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg text-sm flex items-center justify-center gap-2 transition hover:scale-105">
+                                <button onClick={() => setView('mercadoDash')} className="w-full max-w-[280px] bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg text-sm flex items-center justify-center gap-2 transition hover:scale-105 mt-2">
                                     <i className="fa-solid fa-basket-shopping text-lg"></i> Ir al Mercado en Casa
                                 </button>
                             )}
@@ -784,11 +920,11 @@
                                     <p className="text-xs font-bold text-gray-600"><i className="fa-solid fa-location-dot text-red-500"></i> Marca en el mapa tu casa</p>
                                     <input type="text" placeholder="Escribe detalles (Ej. Casa amarilla)" className="w-full p-3 border rounded-lg bg-gray-50 border-gray-200 text-xs font-medium focus:ring-2 focus:ring-green-500" value={exactDropoff} onChange={e => setExactDropoff(e.target.value)} />
                                 </div>
-                                <div className="flex-1 relative min-h-[200px]">
+                                <div className="flex-1 relative min-h-[250px]">
                                     <div ref={mapRef} className="h-full w-full absolute inset-0 z-0"></div>
                                 </div>
                                 {routeInfo && (
-                                    <div className="bg-white p-4 rounded-t-3xl shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-10 shrink-0 overflow-y-auto max-h-[50vh]">
+                                    <div className="bg-white p-4 rounded-t-3xl shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-10 shrink-0 overflow-y-auto max-h-[60vh] pb-8">
                                         <div className="flex justify-between mb-1 text-xs">
                                             <span className="text-gray-500">Subtotal Productos</span>
                                             <span className="font-bold text-gray-800">{cartSubtotalCOP.toLocaleString()} COP</span>
@@ -874,4 +1010,4 @@
         root.render(<App />);
     </script>
 </body>
-</html> 
+</html>
