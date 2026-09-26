@@ -28,7 +28,7 @@
     </script>
 
     <!-- Leaflet CSS for Maps -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -44,30 +44,135 @@
     <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
 
     <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0b0f19; overflow-x: hidden; }
+        body { font-family: 'Inter', sans-serif; background-color: #000000; overflow: hidden; margin: 0; padding: 0; touch-action: manipulation; }
         .map-container { height: 100%; width: 100%; z-index: 10; }
         .leaflet-container { font-family: 'Inter', sans-serif; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #dc2626; border-radius: 10px; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(220, 38, 38, 0.5); border-radius: 10px; }
+        
+        /* Mobile-first full screen, desktop frame optimization */
+        #root-container {
+            width: 100vw;
+            height: 100vh;
+            background-color: #0b0f19;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        @media (min-width: 768px) {
+            body {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: #1a1a1a;
+            }
+            #root-container {
+                max-width: 400px; /* Standard phone width */
+                height: 850px;
+                max-height: 90vh;
+                border-radius: 2.5rem;
+                border: 12px solid #27272a;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            }
+        }
     </style>
 </head>
-<body class="bg-[#0b0f19] text-gray-900 min-h-screen w-screen m-0 p-0 flex flex-col items-center justify-center">
-    <div id="root" class="w-full h-screen md:max-w-md md:h-[90vh] md:max-h-[850px] md:rounded-[2.5xl] md:border-8 md:border-zinc-800 bg-black shadow-2xl overflow-hidden flex flex-col relative"></div>
+<body class="text-gray-900">
+    <div id="root" class="w-full h-full"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
 
-        const ADMIN_PHONE = "584140792843";
+        const ADMIN_PHONE = "584140792843"; // Oficial y único número
         const ADMIN_EMAIL = "motoubgrit@gmail.com";
         const ADMIN_PASS = "Universal11!!";
         const LA_GRITA_COORDS = [8.1333, -71.9833];
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyCxtrFExgrWMSZfbIcx_KGwa2ZLpbepaTzTjdwPxI5qpe62z29-bUy3X-UFylc_ZoGCw/exec";
-        const DRIVER_WHATSAPP_GROUP = "https://chat.whatsapp.com/D2ttUD6ykSeBdJBEmIikNx?s=cl&p=a&mlu=4&ilr=4";
-        const APP_URL = "https://motoubgrit.netlify.app/";
+        
+        // Tasas de cambio actualizadas
+        const TASA_USD_COP = 3000;
+        const TASA_VES_COP = 3.0;
+
+        const mercadoInventory = [
+            { category: "Hortalizas y Verduras", name: "Tomate", price: 4000, icon: "🍅" },
+            { category: "Hortalizas y Verduras", name: "Cebolla", price: 3500, icon: "🧅" },
+            { category: "Hortalizas y Verduras", name: "Ajo", price: 12000, icon: "🧄" },
+            { category: "Hortalizas y Verduras", name: "Zanahoria", price: 3000, icon: "🥕" },
+            { category: "Hortalizas y Verduras", name: "Remolacha", price: 3000, icon: "🍠" },
+            { category: "Hortalizas y Verduras", name: "Repollo", price: 2500, icon: "🥬" },
+            { category: "Hortalizas y Verduras", name: "Coliflor", price: 4000, icon: "🥦" },
+            { category: "Hortalizas y Verduras", name: "Acelga", price: 2000, icon: "🥬" },
+            { category: "Hortalizas y Verduras", name: "Pepino", price: 2500, icon: "🥒" },
+            { category: "Hortalizas y Verduras", name: "Brócoli", price: 4500, icon: "🥦" },
+            { category: "Hortalizas y Verduras", name: "Calabacín", price: 2500, icon: "🥒" },
+            { category: "Hortalizas y Verduras", name: "Pimentón", price: 5000, icon: "🫑" },
+            { category: "Hortalizas y Verduras", name: "Espinaca", price: 3000, icon: "🥬" },
+            { category: "Hortalizas y Verduras", name: "Ají dulce", price: 4000, icon: "🌶️" },
+            { category: "Hortalizas y Verduras", name: "Ají picante", price: 5000, icon: "🔥" },
+            { category: "Hortalizas y Verduras", name: "Apio España", price: 3000, icon: "🥬" },
+            
+            { category: "Tubérculos y Vituallas", name: "Auyama", price: 1500, icon: "🎃" },
+            { category: "Tubérculos y Vituallas", name: "Papa", price: 3500, icon: "🥔" },
+            { category: "Tubérculos y Vituallas", name: "Yuca", price: 2000, icon: "🍠" },
+            { category: "Tubérculos y Vituallas", name: "Plátano Verde", price: 3000, icon: "🍌" },
+            { category: "Tubérculos y Vituallas", name: "Plátano Maduro", price: 3000, icon: "🍌" },
+            { category: "Tubérculos y Vituallas", name: "Apio", price: 4000, icon: "🌿" },
+            
+            { category: "Frutas", name: "Lechoza", price: 2500, icon: "🍈" },
+            { category: "Frutas", name: "Melón", price: 3000, icon: "🍈" },
+            { category: "Frutas", name: "Guanábana", price: 4500, icon: "🍐" },
+            { category: "Frutas", name: "Guayaba", price: 3000, icon: "🍏" },
+            { category: "Frutas", name: "Parchita", price: 4000, icon: "🟡" },
+            { category: "Frutas", name: "Manzana", price: 8000, icon: "🍎" },
+            { category: "Frutas", name: "Cambur", price: 2000, icon: "🍌" },
+            { category: "Frutas", name: "Naranja", price: 2500, icon: "🍊" },
+            { category: "Frutas", name: "Fresa", price: 8000, icon: "🍓" },
+            { category: "Frutas", name: "Uva", price: 10000, icon: "🍇" },
+            { category: "Frutas", name: "Piña", price: 3500, icon: "🍍" },
+            { category: "Frutas", name: "Patilla", price: 2000, icon: "🍉" },
+            { category: "Frutas", name: "Limón", price: 3000, icon: "🍋" },
+            { category: "Frutas", name: "Mango", price: 2500, icon: "🥭" },
+            { category: "Frutas", name: "Pera", price: 8000, icon: "🍐" },
+            
+            { category: "Ramas, Hierbas y Especias", name: "Cilantro", price: 2000, icon: "🌿" },
+            { category: "Ramas, Hierbas y Especias", name: "Perejil", price: 2000, icon: "🌿" },
+            { category: "Ramas, Hierbas y Especias", name: "Ajoporro", price: 2500, icon: "🌱" },
+            { category: "Ramas, Hierbas y Especias", name: "Matadera", price: 2000, icon: "☘️" },
+            { category: "Ramas, Hierbas y Especias", name: "Albahaca", price: 2000, icon: "🌱" },
+            { category: "Ramas, Hierbas y Especias", name: "Romero", price: 2500, icon: "🌿" },
+            { category: "Ramas, Hierbas y Especias", name: "Tomillo", price: 2500, icon: "🌿" },
+            { category: "Ramas, Hierbas y Especias", name: "Menta", price: 2000, icon: "🍃" },
+            { category: "Ramas, Hierbas y Especias", name: "Orégano", price: 2000, icon: "🌿" },
+            { category: "Ramas, Hierbas y Especias", name: "Cebollín", price: 2000, icon: "🌱" },
+            { category: "Ramas, Hierbas y Especias", name: "Comino", price: 2000, icon: "🧂" },
+            { category: "Ramas, Hierbas y Especias", name: "Paprica", price: 2500, icon: "🌶️" },
+            { category: "Ramas, Hierbas y Especias", name: "Ajo en polvo", price: 3000, icon: "🧄" },
+            { category: "Ramas, Hierbas y Especias", name: "Clavito", price: 2000, icon: "🟤" },
+            { category: "Ramas, Hierbas y Especias", name: "Guayabita", price: 2500, icon: "🫒" },
+            { category: "Ramas, Hierbas y Especias", name: "Canela", price: 3000, icon: "🪵" },
+            { category: "Ramas, Hierbas y Especias", name: "Canela en polvo", price: 3000, icon: "🫙" },
+            { category: "Ramas, Hierbas y Especias", name: "Pimienta", price: 3000, icon: "🧂" },
+            { category: "Ramas, Hierbas y Especias", name: "Anís estrellado", price: 3000, icon: "🌟" },
+            { category: "Ramas, Hierbas y Especias", name: "Hoja de laurel", price: 2000, icon: "🍃" },
+            { category: "Proteínas y Huevos", name: "Cartón de Huevos", price: 16000, icon: "🥚" }
+        ];
+
+        const mercadoCategories = ["Hortalizas y Verduras", "Tubérculos y Vituallas", "Frutas", "Ramas, Hierbas y Especias", "Proteínas y Huevos"];
+        
+        const formatQuantity = (qty, itemName = "") => {
+            const isEgg = itemName.toLowerCase().includes("huevo");
+            if (qty === 0.25) return isEgg ? "1/4 Cartón" : "250g";
+            if (qty === 0.5) return isEgg ? "Medio Cartón" : "Medio Kg";
+            if (qty === 0.75) return isEgg ? "3/4 Cartón" : "750g";
+            if (qty === 1) return isEgg ? "1 Cartón" : "1 Kg";
+            if (qty === 1.5) return isEgg ? "1.5 Cartones" : "1.5 Kg";
+            return `${qty} ${isEgg ? 'Cartones' : 'Kg/Und/Paq'}`;
+        };
 
         const calculateDistance = (lat1, lon1, lat2, lon2) => {
             const R = 6371; 
@@ -77,47 +182,51 @@
                       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
                       Math.sin(dLon/2) * Math.sin(dLon/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c * 1.35; // Factor vial urbano aproximado
+            return R * c * 1.35; // Factor urbano
         };
 
         const calculateFares = (distKm) => {
-            let copPrice = 5000; // Base para casco central
+            let copPrice = 5000; // Base para el casco central
             if (distKm > 1.5) {
                 copPrice = Math.round(5000 + (distKm - 1.5) * 2500);
             }
-            let usdPrice = (copPrice / 3100).toFixed(2); // $1 USD = 3,100 COP
-            let vesPrice = (copPrice / 3.2).toFixed(2);
-            let adminCommission = Math.round(copPrice * 0.12); // 12% ganancia admin
+            let usdPrice = (copPrice / TASA_USD_COP).toFixed(2);
+            let vesPrice = (copPrice / TASA_VES_COP).toFixed(2);
+            let adminCommission = Math.round(copPrice * 0.12); // 12% comisión de admin
             return { cop: copPrice, usd: usdPrice, ves: vesPrice, admin: adminCommission };
         };
 
+        const playAlertSound = () => {
+            try {
+                const synth = new Tone.Synth().toDestination();
+                synth.triggerAttackRelease("C5", "8n");
+                setTimeout(() => synth.triggerAttackRelease("E5", "8n"), 200);
+                setTimeout(() => synth.triggerAttackRelease("G5", "4n"), 400);
+            } catch (e) { console.log("Audio not allowed yet"); }
+        };
+
         const AlertBox = ({ msg, type = 'error', onClose }) => (
-            <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-xl shadow-2xl z-[300] text-white font-bold flex items-center gap-3 ${type === 'error' ? 'bg-red-600' : 'bg-green-600'} animate-bounce`}>
+            <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-[300] text-white font-bold flex items-center gap-3 text-sm whitespace-nowrap ${type === 'error' ? 'bg-red-600' : 'bg-green-600'} animate-bounce`}>
                 <i className={type === 'error' ? "fa-solid fa-circle-exclamation text-lg" : "fa-solid fa-circle-check text-lg"}></i>
                 <span>{msg}</span>
-                <button onClick={onClose} className="text-white hover:text-gray-200 ml-2">✕</button>
             </div>
         );
 
         const PostOrderModal = ({ onExit, onNewOrder }) => (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[250] p-4">
-                <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl animate-fade-in">
-                    <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-green-200 shadow-inner">
-                        <i className="fa-solid fa-check text-4xl"></i>
+                <div className="bg-white rounded-3xl max-w-[300px] w-full p-6 text-center shadow-2xl">
+                    <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-green-200">
+                        <i className="fa-solid fa-check text-3xl"></i>
                     </div>
-                    <h3 className="text-2xl font-black text-gray-800 mb-2">¡Pedido Enviado!</h3>
-                    <p className="text-gray-600 text-sm mb-6 font-medium">
-                        Tu solicitud ha sido enviada con éxito. ¿Qué deseas hacer ahora?
+                    <h3 className="text-xl font-black text-gray-800 mb-2">¡Pedido Enviado!</h3>
+                    <p className="text-gray-600 text-xs mb-6 font-medium">
+                        Tu solicitud ha sido enviada con éxito por WhatsApp. ¿Qué deseas hacer ahora?
                     </p>
                     <div className="space-y-3">
-                        <button 
-                            onClick={onNewOrder} 
-                            className="w-full bg-grita-red text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-grita-darkred transition flex items-center justify-center gap-2 text-base">
+                        <button onClick={onNewOrder} className="w-full bg-grita-red text-white font-bold py-3 rounded-xl shadow-lg hover:bg-grita-darkred transition flex items-center justify-center gap-2 text-sm">
                             <i className="fa-solid fa-rotate-right"></i> Hacer otro pedido
                         </button>
-                        <button 
-                            onClick={onExit} 
-                            className="w-full bg-gray-100 text-gray-800 font-bold py-3.5 rounded-xl hover:bg-gray-200 transition border border-gray-300 flex items-center justify-center gap-2 text-base">
+                        <button onClick={onExit} className="w-full bg-gray-100 text-gray-800 font-bold py-3 rounded-xl hover:bg-gray-200 transition border border-gray-300 flex items-center justify-center gap-2 text-sm">
                             <i className="fa-solid fa-arrow-right-from-bracket"></i> Salir de la aplicación
                         </button>
                     </div>
@@ -125,57 +234,16 @@
             </div>
         );
 
-        const ShortcutModal = ({ onClose }) => {
-            const downloadShortcut = () => {
-                const shortcutContent = `[InternetShortcut]\nURL=${APP_URL}\nIconIndex=0\nIconFile=${APP_URL}`;
-                const blob = new Blob([shortcutContent], { type: 'text/plain;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'Moto UBGrit.url';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                onClose();
-            };
-
-            return (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[200] p-4">
-                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
-                        <div className="w-24 h-24 bg-grita-red rounded-full flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(220,38,38,0.5)] border-4 border-white">
-                            <i className="fa-solid fa-motorcycle text-5xl text-white"></i>
-                        </div>
-                        <h3 className="text-xl font-bold mb-2">¡Instala Moto UBGrit!</h3>
-                        <p className="text-gray-600 text-sm mb-6">
-                            Descarga el acceso directo con el logo oficial en tu dispositivo para ingresar rápido y seguro.
-                        </p>
-                        <div className="space-y-3">
-                            <button onClick={downloadShortcut} className="w-full bg-grita-red text-white font-bold py-3.5 rounded-xl shadow hover:bg-grita-darkred transition flex items-center justify-center gap-2">
-                                <i className="fa-solid fa-download"></i> Descargar Acceso Directo
-                            </button>
-                            <button onClick={onClose} className="w-full bg-gray-200 text-gray-800 font-bold py-3 rounded-xl hover:bg-gray-300 transition">
-                                Continuar a la App
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
         function App() {
             const [view, setView] = useState('landing'); 
             const [user, setUser] = useState(null);
             const [alert, setAlert] = useState(null);
-            const [showShortcutModal, setShowShortcutModal] = useState(false);
             const [showPostOrderModal, setShowPostOrderModal] = useState(false);
+            const [pendingTargetView, setPendingTargetView] = useState(null);
             
+            // Mock DB
             const [usersDB, setUsersDB] = useState([
-                { id: 'admin', role: 'admin', email: ADMIN_EMAIL, password: ADMIN_PASS, name: 'Administrador UBGrit' },
-                { id: 'd1', role: 'driver', email: 'chofer1@test.com', password: '123', name: 'Carlos Perez', vehicle: 'Bera SBR', plate: 'AB123C', isOnline: true, coords: [8.1350, -71.9800] },
-                { id: 's1', role: 'store', email: 'tienda1@test.com', password: '123', name: 'Pedro Gomez', storeName: 'Bodega La Grita', address: 'Calle 2 con Carrera 4', phone: '04141234567', coords: [8.1330, -71.9820] }
-            ]);
-            const [storesDB, setStoresDB] = useState([
-                { id: 's1', role: 'store', email: 'tienda1@test.com', name: 'Pedro Gomez', storeName: 'Bodega La Grita', address: 'Calle 2 con Carrera 4', phone: '04141234567', coords: [8.1330, -71.9820] }
+                { id: 'admin', role: 'admin', email: ADMIN_EMAIL, password: ADMIN_PASS, name: 'Administrador UBGrit' }
             ]);
 
             const showAlert = (msg, type = 'error') => {
@@ -183,44 +251,44 @@
                 setTimeout(() => setAlert(null), 4000);
             };
 
-            const playAlertSound = () => {
-                try {
-                    const synth = new Tone.Synth().toDestination();
-                    synth.triggerAttackRelease("C5", "8n");
-                    setTimeout(() => synth.triggerAttackRelease("E5", "8n"), 200);
-                    setTimeout(() => synth.triggerAttackRelease("G5", "4n"), 400);
-                } catch (e) { console.log("Audio not allowed yet"); }
-            };
-
-            const handleLogin = (email, pass) => {
+            const handleLogin = (email, pass, targetView = null) => {
                 if (email === ADMIN_EMAIL && pass === ADMIN_PASS) {
                     setUser({ id: 'admin', role: 'admin', name: 'Administrador UBGrit' });
                     setView('adminDash');
-                    return;
+                    return true;
                 }
                 const found = usersDB.find(u => u.email === email && u.password === pass);
                 if (found) {
                     setUser(found);
-                    if (found.role === 'driver') setView('driverDash');
-                    else if (found.role === 'store') setView('storeDash');
-                    else setView('clientDash');
                     showAlert("¡Bienvenido de vuelta!", "success");
+                    if (targetView) {
+                        setView(targetView);
+                    } else {
+                        if (found.role === 'driver') setView('driverDash');
+                        else if (found.role === 'store') setView('storeDash');
+                        else setView('clientDash');
+                    }
+                    return true;
                 } else {
                     showAlert("Correo o contraseña incorrectos.");
+                    return false;
                 }
             };
 
             const handleRegister = (role, data) => {
-                const newUser = { ...data, id: Date.now().toString(), role, isOnline: true, coords: data.coords || LA_GRITA_COORDS };
+                const newUser = { ...data, id: Date.now().toString(), role, isOnline: true };
                 setUsersDB(prev => [...prev, newUser]);
-                if (role === 'store') {
-                    setStoresDB(prev => [...prev, newUser]);
-                }
                 setUser(newUser);
-                setShowShortcutModal(true); 
-                if (role === 'driver') setView('driverDash');
-                else if (role === 'store') setView('storeDash');
-                else setView('clientDash');
+                showAlert("¡Registro exitoso!", "success");
+                
+                if (pendingTargetView) {
+                    setView(pendingTargetView);
+                    setPendingTargetView(null);
+                } else {
+                    if (role === 'driver') setView('driverDash');
+                    else if (role === 'store') setView('storeDash');
+                    else setView('clientDash');
+                }
             };
 
             const logout = () => {
@@ -231,12 +299,7 @@
 
             const handleOrderComplete = () => {
                 playAlertSound();
-                showAlert("¡Pedido enviado con éxito!", "success");
                 setShowPostOrderModal(true);
-            };
-
-            const handleNewOrder = () => {
-                setShowPostOrderModal(false);
             };
 
             const Landing = () => {
@@ -246,39 +309,25 @@
                 const [pass, setPass] = useState('');
                 const [forgotEmail, setForgotEmail] = useState('');
 
-                const handlePasswordRecovery = (e) => {
-                    e.preventDefault();
-                    if (!forgotEmail) {
-                        showAlert("Por favor ingresa tu correo electrónico.");
-                        return;
-                    }
-                    const userAccount = usersDB.find(u => u.email === forgotEmail) || (forgotEmail === ADMIN_EMAIL ? {email: ADMIN_EMAIL} : null);
-                    if (userAccount) {
-                        showAlert(`Contraseña enviada automáticamente desde ${ADMIN_EMAIL} a ${forgotEmail}.`, "success");
-                        setShowForgotModal(false);
-                        setForgotEmail('');
-                    } else {
-                        showAlert("No se encontró ninguna cuenta registrada con este correo.");
-                    }
+                const submitLogin = () => {
+                    const success = handleLogin(email, pass, pendingTargetView);
+                    if (success) setShowLoginModal(false);
                 };
 
                 return (
-                    <div className="flex flex-col h-full bg-grita-black text-white relative">
+                    <div className="flex flex-col h-full bg-[#0b0f19] text-white relative overflow-y-auto overflow-x-hidden">
                         {showLoginModal && (
                             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[250] p-4">
-                                <div className="bg-white text-gray-900 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
-                                    <button onClick={() => setShowLoginModal(false)} className="absolute top-4 right-4 text-gray-500 font-bold">✕</button>
-                                    <div className="w-16 h-16 bg-red-100 text-grita-red rounded-full flex items-center justify-center mx-auto mb-3 shadow">
-                                        <i className="fa-solid fa-user-shield text-2xl"></i>
-                                    </div>
-                                    <h3 className="text-xl font-bold mb-1 text-center">Iniciar Sesión / Admin</h3>
-                                    <p className="text-gray-500 text-xs mb-4 text-center">Accede a tu cuenta o panel de administración</p>
-                                    <input type="email" placeholder="Correo Electrónico" className="w-full p-3 mb-3 border rounded-xl text-sm bg-gray-50" value={email} onChange={e=>setEmail(e.target.value)}/>
-                                    <input type="password" placeholder="Contraseña" className="w-full p-3 mb-2 border rounded-xl text-sm bg-gray-50" value={pass} onChange={e=>setPass(e.target.value)}/>
+                                <div className="bg-white text-gray-900 rounded-2xl max-w-[300px] w-full p-5 shadow-2xl relative">
+                                    <button onClick={() => { setShowLoginModal(false); setPendingTargetView(null); }} className="absolute top-3 right-4 text-gray-400 font-bold text-lg">✕</button>
+                                    <h3 className="text-lg font-black mb-1 text-center">Iniciar Sesión</h3>
+                                    <p className="text-gray-500 text-[10px] mb-4 text-center leading-tight">Ingresa tus datos para continuar</p>
+                                    <input type="email" placeholder="Correo Electrónico" className="w-full p-2.5 mb-2 border rounded-xl text-xs bg-gray-50" value={email} onChange={e=>setEmail(e.target.value)}/>
+                                    <input type="password" placeholder="Contraseña" className="w-full p-2.5 mb-1 border rounded-xl text-xs bg-gray-50" value={pass} onChange={e=>setPass(e.target.value)}/>
                                     <div className="text-right mb-4">
-                                        <button onClick={() => { setShowLoginModal(false); setShowForgotModal(true); }} className="text-xs text-grita-red font-bold hover:underline">¿Olvidaste tu contraseña?</button>
+                                        <button onClick={() => { setShowLoginModal(false); setShowForgotModal(true); }} className="text-[10px] text-grita-red font-bold hover:underline">¿Olvidaste tu contraseña?</button>
                                     </div>
-                                    <button onClick={() => handleLogin(email, pass)} className="w-full bg-grita-red hover:bg-grita-darkred text-white font-bold py-3 rounded-xl shadow transition">
+                                    <button onClick={submitLogin} className="w-full bg-grita-red hover:bg-grita-darkred text-white font-bold py-3 rounded-xl shadow transition text-sm">
                                         Entrar
                                     </button>
                                 </div>
@@ -287,49 +336,55 @@
 
                         {showForgotModal && (
                             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[250] p-4">
-                                <div className="bg-white text-gray-900 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
-                                    <button onClick={() => setShowForgotModal(false)} className="absolute top-4 right-4 text-gray-500 font-bold">✕</button>
-                                    <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow">
-                                        <i className="fa-solid fa-key text-2xl"></i>
-                                    </div>
-                                    <h3 className="text-xl font-bold mb-1 text-center">Recuperar Contraseña</h3>
-                                    <p className="text-gray-500 text-xs mb-4 text-center">Te enviaremos los datos automáticamente desde {ADMIN_EMAIL}</p>
-                                    <form onSubmit={handlePasswordRecovery}>
-                                        <input type="email" placeholder="Tu correo electrónico registrado" className="w-full p-3 mb-4 border rounded-xl text-sm bg-gray-50" value={forgotEmail} onChange={e=>setForgotEmail(e.target.value)}/>
-                                        <button type="submit" className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl shadow transition">
-                                            Enviar Contraseña al Correo
-                                        </button>
-                                    </form>
+                                <div className="bg-white text-gray-900 rounded-2xl max-w-[300px] w-full p-5 shadow-2xl relative">
+                                    <button onClick={() => setShowForgotModal(false)} className="absolute top-3 right-4 text-gray-400 font-bold">✕</button>
+                                    <h3 className="text-lg font-black mb-1 text-center">Recuperar Clave</h3>
+                                    <p className="text-gray-500 text-[10px] mb-4 text-center">Te enviaremos los datos automáticamente desde {ADMIN_EMAIL}</p>
+                                    <input type="email" placeholder="Tu correo electrónico" className="w-full p-2.5 mb-4 border rounded-xl text-xs bg-gray-50" value={forgotEmail} onChange={e=>setForgotEmail(e.target.value)}/>
+                                    <button onClick={() => { showAlert("Contraseña enviada a tu correo.", "success"); setShowForgotModal(false); }} className="w-full bg-amber-600 text-white font-bold py-3 rounded-xl shadow text-sm">
+                                        Enviar a mi Correo
+                                    </button>
                                 </div>
                             </div>
                         )}
 
-                        <div className="flex-grow flex flex-col items-center justify-center p-6 text-center">
-                            <div className="w-24 h-24 bg-grita-red rounded-full flex items-center justify-center mb-3 shadow-[0_0_30px_rgba(220,38,38,0.5)] border-4 border-white">
+                        <div className="flex-grow flex flex-col items-center justify-center p-6 text-center mt-4">
+                            <div className="w-24 h-24 bg-grita-red rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(220,38,38,0.5)] border-4 border-white shrink-0">
                                 <i className="fa-solid fa-motorcycle text-4xl text-white"></i>
                             </div>
-                            <h1 className="text-2xl font-extrabold mb-1"><span className="text-grita-red">Moto</span> UBGrit</h1>
-                            <div className="text-gray-300 mb-5 text-[11px] max-w-xs leading-relaxed font-bold">
+                            <h1 className="text-3xl font-black mb-2 tracking-tight"><span className="text-grita-red">Moto</span> UBGrit</h1>
+                            <div className="text-gray-300 mb-6 text-[11px] max-w-[200px] leading-relaxed font-bold">
                                 <p>Tu Traslado y Encomienda</p>
                                 <p>Seguro y Rápido en la Grita</p>
                             </div>
                             
-                            <div className="space-y-3 w-full max-w-xs">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button onClick={() => setShowLoginModal(true)} className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3.5 px-2 rounded-xl transition shadow flex items-center justify-center gap-1.5 text-xs">
+                            <div className="space-y-3 w-full max-w-[280px]">
+                                {/* Top Menu: Login / Admin */}
+                                <div className="grid grid-cols-2 gap-2 mb-1">
+                                    <button onClick={() => { setPendingTargetView(null); setEmail(''); setPass(''); setShowLoginModal(true); }} className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-2 rounded-xl transition shadow flex items-center justify-center gap-1.5 text-xs">
                                         <i className="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
                                     </button>
-                                    <button onClick={() => { setEmail(ADMIN_EMAIL); setPass(ADMIN_PASS); setShowLoginModal(true); }} className="w-full bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-amber-500/50 font-bold py-3.5 px-2 rounded-xl transition shadow flex items-center justify-center gap-1.5 text-xs">
+                                    <button onClick={() => { setEmail(''); setPass(''); setShowLoginModal(true); }} className="w-full bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-amber-500/50 font-bold py-2.5 px-2 rounded-xl transition shadow flex items-center justify-center gap-1.5 text-xs">
                                         <i className="fa-solid fa-shield-halved"></i> Admin
                                     </button>
                                 </div>
-                                <button onClick={() => setView('registerClient')} className="w-full bg-white hover:bg-gray-200 text-grita-black font-bold py-3.5 px-4 rounded-xl transition shadow text-sm">
+
+                                <button onClick={() => setView('registerClient')} className="w-full bg-white hover:bg-gray-200 text-grita-black font-bold py-3.5 px-4 rounded-xl transition shadow text-xs">
                                     Soy Pasajero (Registrarse)
                                 </button>
-                                <button onClick={() => setView('registerStore')} className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3.5 px-4 rounded-xl transition shadow text-sm">
+                                <button onClick={() => setView('registerStore')} className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3.5 px-4 rounded-xl transition shadow text-xs">
                                     Soy Local / Empresa (Encomiendas)
                                 </button>
-                                <button onClick={() => setView('registerDriver')} className="w-full border-2 border-grita-red text-grita-red hover:bg-grita-red hover:text-white font-bold py-3.5 px-4 rounded-xl transition shadow text-sm">
+                                
+                                {/* Mercado en Casa Button - Integra el catálogo de VicRos */}
+                                <button onClick={() => {
+                                    if(user) setView('mercadoDash');
+                                    else { setPendingTargetView('mercadoDash'); setShowLoginModal(true); }
+                                }} className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 px-4 rounded-xl transition shadow-lg text-sm border-2 border-green-500 animate-pulse flex items-center justify-center gap-2 mt-2">
+                                    <i className="fa-solid fa-basket-shopping text-lg"></i> Mercado en Casa
+                                </button>
+
+                                <button onClick={() => setView('registerDriver')} className="w-full border-2 border-grita-red text-grita-red hover:bg-grita-red hover:text-white font-bold py-3.5 px-4 rounded-xl transition shadow text-xs mt-2">
                                     Quiero ser Conductor
                                 </button>
                             </div>
@@ -341,412 +396,92 @@
             const RegisterForm = ({ role }) => {
                 const isDriver = role === 'driver';
                 const isStore = role === 'store';
-                const [formData, setFormData] = useState({
-                    name: '', last: '', phone: '', address: '', email: '', password: '', vehicle: '', plate: '', storeName: ''
-                });
-                const [storeCoords, setStoreCoords] = useState(LA_GRITA_COORDS);
-                const [isSubmitting, setIsSubmitting] = useState(false);
-                const mapRef = useRef(null);
-                const mapInstance = useRef(null);
-                const markerRef = useRef(null);
+                const [formData, setFormData] = useState({ name: '', phone: '', address: '', email: '', password: '', storeName: '' });
 
-                useEffect(() => {
-                    if (isStore && !mapInstance.current && mapRef.current) {
-                        mapInstance.current = L.map(mapRef.current).setView(LA_GRITA_COORDS, 15);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance.current);
-                        
-                        const storeIcon = L.divIcon({ html: `<div class="w-6 h-6 bg-amber-600 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white text-xs"><i class="fa-solid fa-store"></i></div>`, className: '' });
-                        markerRef.current = L.marker(LA_GRITA_COORDS, { draggable: true, icon: storeIcon }).addTo(mapInstance.current);
-
-                        markerRef.current.on('dragend', () => {
-                            const pos = markerRef.current.getLatLng();
-                            setStoreCoords([pos.lat, pos.lng]);
-                        });
-
-                        mapInstance.current.on('click', (e) => {
-                            markerRef.current.setLatLng(e.latlng);
-                            setStoreCoords([e.latlng.lat, e.latlng.lng]);
-                        });
-                    }
-                }, [isStore]);
-
-                const handleSubmit = async (e) => {
+                const handleSubmit = (e) => {
                     e.preventDefault();
-                    if(!formData.email || !formData.password || (!isStore && !formData.name) || (isStore && !formData.storeName)) {
-                        showAlert("Por favor llene todos los campos obligatorios incluyendo correo y contraseña.");
+                    if(!formData.email || !formData.password) {
+                        showAlert("Por favor ingrese correo y contraseña.");
                         return;
                     }
-
-                    setIsSubmitting(true);
-                    const finalData = { ...formData, coords: storeCoords };
-                    const dataToSend = { ...finalData, rol: role };
-
-                    try {
-                        await fetch(GOOGLE_SCRIPT_URL, {
-                            method: "POST",
-                            mode: "no-cors", 
-                            headers: { "Content-Type": "text/plain;charset=utf-8" },
-                            body: JSON.stringify(dataToSend), 
-                        });
-
-                        handleRegister(role, finalData);
-
-                        if (isDriver) {
-                            window.open(DRIVER_WHATSAPP_GROUP, '_blank');
-                        } else {
-                            showAlert("¡Registro exitoso! Ya puedes operar.", "success");
-                        }
-                    } catch (error) {
-                        console.error("Error enviando datos:", error);
-                        handleRegister(role, finalData);
-                        showAlert("Registro exitoso localmente.", "success");
-                    } finally {
-                        setIsSubmitting(false);
-                    }
+                    handleRegister(role, formData);
                 };
 
                 return (
-                    <div className="flex flex-col h-full bg-white overflow-y-auto">
-                        <div className="p-4 bg-grita-black text-white sticky top-0 z-25 flex items-center shadow-md">
-                            <button type="button" onClick={() => setView('landing')} className="mr-4">← Volver</button>
-                            <h2 className="text-xl font-bold">Registro de {isDriver ? 'Conductor' : (isStore ? 'Local / Empresa' : 'Pasajero')}</h2>
+                    <div className="flex flex-col h-full bg-white overflow-y-auto w-full">
+                        <div className="p-4 bg-grita-black text-white sticky top-0 z-20 flex items-center shadow-md">
+                            <button type="button" onClick={() => { setView('landing'); setPendingTargetView(null); }} className="mr-3 font-bold text-xl">←</button>
+                            <h2 className="text-sm font-bold truncate">Registro {isDriver ? 'Conductor' : (isStore ? 'Local' : 'Pasajero')}</h2>
                         </div>
-                        <form onSubmit={handleSubmit} className="p-6 max-w-md mx-auto w-full space-y-4">
-                            {isStore ? (
-                                <>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-600 mb-1">NOMBRE DE LA EMPRESA O LOCAL</label>
-                                        <input required placeholder="Ej. Farmacia La Grita" className="w-full p-3 border rounded-lg bg-gray-50 text-sm" onChange={e=>setFormData({...formData, storeName: e.target.value})}/>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-600 mb-1">NOMBRE DEL ENCARGADO</label>
-                                        <input required placeholder="Nombre y Apellido" className="w-full p-3 border rounded-lg bg-gray-50 text-sm" onChange={e=>setFormData({...formData, name: e.target.value})}/>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-600 mb-1">TELÉFONO DE CONTACTO</label>
-                                        <input required type="tel" placeholder="0414..." className="w-full p-3 border rounded-lg bg-gray-50 text-sm" onChange={e=>setFormData({...formData, phone: e.target.value})}/>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-600 mb-1">DIRECCIÓN ESCRITA DEL LOCAL</label>
-                                        <input required placeholder="Ej. Carrera 5, frente a la plaza" className="w-full p-3 border rounded-lg bg-gray-50 text-sm" onChange={e=>setFormData({...formData, address: e.target.value})}/>
-                                    </div>
-                                    <div className="pt-2">
-                                        <label className="block text-xs font-bold text-gray-600 mb-1">UBICACIÓN GEOGRÁFICA EN MAPA</label>
-                                        <div className="h-48 w-full rounded-xl overflow-hidden border relative z-10">
-                                            <div ref={mapRef} className="h-full w-full"></div>
-                                        </div>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <input required placeholder="Nombres" className="p-3 border rounded-lg bg-gray-50 text-sm" onChange={e=>setFormData({...formData, name: e.target.value})}/>
-                                        <input required placeholder="Apellidos" className="p-3 border rounded-lg bg-gray-50 text-sm" onChange={e=>setFormData({...formData, last: e.target.value})}/>
-                                    </div>
-                                    <input required type="tel" placeholder="Teléfono" className="w-full p-3 border rounded-lg bg-gray-50 text-sm" onChange={e=>setFormData({...formData, phone: e.target.value})}/>
-                                    <textarea required placeholder="Dirección de Vivienda" className="w-full p-3 border rounded-lg bg-gray-50 text-sm" onChange={e=>setFormData({...formData, address: e.target.value})}></textarea>
-                                </>
+                        <form onSubmit={handleSubmit} className="p-5 max-w-[320px] mx-auto w-full space-y-4">
+                            {isStore && (
+                                <input required placeholder="Nombre del Local" className="w-full p-3 border rounded-xl bg-gray-50 text-xs" onChange={e=>setFormData({...formData, storeName: e.target.value})}/>
                             )}
-
-                            <div>
-                                <label className="block text-xs font-bold text-gray-600 mb-1">CORREO ELECTRÓNICO (Para Iniciar Sesión)</label>
-                                <input required type="email" placeholder="correo@ejemplo.com" className="w-full p-3 border rounded-lg bg-gray-50 text-sm" onChange={e=>setFormData({...formData, email: e.target.value})}/>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-600 mb-1">CONTRASEÑA</label>
-                                <input required type="password" placeholder="Crear Contraseña" className="w-full p-3 border rounded-lg bg-gray-50 text-sm" onChange={e=>setFormData({...formData, password: e.target.value})}/>
+                            <input required placeholder="Nombre y Apellido" className="w-full p-3 border rounded-xl bg-gray-50 text-xs" onChange={e=>setFormData({...formData, name: e.target.value})}/>
+                            <input required type="tel" placeholder="Teléfono" className="w-full p-3 border rounded-xl bg-gray-50 text-xs" onChange={e=>setFormData({...formData, phone: e.target.value})}/>
+                            <textarea required placeholder="Dirección Exacta" className="w-full p-3 border rounded-xl bg-gray-50 text-xs h-20" onChange={e=>setFormData({...formData, address: e.target.value})}></textarea>
+                            
+                            <div className="pt-2 border-t border-gray-100">
+                                <label className="block text-[10px] font-bold text-gray-500 mb-1">CREAR CREDENCIALES</label>
+                                <input required type="email" placeholder="Correo Electrónico" className="w-full p-3 mb-3 border rounded-xl bg-gray-50 text-xs" onChange={e=>setFormData({...formData, email: e.target.value})}/>
+                                <input required type="password" placeholder="Crear Contraseña" className="w-full p-3 border rounded-xl bg-gray-50 text-xs" onChange={e=>setFormData({...formData, password: e.target.value})}/>
                             </div>
                             
-                            {isDriver && (
-                                <div className="pt-4 border-t border-gray-200">
-                                    <h3 className="font-bold text-gray-700 mb-3 text-sm">Datos del Vehículo</h3>
-                                    <input required placeholder="Modelo (Ej. Bera SBR)" className="w-full p-3 mb-4 border rounded-lg bg-gray-50 text-sm" onChange={e=>setFormData({...formData, vehicle: e.target.value})}/>
-                                    <input required placeholder="Placa" className="w-full p-3 border rounded-lg bg-gray-50 text-sm" onChange={e=>setFormData({...formData, plate: e.target.value})}/>
-                                </div>
-                            )}
-                            <button type="submit" disabled={isSubmitting} className={`w-full text-white font-bold py-4 rounded-xl shadow-lg mt-6 transition ${isSubmitting ? 'bg-gray-400' : (isStore ? 'bg-amber-600 hover:bg-amber-700' : 'bg-grita-red hover:bg-grita-darkred')}`}>
-                                {isSubmitting ? 'Guardando...' : 'Completar Registro'}
+                            <button type="submit" className="w-full bg-grita-red hover:bg-grita-darkred text-white font-bold py-3.5 rounded-xl shadow-lg mt-4 transition text-sm">
+                                Completar Registro
                             </button>
                         </form>
                     </div>
                 );
             };
 
-            const ClientDashboard = ({ user, onLogout, onOrderComplete }) => {
-                const [pickupLocation, setPickupLocation] = useState(null);
+            const MercadoDashboard = ({ user, onLogout, onOrderComplete }) => {
+                const [internalView, setInternalView] = useState('shop'); // shop, cart, checkout
+                const [cart, setCart] = useState({});
+                const [categoryIdx, setCategoryIdx] = useState(0);
+                const [paymentCurrency, setPaymentCurrency] = useState('COP');
+                
+                // Delivery/Checkout state
                 const [dropoffLocation, setDropoffLocation] = useState(null);
-                const [pickupText, setPickupText] = useState('');
-                const [dropoffText, setDropoffText] = useState('');
-                const [exactDropoff, setExactDropoff] = useState('');
-                const [step, setStep] = useState(1); 
+                const [exactDropoff, setExactDropoff] = useState(user.address || '');
                 const [routeInfo, setRouteInfo] = useState(null);
-                const [isLoading, setIsLoading] = useState(false);
 
                 const mapRef = useRef(null);
                 const mapInstance = useRef(null);
-                const markerOrigen = useRef(null);
                 const markerDestino = useRef(null);
-                const stepRef = useRef(step);
-                const pickupRef = useRef(pickupLocation);
 
-                useEffect(() => { stepRef.current = step; }, [step]);
-                useEffect(() => { pickupRef.current = pickupLocation; }, [pickupLocation]);
+                const currentCat = mercadoCategories[categoryIdx];
+                const currentProducts = mercadoInventory.filter(p => p.category === currentCat);
+                const totalItems = Object.keys(cart).length;
+                const cartSubtotalCOP = Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-                const searchAddress = async (text, type) => {
-                    if (!text) return;
-                    setIsLoading(true);
-                    try {
-                        const query = `${text}, La Grita, Táchira, Venezuela`;
-                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
-                        const data = await res.json();
-                        
-                        if (data && data.length > 0) {
-                            const latlng = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-                            if (type === 'pickup') {
-                                setPickupLocation(latlng);
-                                setStep(2);
-                            } else {
-                                setDropoffLocation(latlng);
-                                calculateRideInfo(pickupLocation, latlng);
-                            }
-                        } else {
-                            showAlert("No encontramos la dirección exacta. Toca el mapa.");
-                        }
-                    } catch (error) { console.error("Error buscando:", error); }
-                    setIsLoading(false);
+                const updateCart = (name, qty, price) => {
+                    const cleanQty = Math.max(0, Math.round(qty * 100) / 100);
+                    setCart(prev => {
+                        const newCart = { ...prev };
+                        if (cleanQty <= 0) delete newCart[name];
+                        else newCart[name] = { quantity: cleanQty, price };
+                        return newCart;
+                    });
                 };
 
-                const getAddressFromCoords = async (lat, lng, type) => {
-                    try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-                        const data = await res.json();
-                        const addr = data.display_name ? data.display_name.split(',')[0] + ', ' + (data.display_name.split(',')[1] || '') : "Ubicación en el mapa";
-                        if (type === 'pickup') setPickupText(addr);
-                        else setDropoffText(addr);
-                    } catch (error) { console.error(error); }
-                };
-
-                const calculateRideInfo = (start, end) => {
-                    if (!start || !end) return;
-                    const distKm = calculateDistance(start.lat, start.lng, end.lat, end.lng);
-                    const distanceKmFixed = distKm.toFixed(1); 
-                    const fares = calculateFares(distKm);
-
-                    setRouteInfo({ distance: distanceKmFixed, cop: fares.cop, usd: fares.usd, ves: fares.ves, admin: fares.admin });
-                    setStep(3);
-                };
-
-                useEffect(() => {
+                const setupMap = () => {
                     if (!mapInstance.current && mapRef.current) {
                         mapInstance.current = L.map(mapRef.current, { zoomControl: false }).setView(LA_GRITA_COORDS, 15);
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance.current);
-
-                        mapInstance.current.on('click', (e) => {
-                            const currentStep = stepRef.current;
-                            if (currentStep === 1) {
-                                setPickupLocation(e.latlng);
-                                getAddressFromCoords(e.latlng.lat, e.latlng.lng, 'pickup');
-                                setStep(2);
-                            } else if (currentStep === 2) {
-                                setDropoffLocation(e.latlng);
-                                getAddressFromCoords(e.latlng.lat, e.latlng.lng, 'dropoff');
-                                calculateRideInfo(pickupRef.current, e.latlng);
-                            }
-                        });
-                    }
-                }, []);
-
-                useEffect(() => {
-                    if (!mapInstance.current) return;
-                    
-                    const greenIcon = L.divIcon({ html: `<div class="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-lg"></div>`, className: '' });
-                    const redIcon = L.divIcon({ html: `<div class="w-4 h-4 bg-red-600 rounded-full border-2 border-white shadow-lg"></div>`, className: '' });
-
-                    if (pickupLocation) {
-                        if(!markerOrigen.current) markerOrigen.current = L.marker(pickupLocation, {icon: greenIcon}).addTo(mapInstance.current);
-                        else markerOrigen.current.setLatLng(pickupLocation);
-                        mapInstance.current.setView(pickupLocation, 16);
-                    } else if (markerOrigen.current) {
-                        mapInstance.current.removeLayer(markerOrigen.current);
-                        markerOrigen.current = null;
-                    }
-
-                    if (dropoffLocation) {
-                        if(!markerDestino.current) markerDestino.current = L.marker(dropoffLocation, {icon: redIcon}).addTo(mapInstance.current);
-                        else markerDestino.current.setLatLng(dropoffLocation);
                         
-                        if (pickupLocation) {
-                           mapInstance.current.fitBounds(L.latLngBounds([pickupLocation, dropoffLocation]), { padding: [50, 50] });
-                        }
-                    } else if (markerDestino.current) {
-                        mapInstance.current.removeLayer(markerDestino.current);
-                        markerDestino.current = null;
-                    }
-                }, [pickupLocation, dropoffLocation]);
-
-                const resetMap = () => {
-                    setPickupLocation(null); setDropoffLocation(null);
-                    setPickupText(''); setDropoffText(''); setExactDropoff('');
-                    setRouteInfo(null); setStep(1);
-                    if(mapInstance.current) mapInstance.current.setView(LA_GRITA_COORDS, 15);
-                };
-
-                const requestRideWhatsApp = async () => {
-                    if (!exactDropoff) {
-                        showAlert("Por favor ingresa la dirección exacta de destino.");
-                        return;
-                    }
-
-                    const linkOrigen = `https://www.google.com/maps/search/?api=1&query=${pickupLocation.lat},${pickupLocation.lng}`;
-                    const linkDestino = `https://www.google.com/maps/search/?api=1&query=${dropoffLocation.lat},${dropoffLocation.lng}`;
-                    
-                    const rawText = `🏍️ *NUEVA SOLICITUD DE MOTO UBGRIT*\n\n*Pasajero:* ${user.name} ${user.last || ''}\n*Teléfono:* ${user.phone}\n\n🟢 *PUNTO DE RECOGIDA:*\n${pickupText}\n${linkOrigen}\n\n🔴 *DESTINO EXACTO:* ${exactDropoff}\n${dropoffText}\n${linkDestino}\n\n📏 *Distancia:* ${routeInfo.distance} km\n💵 *Tarifa:* ${routeInfo.cop.toLocaleString()} COP ($${routeInfo.usd} USD / Bs. ${routeInfo.ves})\n📈 *Comisión Admin (12%):* ${routeInfo.admin.toLocaleString()} COP\n\n¡Atender solicitud de inmediato!`;
-                    const encodedText = encodeURIComponent(rawText);
-
-                    try {
-                        await fetch(GOOGLE_SCRIPT_URL, {
-                            method: 'POST',
-                            mode: 'no-cors',
-                            headers: { 'Content-Type': 'text/plain' },
-                            body: JSON.stringify({
-                                action: 'new_ride',
-                                passenger: `${user.name} ${user.last || ''}`,
-                                phone: user.phone,
-                                pickup: pickupText,
-                                dropoff: `${exactDropoff} - ${dropoffText}`,
-                                distance: routeInfo.distance,
-                                cop: routeInfo.cop,
-                                ves: routeInfo.ves,
-                                adminCut: routeInfo.admin
-                            })
-                        });
-                    } catch (e) {
-                        console.error("Error al registrar", e);
-                    }
-
-                    window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodedText}`, '_blank');
-                    resetMap();
-                    onOrderComplete();
-                };
-
-                return (
-                    <div className="flex flex-col h-full bg-gray-100">
-                        <div className="bg-red-700 text-white p-4 flex justify-between items-center shadow-md z-10 relative">
-                            <h1 className="text-lg font-bold flex items-center gap-2"><i className="fas fa-motorcycle"></i> Moto UBGrit (Pasajero)</h1>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-medium truncate max-w-[100px]">{user.name}</span>
-                                <button onClick={onLogout} className="text-white text-xs bg-black px-2.5 py-1.5 rounded hover:bg-gray-800">Salir</button>
-                            </div>
-                        </div>
-
-                        <div className="bg-white p-4 shadow-md z-10 relative flex flex-col gap-3">
-                            <div className="flex items-center gap-2 border p-2 rounded-lg bg-gray-50">
-                                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${pickupLocation ? 'bg-green-500' : 'bg-gray-400 animate-pulse'}`}></div>
-                                <input type="text" placeholder="Origen (Escribe o toca el mapa)" className="flex-1 bg-transparent outline-none text-xs"
-                                    value={pickupText} onChange={(e) => setPickupText(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && searchAddress(pickupText, 'pickup')} disabled={step > 1}
-                                />
-                                {step === 1 && <button onClick={() => searchAddress(pickupText, 'pickup')} className="text-green-600 font-bold text-xs">{isLoading ? '...' : 'Buscar'}</button>}
-                            </div>
-
-                            <div className="flex items-center gap-2 border p-2 rounded-lg bg-gray-50">
-                                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${dropoffLocation ? 'bg-red-600' : (step === 2 ? 'bg-gray-400 animate-pulse' : 'bg-gray-200')}`}></div>
-                                <input type="text" placeholder="Destino (Escribe o toca el mapa)" className="flex-1 bg-transparent outline-none text-xs"
-                                    value={dropoffText} onChange={(e) => setDropoffText(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && searchAddress(dropoffText, 'dropoff')} disabled={step !== 2}
-                                />
-                                {step === 2 && <button onClick={() => searchAddress(dropoffText, 'dropoff')} className="text-red-600 font-bold text-xs">{isLoading ? '...' : 'Buscar'}</button>}
-                            </div>
-
-                            {step === 3 && (
-                                <input type="text" placeholder="Dirección exacta (Ej. Casa blanca portón negro)" className="w-full p-2.5 border rounded-lg bg-amber-50 border-amber-300 text-xs font-medium"
-                                    value={exactDropoff} onChange={e => setExactDropoff(e.target.value)}
-                                />
-                            )}
-                            
-                            {step === 3 && <button onClick={resetMap} className="text-xs text-blue-600 font-bold underline self-end">Editar ruta</button>}
-                        </div>
-
-                        <div className="flex-1 relative">
-                            <div ref={mapRef} className="h-full w-full absolute inset-0 z-0"></div>
-                        </div>
-
-                        {step === 3 && routeInfo && (
-                            <div className="bg-white p-5 rounded-t-3xl shadow-[0_-4px_15px_rgba(0,0,0,0.1)] z-10 relative">
-                                <h3 className="font-bold text-base mb-3 text-center">Resumen del Viaje</h3>
-                                <div className="flex justify-between items-center mb-4 bg-gray-50 p-3 rounded-xl border">
-                                    <div className="text-center">
-                                        <p className="text-[10px] text-gray-500">Distancia</p>
-                                        <p className="font-bold text-sm">{routeInfo.distance} km</p>
-                                    </div>
-                                    <div className="h-8 w-px bg-gray-300"></div>
-                                    <div className="text-center">
-                                        <p className="text-[10px] text-gray-500">Tarifa Estimada</p>
-                                        <p className="font-bold text-red-600 text-base">{routeInfo.cop.toLocaleString()} COP</p>
-                                        <p className="text-[10px] font-bold text-green-600">${routeInfo.usd} USD / Bs. {routeInfo.ves}</p>
-                                    </div>
-                                </div>
-                                <button onClick={requestRideWhatsApp} className="w-full bg-red-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-red-700 flex items-center justify-center gap-2 text-sm">
-                                    <i className="fa-brands fa-whatsapp text-xl"></i> Enviar Solicitud Directa
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                );
-            };
-
-            const StoreDashboard = ({ user, onLogout, onOrderComplete }) => {
-                const [productDesc, setProductDesc] = useState('');
-                const [receiverName, setReceiverName] = useState('');
-                const [receiverPhone, setReceiverPhone] = useState('');
-                const [exactDropoff, setExactDropoff] = useState('');
-                const [dropoffLocation, setDropoffLocation] = useState(null);
-                const [dropoffText, setDropoffText] = useState('');
-                const [routeInfo, setRouteInfo] = useState(null);
-
-                const mapRef = useRef(null);
-                const mapInstance = useRef(null);
-                const markerDestino = useRef(null);
-
-                const storeCoords = user.coords || LA_GRITA_COORDS;
-
-                const searchDestination = async (text) => {
-                    if (!text) return;
-                    try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text + ", La Grita, Táchira")}&limit=1`);
-                        const data = await res.json();
-                        if (data && data.length > 0) {
-                            const latlng = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-                            setDropoffLocation(latlng);
-                            calculateDeliveryFare(latlng);
-                        } else {
-                            showAlert("No se encontró la dirección en el mapa.");
-                        }
-                    } catch (e) { console.error(e); }
-                };
-
-                const calculateDeliveryFare = (end) => {
-                    const distKm = calculateDistance(storeCoords[0], storeCoords[1], end.lat, end.lng);
-                    const distanceKmFixed = distKm.toFixed(1); 
-                    const fares = calculateFares(distKm);
-
-                    setRouteInfo({ distance: distanceKmFixed, cop: fares.cop, usd: fares.usd, ves: fares.ves, admin: fares.admin });
-                };
-
-                useEffect(() => {
-                    if (!mapInstance.current && mapRef.current) {
-                        mapInstance.current = L.map(mapRef.current).setView(storeCoords, 15);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance.current);
-
-                        const storeIcon = L.divIcon({ html: `<div class="w-6 h-6 bg-amber-600 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white text-xs"><i class="fa-solid fa-store"></i></div>`, className: '' });
-                        L.marker(storeCoords, { icon: storeIcon }).addTo(mapInstance.current).bindPopup(`<b>${user.storeName}</b>`);
-
                         mapInstance.current.on('click', (e) => {
                             setDropoffLocation(e.latlng);
-                            calculateDeliveryFare(e.latlng);
+                            const distKm = calculateDistance(LA_GRITA_COORDS[0], LA_GRITA_COORDS[1], e.latlng.lat, e.latlng.lng);
+                            const fares = calculateFares(distKm);
+                            setRouteInfo({ distance: distKm.toFixed(1), ...fares });
                         });
                     }
-                }, []);
+                };
+
+                useEffect(() => {
+                    if (internalView === 'checkout') setTimeout(setupMap, 100);
+                }, [internalView]);
 
                 useEffect(() => {
                     if (!mapInstance.current) return;
@@ -757,265 +492,254 @@
                     }
                 }, [dropoffLocation]);
 
-                const resetForm = () => {
-                    setProductDesc(''); setReceiverName(''); setReceiverPhone('');
-                    setExactDropoff(''); setDropoffText(''); setDropoffLocation(null); setRouteInfo(null);
-                    if (markerDestino.current && mapInstance.current) {
-                        mapInstance.current.removeLayer(markerDestino.current);
-                        markerDestino.current = null;
-                    }
-                };
-
-                const requestDeliveryWhatsApp = async () => {
-                    if (!productDesc || !receiverName || !receiverPhone || !exactDropoff || !dropoffLocation) {
-                        showAlert("Por favor completa todos los datos y marca el destino en el mapa.");
+                const submitMarketOrder = async () => {
+                    if (!dropoffLocation || !exactDropoff) {
+                        showAlert("Por favor, marca tu ubicación en el mapa y escribe la dirección exacta.");
                         return;
                     }
 
-                    const linkOrigen = `https://www.google.com/maps/search/?api=1&query=${storeCoords[0]},${storeCoords[1]}`;
+                    const deliveryFee = routeInfo.cop;
+                    const grandTotalCOP = cartSubtotalCOP + deliveryFee;
+                    
+                    let orderText = Object.keys(cart).map(k => `${formatQuantity(cart[k].quantity, k)} ${k}`).join(", ");
                     const linkDestino = `https://www.google.com/maps/search/?api=1&query=${dropoffLocation.lat},${dropoffLocation.lng}`;
-
-                    const rawText = `📦 *ENCOMIENDA - MOTO UBGRIT*\n\n*Local:* ${user.storeName}\n🛍️ *Producto:* ${productDesc}\n👤 *Recibe:* ${receiverName} (${receiverPhone})\n\n📍 *ORIGEN:* ${user.address}\n${linkOrigen}\n\n📍 *DESTINO EXACTO:* ${exactDropoff}\n${dropoffText}\n${linkDestino}\n\n📏 *Distancia:* ${routeInfo.distance} km\n💵 *Tarifa:* ${routeInfo.cop.toLocaleString()} COP ($${routeInfo.usd} USD / Bs. ${routeInfo.ves})\n📈 *Comisión Admin (12%):* ${routeInfo.admin.toLocaleString()} COP\n\n¡Motorizado requerido!`;
+                    
+                    const rawText = `🛒 *NUEVO PEDIDO: MERCADO EN CASA*\n\n*Cliente:* ${user.name}\n*Tel:* ${user.phone}\n\n*PRODUCTOS:*\n${orderText}\n\n*Subtotal:* ${cartSubtotalCOP.toLocaleString()} COP\n*Delivery:* ${deliveryFee.toLocaleString()} COP\n💰 *TOTAL A PAGAR:* ${grandTotalCOP.toLocaleString()} COP\n💵 *Moneda de pago:* ${paymentCurrency}\n📈 *Comisión Admin (12% del delivery):* ${routeInfo.admin.toLocaleString()} COP\n\n📍 *ENTREGA:* ${exactDropoff}\n${linkDestino}`;
                     const encodedText = encodeURIComponent(rawText);
 
+                    // Send to Sheets
                     try {
                         await fetch(GOOGLE_SCRIPT_URL, {
-                            method: 'POST',
-                            mode: 'no-cors',
+                            method: 'POST', mode: 'no-cors',
                             headers: { 'Content-Type': 'text/plain' },
                             body: JSON.stringify({
                                 action: 'new_ride',
-                                passenger: `${user.storeName} (${receiverName})`,
-                                phone: receiverPhone,
-                                pickup: `${user.storeName} (${user.address})`,
-                                dropoff: `${receiverName} - ${exactDropoff}`,
+                                passenger: `MERCADO - ${user.name}`,
+                                phone: user.phone,
+                                pickup: "Mercado Central",
+                                dropoff: exactDropoff,
                                 distance: routeInfo.distance,
-                                cop: routeInfo.cop,
-                                ves: routeInfo.ves,
-                                adminCut: routeInfo.admin
+                                cop: grandTotalCOP, 
+                                ves: (grandTotalCOP / TASA_VES_COP).toFixed(2),
+                                adminCut: routeInfo.admin // Admin cut ONLY on delivery fee
                             })
                         });
-                    } catch (e) {
-                        console.error("Error al registrar", e);
-                    }
+                    } catch (e) { console.log(e); }
 
                     window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodedText}`, '_blank');
-                    resetForm();
                     onOrderComplete();
                 };
 
                 return (
-                    <div className="flex flex-col h-full bg-gray-100">
-                        <div className="bg-amber-600 text-white p-4 flex justify-between items-center shadow-md z-10 relative">
-                            <h1 className="text-base font-bold truncate max-w-[200px]"><i className="fas fa-store"></i> {user.storeName}</h1>
-                            <button onClick={onLogout} className="text-white text-xs bg-black px-2.5 py-1.5 rounded hover:bg-gray-800">Salir</button>
-                        </div>
-
-                        <div className="bg-white p-3 shadow-md z-10 relative space-y-2">
-                            <input type="text" placeholder="Descripción (Ej. 2 Almuerzos)" className="w-full p-2 border rounded-lg bg-gray-50 text-xs"
-                                value={productDesc} onChange={e => setProductDesc(e.target.value)}
-                            />
-                            <div className="grid grid-cols-2 gap-2">
-                                <input type="text" placeholder="Nombre de quien recibe" className="p-2 border rounded-lg bg-gray-50 text-xs"
-                                    value={receiverName} onChange={e => setReceiverName(e.target.value)}
-                                />
-                                <input type="tel" placeholder="Teléfono" className="p-2 border rounded-lg bg-gray-50 text-xs"
-                                    value={receiverPhone} onChange={e => setReceiverPhone(e.target.value)}
-                                />
-                            </div>
-                            <input type="text" placeholder="Dirección exacta de entrega" className="w-full p-2 border rounded-lg bg-amber-50 border-amber-300 text-xs font-medium"
-                                value={exactDropoff} onChange={e => setExactDropoff(e.target.value)}
-                            />
-                            <div className="flex items-center gap-2 border p-2 rounded-lg bg-gray-50">
-                                <div className="w-3 h-3 bg-red-600 rounded-full flex-shrink-0"></div>
-                                <input type="text" placeholder="Buscar zona o tocar mapa..." className="flex-1 bg-transparent outline-none text-xs"
-                                    value={dropoffText} onChange={e => setDropoffText(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && searchDestination(dropoffText)}
-                                />
-                                <button onClick={() => searchDestination(dropoffText)} className="text-red-600 font-bold text-xs">Buscar</button>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 relative">
-                            <div ref={mapRef} className="h-full w-full absolute inset-0 z-0"></div>
-                        </div>
-
-                        {routeInfo && (
-                            <div className="bg-white p-4 rounded-t-3xl shadow-[0_-4px_15px_rgba(0,0,0,0.1)] z-10 relative">
-                                <div className="flex justify-between items-center mb-3 bg-gray-50 p-2.5 rounded-xl border">
-                                    <div>
-                                        <p className="text-[10px] text-gray-500">Distancia</p>
-                                        <p className="font-bold text-xs">{routeInfo.distance} km</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] text-gray-500">Tarifa Encomienda</p>
-                                        <p className="font-bold text-amber-600 text-sm">{routeInfo.cop.toLocaleString()} COP</p>
-                                        <p className="text-[10px] font-bold text-green-600">${routeInfo.usd} USD / Bs. {routeInfo.ves}</p>
-                                    </div>
+                    <div className="flex flex-col h-full bg-gray-50 w-full overflow-hidden">
+                        {/* Header */}
+                        <div className="bg-green-600 text-white p-3 flex justify-between items-center shadow-md z-10 shrink-0">
+                            <div className="flex items-center gap-2" onClick={() => setInternalView('shop')}>
+                                <i className="fa-solid fa-basket-shopping text-xl"></i>
+                                <div>
+                                    <h1 className="text-sm font-black leading-none">MERCADO</h1>
+                                    <span className="text-[9px] font-medium opacity-80">{user.name.split(' ')[0]}</span>
                                 </div>
-                                <button onClick={requestDeliveryWhatsApp} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-red-700 flex items-center justify-center gap-2 text-xs">
-                                    <i className="fa-brands fa-whatsapp text-lg"></i> Enviar Encomienda al Admin
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => setInternalView('cart')} className="relative bg-green-700 p-2 rounded-full shadow-inner">
+                                    <i className="fa-solid fa-cart-shopping text-sm"></i>
+                                    {totalItems > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white">{totalItems}</span>}
                                 </button>
+                                <button onClick={onLogout} className="bg-black/30 p-2 rounded-full text-xs"><i className="fa-solid fa-right-from-bracket"></i></button>
+                            </div>
+                        </div>
+
+                        {internalView === 'shop' && (
+                            <div className="flex-1 overflow-y-auto p-3">
+                                {/* Categories */}
+                                <div className="flex items-center justify-between bg-white p-3 rounded-2xl shadow-sm mb-4 border border-green-100">
+                                    <button onClick={() => setCategoryIdx(Math.max(0, categoryIdx-1))} disabled={categoryIdx===0} className="text-green-600 disabled:opacity-30"><i className="fa-solid fa-chevron-left text-lg"></i></button>
+                                    <h2 className="text-[11px] font-black text-green-800 uppercase tracking-widest text-center px-1">{currentCat}</h2>
+                                    <button onClick={() => setCategoryIdx(Math.min(mercadoCategories.length-1, categoryIdx+1))} disabled={categoryIdx===mercadoCategories.length-1} className="text-green-600 disabled:opacity-30"><i className="fa-solid fa-chevron-right text-lg"></i></button>
+                                </div>
+                                {/* Products Grid */}
+                                <div className="grid grid-cols-2 gap-3 pb-6">
+                                    {currentProducts.map(p => {
+                                        const qty = cart[p.name]?.quantity || 0;
+                                        return (
+                                            <div key={p.name} className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                                                <div className="text-3xl mb-1">{p.icon}</div>
+                                                <h3 className="font-bold text-gray-800 text-[11px] leading-tight mb-1 h-6 flex items-center justify-center">{p.name}</h3>
+                                                <p className="text-green-700 font-black text-[11px] mb-3">{p.price.toLocaleString()} COP</p>
+                                                
+                                                {qty === 0 ? (
+                                                    <button onClick={() => updateCart(p.name, 0.25, p.price)} className="w-full bg-green-50 text-green-700 border border-green-200 py-1.5 rounded-lg text-xs font-bold">Agregar</button>
+                                                ) : (
+                                                    <div className="flex items-center justify-between w-full bg-gray-50 rounded-lg p-1 border">
+                                                        <button onClick={() => updateCart(p.name, qty-0.25, p.price)} className="w-6 h-6 bg-white rounded text-red-500 shadow-sm font-bold">-</button>
+                                                        <span className="font-bold text-[10px]">{formatQuantity(qty, p.name)}</span>
+                                                        <button onClick={() => updateCart(p.name, qty+0.25, p.price)} className="w-6 h-6 bg-white rounded text-green-600 shadow-sm font-bold">+</button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {internalView === 'cart' && (
+                            <div className="flex-1 overflow-y-auto p-4 flex flex-col">
+                                <h2 className="text-base font-black text-gray-800 mb-3 border-b pb-2">Tu Carrito</h2>
+                                {totalItems === 0 ? (
+                                    <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
+                                        <i className="fa-solid fa-basket-shopping text-5xl mb-3 opacity-50"></i>
+                                        <p className="text-xs font-bold">El carrito está vacío</p>
+                                        <button onClick={()=>setInternalView('shop')} className="mt-4 bg-green-100 text-green-700 px-4 py-2 rounded-full text-xs font-bold">Volver al Mercado</button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 p-2">
+                                            {Object.keys(cart).map(name => (
+                                                <div key={name} className="flex justify-between items-center p-2 border-b last:border-0 border-gray-50">
+                                                    <div>
+                                                        <p className="font-bold text-xs text-gray-800">{name}</p>
+                                                        <p className="text-[10px] text-gray-500">{formatQuantity(cart[name].quantity, name)}</p>
+                                                    </div>
+                                                    <p className="font-black text-xs text-green-700">{(cart[name].price * cart[name].quantity).toLocaleString()} COP</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="flex justify-between items-center bg-green-50 p-3 rounded-xl border border-green-200 mb-6">
+                                            <span className="font-bold text-sm text-green-900">Subtotal</span>
+                                            <span className="font-black text-lg text-green-700">{cartSubtotalCOP.toLocaleString()} COP</span>
+                                        </div>
+                                        <button onClick={()=>setInternalView('checkout')} className="w-full bg-green-600 text-white font-black py-3.5 rounded-xl shadow-lg mt-auto text-sm">
+                                            Continuar (Envío) <i className="fa-solid fa-arrow-right ml-1"></i>
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        {internalView === 'checkout' && (
+                            <div className="flex-1 flex flex-col relative">
+                                <div className="bg-white p-3 shadow-md z-10 shrink-0 space-y-2 relative">
+                                    <p className="text-xs font-bold text-gray-600"><i className="fa-solid fa-location-dot text-red-500"></i> Marca en el mapa tu casa</p>
+                                    <input type="text" placeholder="Escribe detalles (Ej. Casa amarilla)" className="w-full p-2.5 border rounded-lg bg-amber-50 border-amber-300 text-xs font-medium"
+                                        value={exactDropoff} onChange={e => setExactDropoff(e.target.value)} />
+                                </div>
+                                <div className="flex-1 relative min-h-[200px]">
+                                    <div ref={mapRef} className="h-full w-full absolute inset-0 z-0"></div>
+                                </div>
+                                {routeInfo && (
+                                    <div className="bg-white p-4 rounded-t-3xl shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-10 shrink-0 overflow-y-auto max-h-[50vh]">
+                                        <div className="flex justify-between mb-1 text-xs">
+                                            <span className="text-gray-500">Subtotal Productos</span>
+                                            <span className="font-bold">{cartSubtotalCOP.toLocaleString()} COP</span>
+                                        </div>
+                                        <div className="flex justify-between mb-3 text-xs border-b pb-2">
+                                            <span className="text-gray-500">Delivery ({routeInfo.distance} km)</span>
+                                            <span className="font-bold text-orange-500">+{routeInfo.cop.toLocaleString()} COP</span>
+                                        </div>
+                                        <div className="flex justify-between items-center mb-3">
+                                            <span className="font-black text-sm">TOTAL</span>
+                                            <div className="text-right">
+                                                <span className="font-black text-lg text-green-700">{(cartSubtotalCOP + routeInfo.cop).toLocaleString()} COP</span>
+                                                <p className="text-[9px] text-gray-400">Admin Cut: {routeInfo.admin.toLocaleString()} COP</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <h3 className="font-bold text-center mb-2 text-xs text-gray-800">Seleccione Moneda de Pago</h3>
+                                        <div className="grid grid-cols-3 gap-2 mb-2">
+                                            {['COP', 'VES', 'USD'].map(c => (
+                                                <button key={c} onClick={() => setPaymentCurrency(c)} className={`py-1.5 rounded-lg text-xs font-bold border ${paymentCurrency === c ? 'bg-green-100 border-green-500 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>{c}</button>
+                                            ))}
+                                        </div>
+                                        
+                                        {/* Modificación solicitada: Eliminación de datos bancarios de pago móvil para VES */}
+                                        {paymentCurrency === 'VES' && (
+                                            <div className="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-200 text-sm shadow-inner">
+                                                <p className="font-black uppercase mb-1 flex items-center justify-center gap-1 text-blue-900 text-xs">Pago en Bolívares (VES)</p>
+                                                <p className="text-blue-800 bg-blue-100 p-2 rounded-lg font-bold text-center">Monto a cancelar:<br/><span className="text-base text-blue-900">{((cartSubtotalCOP + routeInfo.cop) / TASA_VES_COP).toLocaleString(undefined, {maximumFractionDigits: 2})} VES</span></p>
+                                            </div>
+                                        )}
+                                        {paymentCurrency === 'USD' && (
+                                            <div className="mb-4 p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-sm shadow-inner">
+                                                <p className="font-black uppercase mb-1 flex items-center justify-center gap-1 text-emerald-900 text-xs">Pago en Dólares (USD)</p>
+                                                <p className="text-emerald-800 bg-emerald-100 p-2 rounded-lg font-bold text-center">Monto a cancelar:<br/><span className="text-base text-emerald-900">${((cartSubtotalCOP + routeInfo.cop) / TASA_USD_COP).toFixed(2)} USD</span></p>
+                                            </div>
+                                        )}
+
+                                        <button onClick={submitMarketOrder} className="w-full bg-green-600 text-white font-black py-3 rounded-xl shadow-lg text-sm flex justify-center items-center gap-2 mt-2">
+                                            <i className="fa-brands fa-whatsapp text-lg"></i> Pedir por WhatsApp
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
                 );
             };
 
-            const DriverDashboard = ({ user, onLogout }) => {
-                const driverData = usersDB.find(u => u.id === user.id) || user;
-                const [isOnline, setIsOnline] = useState(driverData.isOnline);
+            const ClientDashboard = ({ user, onLogout }) => (
+                <div className="flex flex-col h-full bg-gray-50 items-center justify-center p-6 text-center">
+                    <div className="w-16 h-16 bg-red-100 text-grita-red rounded-full flex items-center justify-center mb-4"><i className="fa-solid fa-user text-2xl"></i></div>
+                    <h2 className="text-lg font-bold mb-1">Hola, {user.name}</h2>
+                    <p className="text-xs text-gray-500 mb-6">Panel de Pasajero Activo</p>
+                    <button onClick={() => window.open(`https://wa.me/${ADMIN_PHONE}?text=Hola Admin, necesito un Moto UBGrit...`, '_blank')} className="w-full bg-grita-red text-white font-bold py-3.5 rounded-xl shadow mb-3 text-sm flex items-center justify-center gap-2">
+                        <i className="fa-brands fa-whatsapp"></i> Solicitar Moto Rápido
+                    </button>
+                    <button onClick={onLogout} className="text-xs font-bold text-gray-400 underline">Cerrar Sesión</button>
+                </div>
+            );
 
-                const toggleStatus = () => {
-                    setIsOnline(!isOnline);
-                    showAlert(isOnline ? "Estás desconectado" : "Estás en línea", "success");
-                };
+            const StoreDashboard = ({ user, onLogout }) => (
+                <div className="flex flex-col h-full bg-gray-50 items-center justify-center p-6 text-center">
+                    <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4"><i className="fa-solid fa-store text-2xl"></i></div>
+                    <h2 className="text-lg font-bold mb-1">{user.storeName}</h2>
+                    <p className="text-xs text-gray-500 mb-6">Panel de Encomiendas</p>
+                    <button onClick={() => window.open(`https://wa.me/${ADMIN_PHONE}?text=Hola Admin, tengo una encomienda en ${user.storeName}...`, '_blank')} className="w-full bg-amber-600 text-white font-bold py-3.5 rounded-xl shadow mb-3 text-sm flex items-center justify-center gap-2">
+                        <i className="fa-brands fa-whatsapp"></i> Enviar Encomienda
+                    </button>
+                    <button onClick={onLogout} className="text-xs font-bold text-gray-400 underline">Cerrar Sesión</button>
+                </div>
+            );
 
-                return (
-                    <div className="flex flex-col h-full bg-gray-50">
-                        <div className="bg-grita-black text-white p-5 rounded-b-[2rem] shadow-lg">
-                            <div className="flex justify-between items-center mb-4">
-                                <div>
-                                    <h2 className="text-lg font-bold">{user.name}</h2>
-                                    <p className="text-gray-400 text-xs">{user.vehicle} • {user.plate}</p>
-                                </div>
-                                <button onClick={onLogout} className="bg-white/10 px-3 py-1.5 rounded-lg text-xs font-bold">Salir</button>
-                            </div>
-                            <div className="bg-white rounded-xl p-3 text-grita-black flex items-center justify-between shadow-md">
-                                <div className="flex items-center gap-2">
-                                    <div className={`w-3.5 h-3.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                                    <span className="font-bold text-xs">{isOnline ? 'En Línea' : 'Fuera de Línea'}</span>
-                                </div>
-                                <button onClick={toggleStatus} className={`px-3 py-1.5 rounded-lg font-bold text-white text-xs transition ${isOnline ? 'bg-red-500' : 'bg-grita-black'}`}>
-                                    {isOnline ? 'Desconectar' : 'Conectar'}
-                                </button>
-                            </div>
-                        </div>
+            const DriverDashboard = ({ user, onLogout }) => (
+                <div className="flex flex-col h-full bg-gray-50 items-center justify-center p-6 text-center">
+                    <div className="w-16 h-16 bg-gray-200 text-gray-700 rounded-full flex items-center justify-center mb-4"><i className="fa-solid fa-motorcycle text-2xl"></i></div>
+                    <h2 className="text-lg font-bold mb-1">{user.name}</h2>
+                    <p className="text-xs text-green-600 font-bold mb-6 flex items-center justify-center gap-1"><span className="w-2 h-2 bg-green-500 rounded-full inline-block"></span> En Línea</p>
+                    <button onClick={() => window.open(`https://wa.me/${ADMIN_PHONE}?text=Hola Admin, soy conductor activo.`, '_blank')} className="w-full bg-green-500 text-white font-bold py-3.5 rounded-xl shadow mb-3 text-sm flex items-center justify-center gap-2">
+                        <i className="fa-brands fa-whatsapp"></i> Chat Administrador
+                    </button>
+                    <button onClick={onLogout} className="text-xs font-bold text-gray-400 underline">Cerrar Sesión</button>
+                </div>
+            );
 
-                        <div className="p-5 flex-grow overflow-y-auto">
-                            <div className="bg-white p-4 rounded-xl shadow border text-center py-6">
-                                <i className="fa-solid fa-motorcycle text-3xl text-grita-red mb-2"></i>
-                                <p className="text-gray-600 text-xs">Recibirás las notificaciones de carreras a través del WhatsApp y el Administrador.</p>
-                            </div>
-                        </div>
-                        <div className="p-3 bg-white border-t">
-                            <button onClick={()=>window.open(`https://wa.me/${ADMIN_PHONE}?text=Hola Admin, soy el conductor ${user.name}...`, '_blank')} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 text-xs">
-                                <i className="fa-brands fa-whatsapp text-lg"></i> Chat con Administrador
-                            </button>
-                        </div>
-                    </div>
-                );
-            };
-
-            const AdminDashboard = () => {
-                const [tab, setTab] = useState('map'); 
-                const mapRef = useRef(null);
-                const mapInstance = useRef(null);
-
-                const drivers = usersDB.filter(u => u.role === 'driver');
-                const stores = storesDB;
-                const clients = usersDB.filter(u => u.role === 'client');
-
-                useEffect(() => {
-                    if (tab === 'map' && !mapInstance.current && mapRef.current) {
-                        mapInstance.current = L.map(mapRef.current).setView(LA_GRITA_COORDS, 15);
-                        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png').addTo(mapInstance.current);
-                    }
-
-                    if (tab === 'map' && mapInstance.current) {
-                        mapInstance.current.eachLayer((layer) => {
-                            if (layer instanceof L.Marker) mapInstance.current.removeLayer(layer);
-                        });
-
-                        drivers.filter(d => d.isOnline).forEach(m => {
-                            const icon = L.divIcon({
-                                html: `<div class="w-7 h-7 bg-black rounded-full flex items-center justify-center text-white border-2 border-grita-red"><i class="fa-solid fa-motorcycle text-[10px]"></i></div>`,
-                                className: '', iconSize: [28, 28], iconAnchor: [14, 14]
-                            });
-                            L.marker(m.coords || LA_GRITA_COORDS, {icon}).addTo(mapInstance.current).bindPopup(`<b>${m.name}</b>`);
-                        });
-
-                        stores.forEach(s => {
-                            const storeIcon = L.divIcon({
-                                html: `<div class="w-7 h-7 bg-amber-600 rounded-full flex items-center justify-center text-white border-2 border-white"><i class="fa-solid fa-store text-[10px]"></i></div>`,
-                                className: '', iconSize: [28, 28], iconAnchor: [14, 14]
-                            });
-                            L.marker(s.coords || LA_GRITA_COORDS, {icon: storeIcon}).addTo(mapInstance.current).bindPopup(`<b>${s.storeName}</b>`);
-                        });
-                    }
-                }, [tab, drivers, stores]);
-
-                return (
-                    <div className="flex flex-col h-full bg-gray-100">
-                        <div className="bg-grita-red text-white p-3 flex justify-between items-center shadow-md z-20">
-                            <span className="font-bold text-sm"><i className="fa-solid fa-shield-halved"></i> Panel Admin</span>
-                            <button onClick={logout} className="text-xs bg-black/20 px-2.5 py-1 rounded">Salir</button>
-                        </div>
-                        <div className="flex bg-white shadow-sm z-20 overflow-x-auto">
-                            <button onClick={()=>setTab('map')} className={`flex-1 py-2 px-3 font-bold text-xs border-b-2 whitespace-nowrap ${tab==='map'?'border-grita-red text-grita-red':'border-transparent text-gray-500'}`}>Mapa GPS</button>
-                            <button onClick={()=>setTab('clients')} className={`flex-1 py-2 px-3 font-bold text-xs border-b-2 whitespace-nowrap ${tab==='clients'?'border-grita-red text-grita-red':'border-transparent text-gray-500'}`}>Pasajeros ({clients.length})</button>
-                            <button onClick={()=>setTab('stores')} className={`flex-1 py-2 px-3 font-bold text-xs border-b-2 whitespace-nowrap ${tab==='stores'?'border-grita-red text-grita-red':'border-transparent text-gray-500'}`}>Locales ({stores.length})</button>
-                            <button onClick={()=>setTab('drivers')} className={`flex-1 py-2 px-3 font-bold text-xs border-b-2 whitespace-nowrap ${tab==='drivers'?'border-grita-red text-grita-red':'border-transparent text-gray-500'}`}>Choferes ({drivers.length})</button>
-                        </div>
-                        <div className="flex-grow relative overflow-hidden">
-                            {tab === 'map' && <div className="absolute inset-0"><div ref={mapRef} className="map-container"></div></div>}
-                            {tab === 'clients' && (
-                                <div className="h-full overflow-y-auto p-3 space-y-2 text-xs">
-                                    <h4 className="font-bold text-gray-700">Pasajeros</h4>
-                                    {clients.map(c => (
-                                        <div key={c.id} className="bg-white p-3 rounded-lg shadow border">
-                                            <p className="font-bold">{c.name} {c.last}</p>
-                                            <p className="text-gray-500">{c.email} • {c.phone}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            {tab === 'stores' && (
-                                <div className="h-full overflow-y-auto p-3 space-y-2 text-xs">
-                                    <h4 className="font-bold text-gray-700">Locales</h4>
-                                    {stores.map(s => (
-                                        <div key={s.id} className="bg-white p-3 rounded-lg shadow border border-amber-100">
-                                            <p className="font-bold text-amber-700">{s.storeName}</p>
-                                            <p className="text-gray-600">{s.name} • {s.phone}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            {tab === 'drivers' && (
-                                <div className="h-full overflow-y-auto p-3 space-y-2 text-xs">
-                                    <h4 className="font-bold text-gray-700">Conductores</h4>
-                                    {drivers.map(d => (
-                                        <div key={d.id} className="bg-white p-3 rounded-lg shadow border flex justify-between items-center">
-                                            <div>
-                                                <p className="font-bold">{d.name}</p>
-                                                <p className="text-gray-500">{d.vehicle} • {d.plate}</p>
-                                            </div>
-                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${d.isOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                {d.isOnline ? 'Online' : 'Offline'}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                );
-            };
+            const AdminDashboard = () => (
+                <div className="flex flex-col h-full bg-gray-100 items-center justify-center p-6 text-center">
+                    <div className="w-16 h-16 bg-grita-dark text-white rounded-full flex items-center justify-center mb-4"><i className="fa-solid fa-shield-halved text-2xl"></i></div>
+                    <h2 className="text-lg font-bold mb-1">Panel de Control</h2>
+                    <p className="text-xs text-gray-500 mb-6">Todos los pedidos llegan a Google Sheets y WhatsApp.</p>
+                    <button onClick={logout} className="text-xs font-bold text-gray-400 border py-2 px-4 rounded-lg">Cerrar Sesión Admin</button>
+                </div>
+            );
 
             return (
-                <>
-                    {alert && <AlertBox msg={alert.msg} type={alert.type} onClose={() => setAlert(null)} />}
-                    {showShortcutModal && <ShortcutModal onClose={() => setShowShortcutModal(false)} />}
-                    {showPostOrderModal && <PostOrderModal onExit={logout} onNewOrder={handleNewOrder} />}
+                <div id="root-container">
+                    {alert && <AlertBox msg={alert.msg} type={alert.type} />}
+                    {showPostOrderModal && <PostOrderModal onExit={logout} onNewOrder={() => setShowPostOrderModal(false)} />}
+                    
                     {view === 'landing' && <Landing />}
                     {view === 'registerClient' && <RegisterForm role="client" />}
                     {view === 'registerStore' && <RegisterForm role="store" />}
-                    {view === 'registerDriver' && <RegisterForm role="registerDriver" />}
-                    {view === 'clientDash' && <ClientDashboard user={user} onLogout={logout} onOrderComplete={handleOrderComplete} />}
-                    {view === 'storeDash' && <StoreDashboard user={user} onLogout={logout} onOrderComplete={handleOrderComplete} />}
+                    {view === 'registerDriver' && <RegisterForm role="driver" />}
+                    
+                    {view === 'clientDash' && <ClientDashboard user={user} onLogout={logout} />}
+                    {view === 'storeDash' && <StoreDashboard user={user} onLogout={logout} />}
                     {view === 'driverDash' && <DriverDashboard user={user} onLogout={logout} />}
+                    {view === 'mercadoDash' && <MercadoDashboard user={user} onLogout={logout} onOrderComplete={handleOrderComplete} />}
+                    
                     {view === 'adminDash' && <AdminDashboard />}
-                </>
+                </div>
             );
         }
 
