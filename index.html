@@ -27,7 +27,7 @@
         
         #root-container {
             width: 100vw;
-            height: 100dvh; /* altura dinámica perfecta para móviles */
+            height: 100dvh;
             background-color: #0b0f19;
             display: flex;
             flex-direction: column;
@@ -285,22 +285,794 @@
             );
         };
 
+        const Landing = ({ setView }) => (
+            <div className="flex flex-col h-full bg-[#0b0f19] text-white relative overflow-y-auto w-full">
+                <div className="absolute top-4 right-4 z-10">
+                     <button onClick={() => setView('adminLogin')} className="text-gray-600 hover:text-gray-400 p-2 text-xl transition"><i className="fa-solid fa-shield-halved"></i></button>
+                </div>
+
+                <div className="flex-grow flex flex-col items-center justify-center p-6 text-center">
+                    <div className="w-24 h-24 bg-grita-red rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(220,38,38,0.5)] border-4 border-white shrink-0 mt-8">
+                        <i className="fa-solid fa-motorcycle text-4xl text-white"></i>
+                    </div>
+                    <h1 className="text-4xl font-black mb-1 tracking-tight"><span className="text-grita-red">Moto</span> UBGrit</h1>
+                    
+                    <div className="text-gray-300 mb-8 text-[11px] leading-relaxed font-bold uppercase tracking-wide px-4">
+                        <p>Tu traslado / Encomienda / Mercado</p>
+                        <p>Rápido y Seguro</p>
+                    </div>
+                    
+                    <div className="space-y-3 w-full max-w-[300px]">
+                        <button onClick={() => setView('auth_client')} className="w-full bg-white text-grita-black font-black py-3.5 px-4 rounded-xl shadow-md text-xs hover:bg-gray-100 transition">
+                            <div className="flex flex-col items-center gap-1">
+                                <span><i className="fa-solid fa-user text-gray-500 mr-1"></i> Soy Cliente</span>
+                                <span className="font-normal text-gray-500 text-[10px]">(Servicio de Traslado) (Registrarse)</span>
+                            </div>
+                        </button>
+                        
+                        <button onClick={() => setView('auth_store')} className="w-full bg-amber-600 text-white font-bold py-3.5 px-4 rounded-xl shadow text-xs hover:bg-amber-500 transition">
+                            <div className="flex flex-col items-center gap-1">
+                                <span><i className="fa-solid fa-box mr-1"></i> Local / Empresa</span>
+                                <span className="font-normal text-amber-200 text-[10px]">(Traslado de Encomienda) (Registrarse)</span>
+                            </div>
+                        </button>
+                        
+                        <button onClick={() => setView('auth_mercado')} className="w-full bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl shadow text-xs hover:bg-green-500 transition">
+                            <div className="flex flex-col items-center gap-1">
+                                <span><i className="fa-solid fa-basket-shopping mr-1"></i> Mercado en Casa</span>
+                                <span className="font-normal text-green-200 text-[10px]">(Pedido Mercado) (Registrarse)</span>
+                            </div>
+                        </button>
+                        
+                        <button onClick={() => setView('auth_driver')} className="w-full bg-[#1a1a1a] border border-gray-700 text-gray-300 py-3.5 px-4 rounded-xl shadow text-xs font-bold hover:bg-gray-800 transition">
+                            <div className="flex flex-col items-center gap-1">
+                                <span><i className="fa-solid fa-motorcycle mr-1"></i> Quiero ser Conductor</span>
+                                <span className="text-[10px] text-gray-500">(Registrarse)</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const AdminLoginView = ({ setView, setUser, showAlert }) => {
+            const [adminEmail, setAdminEmail] = useState('');
+            const [adminPass, setAdminPass] = useState('');
+
+            const submitAdminLogin = (e) => {
+                e.preventDefault();
+                if (adminEmail === ADMIN_EMAIL && adminPass === "Universal11!!") {
+                    setUser({ id: 'admin', role: 'admin', name: 'Administrador UBGrit' });
+                    setView('adminDash');
+                } else showAlert("Credenciales incorrectas.");
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-[#0b0f19] text-white w-full">
+                    <HeaderNav title="Acceso Admin" onBack={() => setView('landing')} />
+                    <div className="flex-1 flex flex-col justify-center items-center p-6">
+                        <div className="bg-[#111] border border-gray-700 rounded-3xl max-w-[320px] w-full p-6 shadow-2xl">
+                            <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-500 text-xl"><i className="fa-solid fa-shield-halved"></i></div>
+                            <h3 className="text-xl font-black mb-6 text-center text-amber-500">Administrador</h3>
+                            <form onSubmit={submitAdminLogin}>
+                                <input type="email" placeholder="Correo" required className="w-full p-3 mb-3 border border-gray-700 rounded-xl text-sm bg-[#1a1a1a] text-white focus:border-amber-500 outline-none" value={adminEmail} onChange={e=>setAdminEmail(e.target.value)}/>
+                                <input type="password" placeholder="Clave" required className="w-full p-3 mb-6 border border-gray-700 rounded-xl text-sm bg-[#1a1a1a] text-white focus:border-amber-500 outline-none" value={adminPass} onChange={e=>setAdminPass(e.target.value)}/>
+                                <button type="submit" className="w-full bg-amber-600 text-white font-bold py-3.5 rounded-xl shadow-lg transition text-sm">Ingresar</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const AuthHub = ({ role, title, targetView, user, setUser, setView, showAlert }) => {
+            const [mode, setMode] = useState('login'); 
+            const [email, setEmail] = useState('');
+            const [pass, setPass] = useState('');
+            const [formData, setFormData] = useState({ name: '', phone: '', address: '', email: '', password: '', storeName: '', driverAddress: '', motoModel: '', motoYear: '', motoPlate: '' });
+            const [recoverEmail, setRecoverEmail] = useState('');
+            const [showDriverTerms, setShowDriverTerms] = useState(false);
+
+            const isStore = role === 'store';
+            const isDriver = role === 'driver';
+
+            useEffect(() => {
+                if(user && (user.role === role || (role==='mercado' && (user.role==='client' || user.role==='store')))) {
+                    setView(targetView);
+                }
+            }, [user, role, targetView, setView]);
+
+            const submitLogin = (e) => {
+                e.preventDefault();
+                const usersList = JSON.parse(localStorage.getItem('ubgrit_db') || '[]');
+                const found = usersList.find(u => u.email === email && u.password === pass);
+                if (found) {
+                    localStorage.setItem('ubgrit_user', JSON.stringify(found));
+                    setUser(found);
+                    showAlert("¡Sesión iniciada!", "success");
+                    setView(targetView);
+                } else showAlert("Correo o clave incorrectos.");
+            };
+
+            const proceedWithRegistration = () => {
+                const finalRole = role === 'mercado' ? 'client' : role;
+                const newUser = { 
+                    ...formData, 
+                    id: Date.now().toString(), 
+                    role: finalRole 
+                };
+
+                if(isDriver) {
+                    newUser.registrationDate = new Date().toISOString();
+                    newUser.lastPaymentDate = new Date().toISOString();
+                    newUser.totalEarnings = 0;
+                    newUser.totalTrips = 0;
+                    newUser.isBlocked = false;
+                    newUser.isOnline = false;
+                }
+                
+                const usersList = JSON.parse(localStorage.getItem('ubgrit_db') || '[]');
+                usersList.push(newUser);
+                localStorage.setItem('ubgrit_db', JSON.stringify(usersList));
+                localStorage.setItem('ubgrit_user', JSON.stringify(newUser));
+                setUser(newUser);
+                
+                logToSheets({ action: 'new_registration', role: title, name: formData.name, email: formData.email, phone: formData.phone, date: new Date().toLocaleString() });
+                showAlert(`¡Registro exitoso!`, "success");
+                setView(targetView);
+            };
+
+            const submitRegister = (e) => {
+                e.preventDefault();
+                if(isDriver) {
+                    setShowDriverTerms(true);
+                } else {
+                    proceedWithRegistration();
+                }
+            };
+
+            const handleRecoverPassword = () => {
+                if(!recoverEmail) return showAlert("Debes ingresar tu correo.");
+                logToSheets({ action: 'password_recovery', email: recoverEmail, date: new Date().toLocaleString() });
+                const text = `Hola Admin, olvidé mi clave. Mi correo registrado es: ${recoverEmail}. Por favor, envíala desde motoubgrit@gmail.com`;
+                window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(text)}`, '_blank');
+                showAlert("Notificación enviada al administrador.", "success");
+                setMode('login');
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-[#0b0f19] text-white w-full relative">
+                    <HeaderNav title={title} onBack={() => setView('landing')} />
+                    
+                    {showDriverTerms && (
+                        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+                            <div className="bg-white text-gray-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+                                <div className="text-red-600 text-4xl mb-4 text-center"><i className="fa-solid fa-file-contract"></i></div>
+                                <h2 className="text-xl font-black mb-4 text-center">Condiciones del Conductor</h2>
+                                <ul className="text-xs space-y-3 mb-6 font-bold text-gray-600">
+                                    <li><i className="fa-solid fa-check text-green-600 mr-2"></i> Debes mantenerte <strong>En Línea</strong> para recibir viajes.</li>
+                                    <li><i className="fa-solid fa-check text-green-600 mr-2"></i> Tienes <strong>60 segundos</strong> para responder o se reasignará.</li>
+                                    <li><i className="fa-solid fa-check text-green-600 mr-2"></i> El <strong>10%</strong> del costo de tus viajes corresponde al Administrador.</li>
+                                    <li><i className="fa-solid fa-check text-green-600 mr-2"></i> Pago de la cuota/10% es <strong>MENSUAL</strong>. Si no pagas al mes, tu cuenta se bloqueará.</li>
+                                    <li><i className="fa-solid fa-check text-green-600 mr-2"></i> Uso OBLIGATORIO de <strong>Casco</strong> para ti y el pasajero.</li>
+                                    <li><i className="fa-solid fa-check text-green-600 mr-2"></i> Debes tener un bolso o cesta segura para encomiendas.</li>
+                                </ul>
+                                <button onClick={proceedWithRegistration} className="w-full bg-green-600 text-white font-black py-4 rounded-xl mb-3">Aceptar y Registrar</button>
+                                <button onClick={()=>setShowDriverTerms(false)} className="w-full bg-gray-100 text-gray-800 font-bold py-3 rounded-xl">Cancelar</button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center pb-12">
+                        <div className="bg-white text-gray-900 rounded-3xl max-w-[320px] w-full p-6 shadow-2xl">
+                            {mode === 'login' && (
+                                <>
+                                    <h3 className="text-xl font-black mb-1 text-center">Acceso {title}</h3>
+                                    <p className="text-gray-500 text-[10px] mb-6 text-center">Inicia sesión para continuar</p>
+                                    <form onSubmit={submitLogin}>
+                                        <input type="email" placeholder="Correo" required className="w-full p-3 mb-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-grita-red outline-none" value={email} onChange={e=>setEmail(e.target.value)}/>
+                                        <input type="password" placeholder="Clave" required className="w-full p-3 mb-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-grita-red outline-none" value={pass} onChange={e=>setPass(e.target.value)}/>
+                                        <div className="text-right mb-5"><button type="button" onClick={() => setMode('forgot')} className="text-[11px] text-grita-red font-bold hover:underline">¿Olvidaste tu contraseña?</button></div>
+                                        <button type="submit" className="w-full bg-grita-red text-white font-bold py-3.5 rounded-xl shadow-lg text-sm mb-4">Iniciar Sesión</button>
+                                    </form>
+                                    <div className="text-center pt-4 border-t border-gray-100">
+                                        <p className="text-xs text-gray-500 mb-2">¿No tienes cuenta?</p>
+                                        <button onClick={() => setMode('register')} className="w-full bg-gray-100 text-gray-800 font-black py-3 rounded-xl border border-gray-300 text-sm">Registrarse Aquí</button>
+                                    </div>
+                                </>
+                            )}
+                            {mode === 'register' && (
+                                <>
+                                    <h3 className="text-xl font-black mb-4 text-center">Registro Nuevo</h3>
+                                    <form onSubmit={submitRegister} className="space-y-3">
+                                        {isStore && <input required placeholder="Nombre del Local" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" onChange={e=>setFormData({...formData, storeName: e.target.value})}/>}
+                                        <input required placeholder="Nombre y Apellido" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" onChange={e=>setFormData({...formData, name: e.target.value})}/>
+                                        <input required type="tel" placeholder="WhatsApp (Ej: 0414...)" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" onChange={e=>setFormData({...formData, phone: e.target.value})}/>
+                                        
+                                        {isDriver && (
+                                            <div className="bg-gray-100 p-3 rounded-xl space-y-3 border border-gray-200">
+                                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Datos del Conductor</p>
+                                                <input required placeholder="Dirección de Vivienda" className="w-full p-3 border rounded-xl bg-white text-sm" onChange={e=>setFormData({...formData, driverAddress: e.target.value})}/>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <input required placeholder="Modelo Moto (Ej: Bera)" className="w-full p-3 border rounded-xl bg-white text-sm" onChange={e=>setFormData({...formData, motoModel: e.target.value})}/>
+                                                    <input required type="number" placeholder="Año Moto" className="w-full p-3 border rounded-xl bg-white text-sm" onChange={e=>setFormData({...formData, motoYear: e.target.value})}/>
+                                                </div>
+                                                <input required placeholder="Placa de la Moto" className="w-full p-3 border rounded-xl bg-white text-sm uppercase" onChange={e=>setFormData({...formData, motoPlate: e.target.value.toUpperCase()})}/>
+                                            </div>
+                                        )}
+
+                                        <input required type="email" placeholder="Correo" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" onChange={e=>setFormData({...formData, email: e.target.value})}/>
+                                        <input required type="password" placeholder="Crear Clave" className="w-full p-3 border rounded-xl bg-gray-50 text-sm mb-4" onChange={e=>setFormData({...formData, password: e.target.value})}/>
+                                        <button type="submit" className="w-full bg-green-600 text-white font-bold py-3.5 rounded-xl shadow-lg text-sm mb-4">Completar Registro</button>
+                                    </form>
+                                    <div className="text-center pt-4 border-t border-gray-100">
+                                        <button onClick={() => setMode('login')} className="w-full bg-gray-100 text-gray-800 font-bold py-3 rounded-xl border border-gray-300 text-sm">← Volver a Iniciar Sesión</button>
+                                    </div>
+                                </>
+                            )}
+                            {mode === 'forgot' && (
+                                <>
+                                    <h3 className="text-xl font-black mb-1 text-center">Recuperar Clave</h3>
+                                    <p className="text-gray-500 text-[10px] mb-6 text-center leading-tight">El sistema notificará al administrador para despachar la clave a tu correo.</p>
+                                    <input type="email" placeholder="Tu correo registrado" className="w-full p-3 mb-4 border rounded-xl text-sm bg-gray-50" value={recoverEmail} onChange={e=>setRecoverEmail(e.target.value)} />
+                                    <button onClick={handleRecoverPassword} className="w-full bg-amber-600 text-white font-bold py-3.5 rounded-xl shadow text-sm mb-3">Solicitar al Administrador</button>
+                                    <button onClick={() => setMode('login')} className="w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl text-xs">← Cancelar</button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ClientDashboard = ({ role, title, icon, color, bg, user, setView, showAlert, logout }) => {
+            const [requestingRide, setRequestingRide] = useState(false);
+            const [routeDetails, setRouteDetails] = useState(null);
+
+            const handleRouteConfirm = (routeData) => {
+                const fares = calculateFares(routeData.distance);
+                setRouteDetails({ ...routeData, ...fares });
+                setRequestingRide(false); 
+            };
+
+            const executeCloudRequest = async () => {
+                const typeStr = role === 'store' ? 'Encomienda' : 'Traslado';
+                const msg = `🚀 *NUEVO ${typeStr.toUpperCase()}*\n\n*Cliente:* ${user.storeName || user.name}\n*Origen:* ${routeDetails.pickup}\nMapa: https://www.google.com/maps/search/?api=1&query=${routeDetails.pickupCoords[0]},${routeDetails.pickupCoords[1]}\n\n*Destino:* ${routeDetails.dropoff}\nMapa: https://www.google.com/maps/search/?api=1&query=${routeDetails.dropoffCoords[0]},${routeDetails.dropoffCoords[1]}\n\n*Recorrido:* ${routeDetails.distance} km\n*Tarifa a cobrar:* ${routeDetails.cop.toLocaleString()} COP`;
+                
+                logToSheets({ action: 'service_request', passenger: user.name, phone: user.phone, type: typeStr, pickup: routeDetails.pickup, dropoff: routeDetails.dropoff, distance: routeDetails.distance, cop: routeDetails.cop, adminCut: routeDetails.admin, date: new Date().toLocaleString() });
+                window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
+                
+                setRouteDetails(null);
+                playAlertSound();
+                showAlert("¡Pedido generado! Será procesado.", "success");
+                setView('landing');
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-gray-50 relative overflow-y-auto w-full">
+                    <HeaderNav title={`Panel ${title}`} onBack={() => { 
+                        if(requestingRide) setRequestingRide(false);
+                        else if (routeDetails) setRouteDetails(null);
+                        else setView('landing'); 
+                    }} />
+                    
+                    {requestingRide && (
+                        <MapRouter mode="two-step" onBack={() => setRequestingRide(false)} onConfirm={handleRouteConfirm} />
+                    )}
+
+                    {!requestingRide && (
+                        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center w-full">
+                            {!routeDetails ? (
+                                <>
+                                    <div className={`w-20 h-20 ${bg} ${color} rounded-full flex items-center justify-center mb-4 shadow-inner border border-white`}><i className={`fa-solid ${icon} text-3xl`}></i></div>
+                                    <h2 className="text-xl font-black text-gray-800 mb-6">{user?.storeName || user?.name}</h2>
+                                    
+                                    <button onClick={() => setRequestingRide(true)} className={`w-full max-w-[280px] ${role === 'store' ? 'bg-amber-600' : 'bg-grita-red'} text-white font-bold py-4 rounded-xl shadow-lg mb-3 text-sm flex items-center justify-center gap-2 transition-transform hover:scale-105`}>
+                                        <i className="fa-solid fa-map-location-dot text-lg"></i> Solicitar {role === 'store' ? 'Encomienda' : 'Traslado'} (Fijar en Mapa)
+                                    </button>
+                                    <button onClick={logout} className="mt-12 text-xs text-gray-500 underline font-bold">Cerrar Sesión</button>
+                                </>
+                            ) : (
+                                <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-xl mb-6 animate-[bounce_0.3s_ease-out]">
+                                    <h3 className="text-center font-black text-lg mb-6 text-gray-800">Resumen del Viaje</h3>
+                                    <div className="space-y-4 mb-6 relative">
+                                        <div className="absolute left-3 top-4 bottom-4 w-0.5 bg-gray-200"></div>
+                                        <div className="flex items-start gap-3 relative">
+                                            <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center shrink-0 z-10 text-[10px]"><i className="fa-solid fa-A"></i></div>
+                                            <div className="text-left"><p className="text-[10px] text-gray-500 font-bold uppercase">Origen</p><p className="text-xs font-bold text-gray-800">{routeDetails.pickup}</p></div>
+                                        </div>
+                                        <div className="flex items-start gap-3 relative">
+                                            <div className="w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center shrink-0 z-10 text-[10px]"><i className="fa-solid fa-B"></i></div>
+                                            <div className="text-left"><p className="text-[10px] text-gray-500 font-bold uppercase">Destino</p><p className="text-xs font-bold text-gray-800">{routeDetails.dropoff}</p></div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-6">
+                                        <div className="flex justify-between mb-2"><span className="text-xs text-gray-500 font-bold">Recorrido Estimado:</span><span className="font-black text-sm text-gray-800">{routeDetails.distance} km</span></div>
+                                        <div className="flex justify-between items-center"><span className="text-sm font-black text-gray-800">Tarifa a Pagar:</span><span className="text-2xl font-black text-green-600">{routeDetails.cop.toLocaleString()} COP</span></div>
+                                    </div>
+                                    <button onClick={executeCloudRequest} className="w-full bg-green-600 text-white font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-lg animate-pulse mb-3">
+                                        <i className="fa-brands fa-whatsapp"></i> Solicitar Ahora
+                                    </button>
+                                    <button onClick={() => setRouteDetails(null)} className="w-full bg-gray-100 text-gray-600 font-bold py-3 rounded-xl border border-gray-200 text-sm">
+                                        Modificar Ruta
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const DriverDashboard = ({ user, setUser, setView, showAlert, logout }) => {
+            const [isOnline, setIsOnline] = useState(user?.isOnline || false);
+            const [activeRequest, setActiveRequest] = useState(null);
+            const [timeLeft, setTimeLeft] = useState(60);
+            const [tripStatus, setTripStatus] = useState('idle'); 
+            const [onlineDriversCount, setOnlineDriversCount] = useState(0);
+            const [dbTrigger, setDbTrigger] = useState(0);
+
+            // Interval to sync data specifically for the driver
+            useEffect(() => {
+                const interval = setInterval(() => setDbTrigger(prev => prev + 1), 5000);
+                return () => clearInterval(interval);
+            }, []);
+
+            const isBlocked = useMemo(() => {
+                if (!user || !user.lastPaymentDate) return false;
+                const paymentDate = new Date(user.lastPaymentDate);
+                const now = new Date();
+                const diffTime = Math.abs(now - paymentDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays >= 30;
+            }, [user]);
+
+            useEffect(() => {
+                const usersList = JSON.parse(localStorage.getItem('ubgrit_db') || '[]');
+                const count = usersList.filter(u => u.role === 'driver' && u.isOnline).length;
+                setOnlineDriversCount(count);
+
+                if (user && user.id) {
+                    const updatedUsers = usersList.map(u => u.id === user.id ? { ...u, isOnline: isOnline && !isBlocked } : u);
+                    localStorage.setItem('ubgrit_db', JSON.stringify(updatedUsers));
+                }
+            }, [isOnline, dbTrigger, isBlocked, user]);
+
+            useEffect(() => {
+                let timer;
+                if (tripStatus === 'incoming' && timeLeft > 0) {
+                    timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+                } else if (tripStatus === 'incoming' && timeLeft === 0) {
+                    handleReject();
+                }
+                return () => clearInterval(timer);
+            }, [tripStatus, timeLeft]);
+
+            const handleAccept = async () => {
+                setTripStatus('accepted');
+                showAlert("¡Viaje Aceptado! El admin ya tiene los detalles.", "success");
+            };
+
+            const handleReject = async () => {
+                setTripStatus('idle'); 
+                setActiveRequest(null); 
+                showAlert("Solicitud omitida (Reasignando equitativamente...).", "error");
+            };
+
+            const completeTrip = () => {
+                if(!activeRequest) return;
+                const newEarnings = (user.totalEarnings || 0) + activeRequest.cop;
+                const newTrips = (user.totalTrips || 0) + 1;
+                
+                const updatedUser = { ...user, totalEarnings: newEarnings, totalTrips: newTrips };
+                setUser(updatedUser);
+                localStorage.setItem('ubgrit_user', JSON.stringify(updatedUser));
+                
+                const usersList = JSON.parse(localStorage.getItem('ubgrit_db') || '[]');
+                const updatedUsers = usersList.map(u => u.id === user.id ? updatedUser : u);
+                localStorage.setItem('ubgrit_db', JSON.stringify(updatedUsers));
+
+                const adminCutThisTrip = Math.round(activeRequest.cop * 0.10);
+                logToSheets({ action: 'trip_completed', driver: user.name, type: activeRequest.type, client: activeRequest.clientName, cop: activeRequest.cop, adminCut: adminCutThisTrip, date: new Date().toLocaleString() });
+
+                const msg = `✅ *VIAJE COMPLETADO (UBGrit)*\n\n*Conductor:* ${user.name}\n*Servicio:* ${activeRequest.type}\n*Cliente:* ${activeRequest.clientName}\n*Ruta:* ${activeRequest.pickup} ➡️ ${activeRequest.dropoff}\n*Cobrado:* ${activeRequest.cop.toLocaleString()} COP\n*Deuda Admin (10%):* ${adminCutThisTrip.toLocaleString()} COP`;
+                window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
+
+                setTripStatus('idle');
+                setActiveRequest(null);
+                showAlert("Viaje Completado y notificado al Administrador. Estás en cola nuevamente.", "success");
+            };
+
+            const simulateIncomingOrder = () => {
+                if (!isOnline) return showAlert("Debes estar en línea para recibir viajes.");
+                setActiveRequest({ id: 'demo123', type: 'Traslado', pickup: 'Plaza Bolívar', dropoff: 'Sector Palenque', distance: '2.5', cop: 8000, clientName: 'Juan Pérez' });
+                setTimeLeft(60); setTripStatus('incoming'); playAlertSound();
+            };
+
+            if (isBlocked) {
+                return (
+                    <div className="flex flex-col h-full bg-gray-50 relative w-full">
+                        <HeaderNav title="Panel Conductor" onBack={() => setView('landing')} />
+                        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                            <i className="fa-solid fa-lock text-6xl text-red-600 mb-4"></i>
+                            <h2 className="text-xl font-black text-gray-800 mb-2">Cuenta Suspendida</h2>
+                            <p className="text-sm font-bold text-gray-500 mb-6">Tu ciclo mensual ha vencido. Debes pagar el 10% de comisión al administrador para renovar tu acceso.</p>
+                            <button onClick={() => window.open(`https://wa.me/${ADMIN_PHONE}`, '_blank')} className="bg-black text-white px-6 py-3 rounded-xl font-bold mb-6">Contactar Administrador</button>
+                            <button onClick={logout} className="text-xs text-gray-500 underline font-bold">Cerrar Sesión</button>
+                        </div>
+                    </div>
+                );
+            }
+
+            const adminCut = Math.round((user?.totalEarnings || 0) * 0.10);
+
+            return (
+                <div className="flex flex-col h-full bg-gray-50 relative overflow-y-auto w-full">
+                    <HeaderNav title="Panel Conductor" onBack={() => setView('landing')} />
+                    <div className="flex-1 flex flex-col items-center p-6 text-center">
+                        
+                        <div className="bg-white p-4 rounded-2xl shadow-sm w-full mb-4 border border-gray-100 flex items-center justify-between">
+                            <div className="text-left">
+                                <h3 className="font-black text-gray-800 text-lg">{user?.name}</h3>
+                                <p className={`text-xs font-bold ${isOnline ? 'text-green-600' : 'text-gray-400'}`}>
+                                    <span className={`inline-block w-2 h-2 rounded-full mr-1 ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></span>
+                                    {isOnline ? 'En línea' : 'Desconectado'}
+                                </p>
+                            </div>
+                            <button onClick={() => setIsOnline(!isOnline)} className={`w-14 h-8 rounded-full relative transition-colors duration-300 ${isOnline ? 'bg-green-500' : 'bg-gray-300'} shadow-inner border border-gray-200`}>
+                                <div className={`w-6 h-6 bg-white rounded-full absolute top-[3px] transition-transform duration-300 shadow-md ${isOnline ? 'translate-x-[26px]' : 'translate-x-1'}`}></div>
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 w-full mb-6 shrink-0">
+                            <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl flex flex-col items-center">
+                                <p className="text-[9px] font-bold text-blue-800 uppercase text-center">Viajes</p>
+                                <p className="text-lg font-black text-blue-900">{user?.totalTrips || 0}</p>
+                            </div>
+                            <div className="bg-green-50 border border-green-100 p-3 rounded-xl flex flex-col items-center">
+                                <p className="text-[9px] font-bold text-green-800 uppercase text-center">Generado (COP)</p>
+                                <p className="text-sm font-black text-green-900 mt-1">{(user?.totalEarnings || 0).toLocaleString()}</p>
+                            </div>
+                            <div className="bg-red-50 border border-red-100 p-3 rounded-xl flex flex-col items-center">
+                                <p className="text-[9px] font-bold text-red-800 uppercase text-center">Deuda Admin</p>
+                                <p className="text-sm font-black text-red-900 mt-1">{adminCut.toLocaleString()}</p>
+                            </div>
+                        </div>
+
+                        {tripStatus === 'idle' && (
+                            <div className="flex-1 flex flex-col items-center justify-center w-full">
+                                {isOnline ? (
+                                    <div className="relative w-32 h-32 flex items-center justify-center mb-6 mt-4">
+                                        <div className="absolute inset-0 bg-blue-200 rounded-full animate-ping opacity-75"></div>
+                                        <div className="absolute inset-2 bg-blue-300 rounded-full animate-pulse opacity-75"></div>
+                                        <div className="relative w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl shadow-lg border-2 border-white"><i className="fa-solid fa-radar"></i></div>
+                                    </div>
+                                ) : (
+                                    <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center text-gray-400 text-4xl mb-6 mt-4 border-4 border-white"><i className="fa-solid fa-motorcycle"></i></div>
+                                )}
+                                <h2 className="text-xl font-black text-gray-800 mb-2">{isOnline ? 'Buscando viajes...' : 'Estás desconectado'}</h2>
+                                <p className="text-xs text-gray-500 mb-4 max-w-[250px]">{isOnline ? 'El sistema te asignará viajes equitativamente.' : 'Conéctate para trabajar.'}</p>
+                                
+                                <div className="bg-gray-100 px-4 py-2 rounded-full border border-gray-200 mb-8">
+                                    <p className="text-[10px] font-bold text-gray-600">👥 Conductores Activos en Sistema: <span className="text-green-600">{onlineDriversCount}</span></p>
+                                </div>
+
+                                {isOnline && (
+                                    <button onClick={simulateIncomingOrder} className="text-[10px] bg-gray-200 text-gray-600 font-bold px-4 py-2.5 rounded-xl border mt-auto mb-4"><i className="fa-solid fa-vial"></i> Simular Viaje Entrante</button>
+                                )}
+                                <button onClick={logout} className="mt-4 text-xs text-gray-500 underline font-bold">Cerrar Sesión</button>
+                            </div>
+                        )}
+
+                        {tripStatus === 'incoming' && activeRequest && (
+                            <div className="w-full bg-white rounded-3xl p-5 shadow-2xl border-2 border-grita-red animate-[bounce_0.5s_ease-in-out]">
+                                <div className="w-16 h-16 bg-red-100 text-grita-red rounded-full flex items-center justify-center mx-auto mb-2 border border-red-200"><i className="fa-solid fa-bell text-3xl animate-pulse"></i></div>
+                                <h2 className="text-xl font-black text-gray-800 mb-1">¡Nuevo Viaje Asignado!</h2>
+                                <p className={`text-xs font-bold bg-red-50 py-1.5 px-4 rounded-full inline-flex items-center gap-2 mb-4 border border-red-100 ${timeLeft < 20 ? 'text-red-700 animate-pulse' : 'text-grita-red'}`}>
+                                    <i className="fa-regular fa-clock"></i> Responde en: {timeLeft}s
+                                </p>
+                                <div className="bg-gray-50 rounded-xl p-4 text-left mb-5 border border-gray-100">
+                                    <p className="text-[10px] font-bold text-gray-500 mb-1">SERVICIO: {activeRequest.type}</p>
+                                    <p className="text-xs font-bold text-gray-800 mb-2">👤 {activeRequest.clientName}</p>
+                                    <div className="pl-2 border-l-2 border-gray-300">
+                                        <p className="text-[10px] text-gray-500 font-bold">BUSCAR EN:</p>
+                                        <p className="text-xs font-bold text-blue-600 mb-2">{activeRequest.pickup}</p>
+                                        <p className="text-[10px] text-gray-500 font-bold">LLEVAR A:</p>
+                                        <p className="text-xs font-bold text-red-600">{activeRequest.dropoff}</p>
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-end mb-6 px-4 bg-green-50 p-3 rounded-xl border border-green-200">
+                                    <div className="text-left"><p className="text-[10px] font-bold text-green-800">Recorrido</p><p className="text-sm font-black">{activeRequest.distance} km</p></div>
+                                    <div className="text-right"><p className="text-[10px] font-bold text-green-800">Cobrar al Cliente</p><p className="text-2xl font-black text-green-600">{activeRequest.cop.toLocaleString()} COP</p></div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button onClick={handleReject} className="bg-white text-red-600 border-2 border-red-100 font-black py-3.5 rounded-xl text-xs">No Disponible</button>
+                                    <button onClick={handleAccept} className="bg-green-600 text-white font-black py-3.5 rounded-xl text-xs">Aceptar Viaje</button>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {tripStatus === 'accepted' && activeRequest && (
+                            <div className="w-full flex-1 flex flex-col items-center justify-start bg-white rounded-3xl p-5 shadow-2xl border-2 border-green-500">
+                                <div className="text-5xl text-green-500 mb-2 animate-bounce"><i className="fa-solid fa-motorcycle"></i></div>
+                                <h2 className="text-2xl font-black text-gray-800 mb-4">Viaje en Curso</h2>
+                                
+                                <div className="bg-gray-50 rounded-xl p-4 text-left mb-4 border border-gray-200 w-full shadow-inner">
+                                    <p className="text-[10px] font-black text-blue-600 mb-1 uppercase tracking-wider">{activeRequest.type}</p>
+                                    <p className="text-sm font-black text-gray-800 mb-3">👤 Cliente: {activeRequest.clientName}</p>
+                                    
+                                    <div className="relative pl-4 border-l-2 border-dashed border-gray-300 ml-2 space-y-3">
+                                        <div className="relative">
+                                            <div className="absolute -left-[21px] top-0 w-3 h-3 bg-blue-500 rounded-full border-2 border-white"></div>
+                                            <p className="text-[10px] text-gray-500 font-bold uppercase">📍 Buscar en:</p>
+                                            <p className="text-xs font-black text-gray-800">{activeRequest.pickup}</p>
+                                        </div>
+                                        <div className="relative">
+                                            <div className="absolute -left-[21px] top-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
+                                            <p className="text-[10px] text-gray-500 font-bold uppercase">🏁 Llevar a:</p>
+                                            <p className="text-xs font-black text-gray-800">{activeRequest.dropoff}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-center w-full px-4 bg-green-50 p-3 rounded-xl border border-green-200 mb-6">
+                                    <div className="text-left"><p className="text-[10px] font-bold text-green-800">Distancia</p><p className="text-sm font-black">{activeRequest.distance} km</p></div>
+                                    <div className="text-right"><p className="text-[10px] font-bold text-green-800">Cobrar al Cliente</p><p className="text-2xl font-black text-green-600">{activeRequest.cop.toLocaleString()} COP</p></div>
+                                </div>
+
+                                <button onClick={completeTrip} className="bg-black text-white w-full py-4 rounded-xl font-black text-lg flex items-center justify-center gap-2 shadow-lg hover:bg-gray-800 transition-colors mt-auto">
+                                    <i className="fa-solid fa-check-double"></i> Reportar Completado
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const MercadoDashboard = ({ user, setView, showAlert }) => {
+            const [internalView, setInternalView] = useState('shop'); 
+            const [cart, setCart] = useState({});
+            const [categoryIdx, setCategoryIdx] = useState(0);
+            const [paymentCurrency, setPaymentCurrency] = useState('COP');
+            const [routeInfo, setRouteInfo] = useState(null);
+
+            const currentCat = mercadoCategories[categoryIdx];
+            const currentProducts = mercadoInventory.filter(p => p.category === currentCat);
+            const totalItems = Object.keys(cart).length;
+            const cartSubtotalCOP = Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+            const updateCart = (name, qty, price) => {
+                const cleanQty = Math.max(0, Math.round(qty * 100) / 100);
+                setCart(prev => {
+                    const newCart = { ...prev };
+                    if (cleanQty <= 0) delete newCart[name];
+                    else newCart[name] = { quantity: cleanQty, price };
+                    return newCart;
+                });
+            };
+
+            const handleMercadoMapConfirm = (routeData) => {
+                const fares = calculateFares(routeData.distance);
+                setRouteInfo({ 
+                    distance: routeData.distance, dropoff: routeData.dropoff,
+                    mapLink: `https://www.google.com/maps/search/?api=1&query=${routeData.dropoffCoords[0]},${routeData.dropoffCoords[1]}`, 
+                    ...fares 
+                });
+                setInternalView('checkout');
+            };
+
+            const submitMarketOrder = async () => {
+                const deliveryFee = routeInfo.cop;
+                const grandTotalCOP = cartSubtotalCOP + deliveryFee;
+                let orderText = Object.keys(cart).map(k => `${formatQuantity(cart[k].quantity, k)} ${k}`).join(", ");
+                
+                const rawText = `🛒 *MERCADO EN CASA*\n\n*Cliente:* ${user.name}\n*Tel:* ${user.phone}\n\n*PEDIDO:*\n${orderText}\n\n*Subtotal:* ${cartSubtotalCOP.toLocaleString()} COP\n*Delivery:* ${deliveryFee.toLocaleString()} COP\n💰 *TOTAL:* ${grandTotalCOP.toLocaleString()} COP\n💵 *Moneda:* ${paymentCurrency}\n\n📍 *ENTREGA:* ${routeInfo.dropoff}\n${routeInfo.mapLink}`;
+                
+                await logToSheets({ action: 'new_ride', passenger: `MERCADO - ${user.name}`, phone: user.phone, pickup: "Mercado Central", dropoff: routeInfo.dropoff, distance: routeInfo.distance, cop: grandTotalCOP, adminCut: routeInfo.admin });
+
+                window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(rawText)}`, '_blank');
+                
+                playAlertSound();
+                showAlert("¡Pedido enviado!", "success");
+                setView('landing');
+            };
+
+            if (internalView === 'map') {
+                return <MapRouter mode="one-step" onBack={() => setInternalView('cart')} onConfirm={handleMercadoMapConfirm} />;
+            }
+
+            return (
+                <div className="flex flex-col h-full bg-gray-50 relative w-full overflow-hidden">
+                    {internalView === 'shop' && <HeaderNav title="Mercado en Casa" onBack={() => setView('landing')} />}
+                    {internalView === 'cart' && <HeaderNav title="Carrito" onBack={() => setInternalView('shop')} />}
+                    {internalView === 'checkout' && <HeaderNav title="Confirmación" onBack={() => { setInternalView('cart'); setRouteInfo(null); }} />}
+                    
+                    {internalView === 'shop' && (
+                        <div className="flex-1 overflow-y-auto p-4 flex flex-col pb-24">
+                            <div className="flex items-center justify-between bg-white p-3 rounded-2xl shadow-sm mb-4 border border-green-100 shrink-0 sticky top-0 z-10">
+                                <button onClick={() => setCategoryIdx(Math.max(0, categoryIdx-1))} disabled={categoryIdx===0} className="text-green-600 disabled:opacity-30 p-2"><i className="fa-solid fa-chevron-left"></i></button>
+                                <h2 className="text-[11px] font-black text-green-800 uppercase tracking-widest text-center flex-1">{currentCat}</h2>
+                                <button onClick={() => setCategoryIdx(Math.min(mercadoCategories.length-1, categoryIdx+1))} disabled={categoryIdx===mercadoCategories.length-1} className="text-green-600 disabled:opacity-30 p-2"><i className="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 pb-6 shrink-0">
+                                {currentProducts.map(p => {
+                                    const qty = cart[p.name]?.quantity || 0;
+                                    return (
+                                        <div key={p.name} className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                                            <div className="text-3xl mb-1">{p.icon}</div>
+                                            <h3 className="font-bold text-gray-800 text-[11px] leading-tight mb-1 h-8 flex items-center justify-center">{p.name}</h3>
+                                            <p className="text-green-700 font-black text-[11px] mb-3">{p.price.toLocaleString()} COP</p>
+                                            {qty === 0 ? (
+                                                <button onClick={() => updateCart(p.name, 0.25, p.price)} className="w-full bg-green-50 text-green-700 border border-green-200 py-1.5 rounded-lg text-xs font-bold hover:bg-green-100">Agregar</button>
+                                            ) : (
+                                                <div className="flex items-center justify-between w-full bg-gray-50 rounded-lg p-1 border">
+                                                    <button onClick={() => updateCart(p.name, qty-0.25, p.price)} className="w-6 h-6 bg-white rounded text-red-500 font-bold shadow-sm">-</button>
+                                                    <span className="font-bold text-[10px]">{formatQuantity(qty, p.name)}</span>
+                                                    <button onClick={() => updateCart(p.name, qty+0.25, p.price)} className="w-6 h-6 bg-white rounded text-green-600 font-bold shadow-sm">+</button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {internalView === 'cart' && (
+                        <div className="flex-1 overflow-y-auto p-4 flex flex-col pb-24">
+                            {totalItems === 0 ? (
+                                <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
+                                    <i className="fa-solid fa-basket-shopping text-5xl mb-3 opacity-50"></i>
+                                    <p className="text-xs font-bold mb-4">El carrito está vacío</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 p-2 shrink-0">
+                                        {Object.keys(cart).map(name => (
+                                            <div key={name} className="flex justify-between items-center p-3 border-b last:border-0 border-gray-50">
+                                                <div><p className="font-bold text-xs text-gray-800">{name}</p><p className="text-[10px] text-gray-500">{formatQuantity(cart[name].quantity, name)}</p></div>
+                                                <p className="font-black text-xs text-green-700">{(cart[name].price * cart[name].quantity).toLocaleString()} COP</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="flex justify-between items-center bg-green-50 p-4 rounded-xl border border-green-200 mb-6 shrink-0">
+                                        <span className="font-black text-sm text-green-900">Subtotal Productos</span>
+                                        <span className="font-black text-xl text-green-700">{cartSubtotalCOP.toLocaleString()} COP</span>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    {(internalView === 'shop' || internalView === 'cart') && totalItems > 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-gray-200 z-20 shadow-[0_-5px_15px_rgba(0,0,0,0.1)]">
+                            <button onClick={()=>setInternalView(internalView==='shop' ? 'cart' : 'map')} className="w-full bg-green-600 text-white font-black py-4 rounded-xl shadow-lg text-sm flex justify-between px-6 items-center hover:bg-green-700 transition">
+                                {internalView==='shop' && <span className="bg-white text-green-700 px-2 py-1 rounded-md text-xs shadow-sm">{totalItems} ítems</span>}
+                                <span className="mx-auto">{internalView==='shop' ? 'Ir al Carrito' : 'Continuar (Fijar Envío)'} <i className="fa-solid fa-arrow-right ml-1"></i></span>
+                            </button>
+                        </div>
+                    )}
+
+                    {internalView === 'checkout' && routeInfo && (
+                        <div className="flex-1 overflow-y-auto flex flex-col p-6 bg-gray-100">
+                            <div className="bg-white p-6 rounded-3xl shadow-xl z-20 shrink-0 w-full max-w-sm mx-auto animate-[bounce_0.3s_ease-out]">
+                                <h3 className="font-black text-lg text-center mb-4 text-gray-800">Comprobante</h3>
+                                <div className="flex justify-between mb-1 text-xs"><span className="text-gray-500 font-bold">Subtotal Productos</span><span className="font-bold">{cartSubtotalCOP.toLocaleString()} COP</span></div>
+                                <div className="flex justify-between mb-3 text-xs border-b pb-2"><span className="text-gray-500 font-bold">Delivery ({routeInfo.distance} km)</span><span className="font-bold text-orange-600">+{routeInfo.cop.toLocaleString()} COP</span></div>
+                                <div className="flex justify-between items-center mb-6"><span className="font-black text-sm text-gray-800">TOTAL A PAGAR</span><span className="font-black text-2xl text-green-700">{(cartSubtotalCOP + routeInfo.cop).toLocaleString()} COP</span></div>
+                                
+                                <p className="text-center text-xs font-bold text-gray-500 mb-2">SELECCIONA MONEDA DE PAGO</p>
+                                <div className="grid grid-cols-3 gap-2 mb-4">
+                                    {['COP', 'VES', 'USD'].map(c => (
+                                        <button key={c} onClick={() => setPaymentCurrency(c)} className={`py-2 rounded-lg text-xs font-black border-2 ${paymentCurrency === c ? 'bg-green-50 border-green-500 text-green-700' : 'bg-white border-gray-100 text-gray-400'}`}>{c}</button>
+                                    ))}
+                                </div>
+                                
+                                {paymentCurrency === 'VES' && <p className="mb-4 text-center font-black text-blue-800 bg-blue-50 p-2 rounded-xl border border-blue-200">Equivalente a pagar:<br/><span className="text-xl">{((cartSubtotalCOP + routeInfo.cop) / TASA_VES_COP).toLocaleString(undefined, {maximumFractionDigits: 2})} VES</span></p>}
+                                {paymentCurrency === 'USD' && <p className="mb-4 text-center font-black text-emerald-800 bg-emerald-50 p-2 rounded-xl border border-emerald-200">${((cartSubtotalCOP + routeInfo.cop) / TASA_USD_COP).toFixed(2)} USD</p>}
+
+                                <button onClick={submitMarketOrder} className="w-full bg-green-600 text-white font-black py-4 rounded-xl shadow-lg text-sm flex justify-center items-center gap-2 animate-pulse mt-4">
+                                    <i className="fa-brands fa-whatsapp text-lg"></i> Confirmar Pedido
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const AdminDash = ({ logout, showAlert }) => {
+            const [drivers, setDrivers] = useState([]);
+            const [dbTrigger, setDbTrigger] = useState(0);
+
+            // Admin data refresh
+            useEffect(() => {
+                const interval = setInterval(() => setDbTrigger(prev => prev + 1), 5000);
+                return () => clearInterval(interval);
+            }, []);
+            
+            useEffect(() => {
+                const usersList = JSON.parse(localStorage.getItem('ubgrit_db') || '[]');
+                setDrivers(usersList.filter(u => u.role === 'driver'));
+            }, [dbTrigger]);
+
+            const renewDriver = (driverId) => {
+                const usersList = JSON.parse(localStorage.getItem('ubgrit_db') || '[]');
+                const updatedUsers = usersList.map(u => {
+                    if(u.id === driverId) {
+                        return { ...u, lastPaymentDate: new Date().toISOString() };
+                    }
+                    return u;
+                });
+                localStorage.setItem('ubgrit_db', JSON.stringify(updatedUsers));
+                setDrivers(updatedUsers.filter(u => u.role === 'driver'));
+                showAlert("Pago confirmado. Mes renovado exitosamente.", "success");
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-gray-100 relative w-full overflow-y-auto">
+                    <HeaderNav title="Panel Administrador" onBack={logout} />
+                    <div className="p-6">
+                        <div className="w-20 h-20 bg-grita-dark text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg"><i className="fa-solid fa-shield-halved text-3xl"></i></div>
+                        <h2 className="text-xl font-black text-gray-800 mb-1 text-center">Panel Maestro UBGrit</h2>
+                        <p className="text-xs text-gray-500 mb-8 text-center">Control de Conductores y Pagos (10%)</p>
+
+                        <div className="space-y-4">
+                            {drivers.length === 0 ? (
+                                <p className="text-center text-sm font-bold text-gray-400">No hay conductores registrados.</p>
+                            ) : drivers.map(d => {
+                                const paymentDate = new Date(d.lastPaymentDate || d.registrationDate);
+                                const now = new Date();
+                                const diffDays = Math.ceil(Math.abs(now - paymentDate) / (1000 * 60 * 60 * 24));
+                                const isBlocked = diffDays >= 30;
+                                const adminCut = Math.round((d.totalEarnings || 0) * 0.10);
+
+                                return (
+                                    <div key={d.id} className={`bg-white p-4 rounded-2xl shadow-sm border-l-4 ${isBlocked ? 'border-red-500' : 'border-green-500'}`}>
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <h3 className="font-black text-gray-800 text-sm">{d.name}</h3>
+                                                <p className="text-[10px] font-bold text-gray-500">{d.phone}</p>
+                                                {d.motoModel && (
+                                                    <p className="text-[9px] font-bold text-gray-500 mt-1">
+                                                        🏍️ {d.motoModel} ({d.motoYear}) - Placa: <span className="uppercase">{d.motoPlate}</span>
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${d.isOnline && !isBlocked ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                {d.isOnline && !isBlocked ? 'En Línea' : 'Desconectado'}
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 mb-3 bg-gray-50 p-2 rounded-xl">
+                                            <div className="text-center"><p className="text-[9px] font-bold text-gray-400">Total Generado</p><p className="font-black text-sm text-gray-700">{(d.totalEarnings || 0).toLocaleString()} COP</p></div>
+                                            <div className="text-center"><p className="text-[9px] font-bold text-gray-400">Pagar al Admin (10%)</p><p className="font-black text-sm text-red-600">{adminCut.toLocaleString()} COP</p></div>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-[10px] font-bold text-gray-500">
+                                                Ciclo: <span className={isBlocked ? 'text-red-600' : 'text-gray-700'}>{diffDays} días</span> / 30
+                                            </p>
+                                            <button onClick={() => renewDriver(d.id)} className="bg-amber-100 text-amber-700 text-[10px] font-black px-3 py-1.5 rounded-lg border border-amber-200">
+                                                Verificar Pago y Renovar Mes
+                                            </button>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )
+        };
+
         function App() {
             const [view, setView] = useState('landing'); 
             const [user, setUser] = useState(null);
             const [alert, setAlert] = useState(null);
-            const [dbTrigger, setDbTrigger] = useState(0); 
             
             useEffect(() => {
                 const savedUser = localStorage.getItem('ubgrit_user');
-                if (savedUser) {
-                    const parsedUser = JSON.parse(savedUser);
-                    setUser(parsedUser);
-                    
-                    // Local Storage sync loop for driver status updates
-                    const interval = setInterval(() => setDbTrigger(prev => prev + 1), 5000);
-                    return () => clearInterval(interval);
-                }
+                if (savedUser) setUser(JSON.parse(savedUser));
             }, []);
 
             const showAlert = (msg, type = 'error') => {
@@ -310,7 +1082,6 @@
 
             const logout = () => {
                 if(user && user.role === 'driver') {
-                    // Turn offline on logout
                     const usersList = JSON.parse(localStorage.getItem('ubgrit_db') || '[]');
                     const updatedUsers = usersList.map(u => u.id === user.id ? { ...u, isOnline: false } : u);
                     localStorage.setItem('ubgrit_db', JSON.stringify(updatedUsers));
@@ -320,758 +1091,23 @@
                 setView('landing');
             };
 
-            const Landing = () => (
-                <div className="flex flex-col h-full bg-[#0b0f19] text-white relative overflow-y-auto w-full">
-                    <div className="absolute top-4 right-4 z-10">
-                         <button onClick={() => setView('adminLogin')} className="text-gray-600 hover:text-gray-400 p-2 text-xl transition"><i className="fa-solid fa-shield-halved"></i></button>
-                    </div>
-
-                    <div className="flex-grow flex flex-col items-center justify-center p-6 text-center">
-                        <div className="w-24 h-24 bg-grita-red rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(220,38,38,0.5)] border-4 border-white shrink-0 mt-8">
-                            <i className="fa-solid fa-motorcycle text-4xl text-white"></i>
-                        </div>
-                        <h1 className="text-4xl font-black mb-1 tracking-tight"><span className="text-grita-red">Moto</span> UBGrit</h1>
-                        
-                        <div className="text-gray-300 mb-8 text-[11px] leading-relaxed font-bold uppercase tracking-wide px-4">
-                            <p>Tu traslado, encomienda</p>
-                            <p>y mercado rápido y seguro</p>
-                        </div>
-                        
-                        <div className="space-y-3 w-full max-w-[300px]">
-                            <button onClick={() => setView('auth_client')} className="w-full bg-white text-grita-black font-black py-3.5 px-4 rounded-xl shadow-md text-xs hover:bg-gray-100 transition">
-                                <div className="flex flex-col items-center gap-1">
-                                    <span><i className="fa-solid fa-user text-gray-500 mr-1"></i> Soy Cliente</span>
-                                    <span className="font-normal text-gray-500 text-[10px]">(Servicio de Traslado) (Registrarse)</span>
-                                </div>
-                            </button>
-                            
-                            <button onClick={() => setView('auth_store')} className="w-full bg-amber-600 text-white font-bold py-3.5 px-4 rounded-xl shadow text-xs hover:bg-amber-500 transition">
-                                <div className="flex flex-col items-center gap-1">
-                                    <span><i className="fa-solid fa-box mr-1"></i> Local / Empresa</span>
-                                    <span className="font-normal text-amber-200 text-[10px]">(Traslado de Encomienda) (Registrarse)</span>
-                                </div>
-                            </button>
-                            
-                            <button onClick={() => setView('auth_mercado')} className="w-full bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl shadow text-xs hover:bg-green-500 transition">
-                                <div className="flex flex-col items-center gap-1">
-                                    <span><i className="fa-solid fa-basket-shopping mr-1"></i> Mercado en Casa</span>
-                                    <span className="font-normal text-green-200 text-[10px]">(Pedido Mercado) (Registrarse)</span>
-                                </div>
-                            </button>
-                            
-                            <button onClick={() => setView('auth_driver')} className="w-full bg-[#1a1a1a] border border-gray-700 text-gray-300 py-3.5 px-4 rounded-xl shadow text-xs font-bold hover:bg-gray-800 transition">
-                                <div className="flex flex-col items-center gap-1">
-                                    <span><i className="fa-solid fa-motorcycle mr-1"></i> Quiero ser Conductor</span>
-                                    <span className="text-[10px] text-gray-500">(Registrarse)</span>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-
-            const AdminLoginView = () => {
-                const [adminEmail, setAdminEmail] = useState('');
-                const [adminPass, setAdminPass] = useState('');
-
-                const submitAdminLogin = (e) => {
-                    e.preventDefault();
-                    if (adminEmail === ADMIN_EMAIL && adminPass === "Universal11!!") {
-                        setUser({ id: 'admin', role: 'admin', name: 'Administrador UBGrit' });
-                        setView('adminDash');
-                    } else showAlert("Credenciales incorrectas.");
-                };
-
-                return (
-                    <div className="flex flex-col h-full bg-[#0b0f19] text-white w-full">
-                        <HeaderNav title="Acceso Admin" onBack={() => setView('landing')} />
-                        <div className="flex-1 flex flex-col justify-center items-center p-6">
-                            <div className="bg-[#111] border border-gray-700 rounded-3xl max-w-[320px] w-full p-6 shadow-2xl">
-                                <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-500 text-xl"><i className="fa-solid fa-shield-halved"></i></div>
-                                <h3 className="text-xl font-black mb-6 text-center text-amber-500">Administrador</h3>
-                                <form onSubmit={submitAdminLogin}>
-                                    <input type="email" placeholder="Correo" required className="w-full p-3 mb-3 border border-gray-700 rounded-xl text-sm bg-[#1a1a1a] text-white focus:border-amber-500 outline-none" value={adminEmail} onChange={e=>setAdminEmail(e.target.value)}/>
-                                    <input type="password" placeholder="Clave" required className="w-full p-3 mb-6 border border-gray-700 rounded-xl text-sm bg-[#1a1a1a] text-white focus:border-amber-500 outline-none" value={adminPass} onChange={e=>setAdminPass(e.target.value)}/>
-                                    <button type="submit" className="w-full bg-amber-600 text-white font-bold py-3.5 rounded-xl shadow-lg transition text-sm">Ingresar</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            const AuthHub = ({ role, title, targetView }) => {
-                const [mode, setMode] = useState('login'); 
-                const [email, setEmail] = useState('');
-                const [pass, setPass] = useState('');
-                const [formData, setFormData] = useState({ name: '', phone: '', address: '', email: '', password: '', storeName: '', driverAddress: '', motoModel: '', motoYear: '', motoPlate: '' });
-                const [recoverEmail, setRecoverEmail] = useState('');
-                const [showDriverTerms, setShowDriverTerms] = useState(false);
-
-                const isStore = role === 'store';
-                const isDriver = role === 'driver';
-
-                useEffect(() => {
-                    if(user && (user.role === role || (role==='mercado' && (user.role==='client' || user.role==='store')))) {
-                        setView(targetView);
-                    }
-                }, [user]);
-
-                const submitLogin = (e) => {
-                    e.preventDefault();
-                    const usersList = JSON.parse(localStorage.getItem('ubgrit_db') || '[]');
-                    const found = usersList.find(u => u.email === email && u.password === pass);
-                    if (found) {
-                        localStorage.setItem('ubgrit_user', JSON.stringify(found));
-                        setUser(found);
-                        showAlert("¡Sesión iniciada!", "success");
-                        setView(targetView);
-                    } else showAlert("Correo o clave incorrectos.");
-                };
-
-                const proceedWithRegistration = () => {
-                    const finalRole = role === 'mercado' ? 'client' : role;
-                    const newUser = { 
-                        ...formData, 
-                        id: Date.now().toString(), 
-                        role: finalRole 
-                    };
-
-                    if(isDriver) {
-                        newUser.registrationDate = new Date().toISOString();
-                        newUser.lastPaymentDate = new Date().toISOString();
-                        newUser.totalEarnings = 0;
-                        newUser.totalTrips = 0;
-                        newUser.isBlocked = false;
-                        newUser.isOnline = false;
-                    }
-                    
-                    const usersList = JSON.parse(localStorage.getItem('ubgrit_db') || '[]');
-                    usersList.push(newUser);
-                    localStorage.setItem('ubgrit_db', JSON.stringify(usersList));
-                    localStorage.setItem('ubgrit_user', JSON.stringify(newUser));
-                    setUser(newUser);
-                    
-                    logToSheets({ action: 'new_registration', role: title, name: formData.name, email: formData.email, phone: formData.phone, date: new Date().toLocaleString() });
-                    showAlert(`¡Registro exitoso!`, "success");
-                    setView(targetView);
-                };
-
-                const submitRegister = (e) => {
-                    e.preventDefault();
-                    if(isDriver) {
-                        setShowDriverTerms(true);
-                    } else {
-                        proceedWithRegistration();
-                    }
-                };
-
-                const handleRecoverPassword = () => {
-                    if(!recoverEmail) return showAlert("Debes ingresar tu correo.");
-                    logToSheets({ action: 'password_recovery', email: recoverEmail, date: new Date().toLocaleString() });
-                    const text = `Hola Admin, olvidé mi clave. Mi correo registrado es: ${recoverEmail}. Por favor, envíala desde motoubgrit@gmail.com`;
-                    window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(text)}`, '_blank');
-                    showAlert("Notificación enviada al administrador.", "success");
-                    setMode('login');
-                };
-
-                return (
-                    <div className="flex flex-col h-full bg-[#0b0f19] text-white w-full relative">
-                        <HeaderNav title={title} onBack={() => setView('landing')} />
-                        
-                        {showDriverTerms && (
-                            <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-                                <div className="bg-white text-gray-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl">
-                                    <div className="text-red-600 text-4xl mb-4 text-center"><i className="fa-solid fa-file-contract"></i></div>
-                                    <h2 className="text-xl font-black mb-4 text-center">Condiciones del Conductor</h2>
-                                    <ul className="text-xs space-y-3 mb-6 font-bold text-gray-600">
-                                        <li><i className="fa-solid fa-check text-green-600 mr-2"></i> Debes mantenerte <strong>En Línea</strong> para recibir viajes.</li>
-                                        <li><i className="fa-solid fa-check text-green-600 mr-2"></i> Tienes <strong>60 segundos</strong> para responder o se reasignará.</li>
-                                        <li><i className="fa-solid fa-check text-green-600 mr-2"></i> El <strong>10%</strong> del costo de tus viajes corresponde al Administrador.</li>
-                                        <li><i className="fa-solid fa-check text-green-600 mr-2"></i> Pago de la cuota/10% es <strong>MENSUAL</strong>. Si no pagas al mes, tu cuenta se bloqueará.</li>
-                                        <li><i className="fa-solid fa-check text-green-600 mr-2"></i> Uso OBLIGATORIO de <strong>Casco</strong> para ti y el pasajero.</li>
-                                        <li><i className="fa-solid fa-check text-green-600 mr-2"></i> Debes tener un bolso o cesta segura para encomiendas.</li>
-                                    </ul>
-                                    <button onClick={proceedWithRegistration} className="w-full bg-green-600 text-white font-black py-4 rounded-xl mb-3">Aceptar y Registrar</button>
-                                    <button onClick={()=>setShowDriverTerms(false)} className="w-full bg-gray-100 text-gray-800 font-bold py-3 rounded-xl">Cancelar</button>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center pb-12">
-                            <div className="bg-white text-gray-900 rounded-3xl max-w-[320px] w-full p-6 shadow-2xl">
-                                {mode === 'login' && (
-                                    <>
-                                        <h3 className="text-xl font-black mb-1 text-center">Acceso {title}</h3>
-                                        <p className="text-gray-500 text-[10px] mb-6 text-center">Inicia sesión para continuar</p>
-                                        <form onSubmit={submitLogin}>
-                                            <input type="email" placeholder="Correo" required className="w-full p-3 mb-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-grita-red outline-none" value={email} onChange={e=>setEmail(e.target.value)}/>
-                                            <input type="password" placeholder="Clave" required className="w-full p-3 mb-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-grita-red outline-none" value={pass} onChange={e=>setPass(e.target.value)}/>
-                                            <div className="text-right mb-5"><button type="button" onClick={() => setMode('forgot')} className="text-[11px] text-grita-red font-bold hover:underline">¿Olvidaste tu contraseña?</button></div>
-                                            <button type="submit" className="w-full bg-grita-red text-white font-bold py-3.5 rounded-xl shadow-lg text-sm mb-4">Iniciar Sesión</button>
-                                        </form>
-                                        <div className="text-center pt-4 border-t border-gray-100">
-                                            <p className="text-xs text-gray-500 mb-2">¿No tienes cuenta?</p>
-                                            <button onClick={() => setMode('register')} className="w-full bg-gray-100 text-gray-800 font-black py-3 rounded-xl border border-gray-300 text-sm">Registrarse Aquí</button>
-                                        </div>
-                                    </>
-                                )}
-                                {mode === 'register' && (
-                                    <>
-                                        <h3 className="text-xl font-black mb-4 text-center">Registro Nuevo</h3>
-                                        <form onSubmit={submitRegister} className="space-y-3">
-                                            {isStore && <input required placeholder="Nombre del Local" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" onChange={e=>setFormData({...formData, storeName: e.target.value})}/>}
-                                            <input required placeholder="Nombre y Apellido" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" onChange={e=>setFormData({...formData, name: e.target.value})}/>
-                                            <input required type="tel" placeholder="WhatsApp (Ej: 0414...)" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" onChange={e=>setFormData({...formData, phone: e.target.value})}/>
-                                            
-                                            {isDriver && (
-                                                <div className="bg-gray-100 p-3 rounded-xl space-y-3 border border-gray-200">
-                                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Datos del Conductor</p>
-                                                    <input required placeholder="Dirección de Vivienda" className="w-full p-3 border rounded-xl bg-white text-sm" onChange={e=>setFormData({...formData, driverAddress: e.target.value})}/>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <input required placeholder="Modelo Moto (Ej: Bera)" className="w-full p-3 border rounded-xl bg-white text-sm" onChange={e=>setFormData({...formData, motoModel: e.target.value})}/>
-                                                        <input required type="number" placeholder="Año Moto" className="w-full p-3 border rounded-xl bg-white text-sm" onChange={e=>setFormData({...formData, motoYear: e.target.value})}/>
-                                                    </div>
-                                                    <input required placeholder="Placa de la Moto" className="w-full p-3 border rounded-xl bg-white text-sm uppercase" onChange={e=>setFormData({...formData, motoPlate: e.target.value.toUpperCase()})}/>
-                                                </div>
-                                            )}
-
-                                            <input required type="email" placeholder="Correo" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" onChange={e=>setFormData({...formData, email: e.target.value})}/>
-                                            <input required type="password" placeholder="Crear Clave" className="w-full p-3 border rounded-xl bg-gray-50 text-sm mb-4" onChange={e=>setFormData({...formData, password: e.target.value})}/>
-                                            <button type="submit" className="w-full bg-green-600 text-white font-bold py-3.5 rounded-xl shadow-lg text-sm mb-4">Completar Registro</button>
-                                        </form>
-                                        <div className="text-center pt-4 border-t border-gray-100">
-                                            <button onClick={() => setMode('login')} className="w-full bg-gray-100 text-gray-800 font-bold py-3 rounded-xl border border-gray-300 text-sm">← Volver a Iniciar Sesión</button>
-                                        </div>
-                                    </>
-                                )}
-                                {mode === 'forgot' && (
-                                    <>
-                                        <h3 className="text-xl font-black mb-1 text-center">Recuperar Clave</h3>
-                                        <p className="text-gray-500 text-[10px] mb-6 text-center leading-tight">El sistema notificará al administrador para despachar la clave a tu correo.</p>
-                                        <input type="email" placeholder="Tu correo registrado" className="w-full p-3 mb-4 border rounded-xl text-sm bg-gray-50" value={recoverEmail} onChange={e=>setRecoverEmail(e.target.value)} />
-                                        <button onClick={handleRecoverPassword} className="w-full bg-amber-600 text-white font-bold py-3.5 rounded-xl shadow text-sm mb-3">Solicitar al Administrador</button>
-                                        <button onClick={() => setMode('login')} className="w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl text-xs">← Cancelar</button>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            const ClientDashboard = ({ role, title, icon, color, bg }) => {
-                const [requestingRide, setRequestingRide] = useState(false);
-                const [routeDetails, setRouteDetails] = useState(null);
-
-                const handleRouteConfirm = (routeData) => {
-                    const fares = calculateFares(routeData.distance);
-                    setRouteDetails({ ...routeData, ...fares });
-                    setRequestingRide(false); 
-                };
-
-                const executeCloudRequest = async () => {
-                    const typeStr = role === 'store' ? 'Encomienda' : 'Traslado';
-                    const msg = `🚀 *NUEVO ${typeStr.toUpperCase()}*\n\n*Cliente:* ${user.storeName || user.name}\n*Origen:* ${routeDetails.pickup}\nMapa: https://www.google.com/maps/search/?api=1&query=${routeDetails.pickupCoords[0]},${routeDetails.pickupCoords[1]}\n\n*Destino:* ${routeDetails.dropoff}\nMapa: https://www.google.com/maps/search/?api=1&query=${routeDetails.dropoffCoords[0]},${routeDetails.dropoffCoords[1]}\n\n*Recorrido:* ${routeDetails.distance} km\n*Tarifa a cobrar:* ${routeDetails.cop.toLocaleString()} COP`;
-                    
-                    logToSheets({ action: 'service_request', passenger: user.name, phone: user.phone, type: typeStr, pickup: routeDetails.pickup, dropoff: routeDetails.dropoff, distance: routeDetails.distance, cop: routeDetails.cop, adminCut: routeDetails.admin, date: new Date().toLocaleString() });
-                    window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
-                    
-                    setRouteDetails(null);
-                    playAlertSound();
-                    showAlert("¡Pedido generado! Será procesado.", "success");
-                    setView('landing');
-                };
-
-                return (
-                    <div className="flex flex-col h-full bg-gray-50 relative overflow-y-auto w-full">
-                        <HeaderNav title={`Panel ${title}`} onBack={() => { 
-                            if(requestingRide) setRequestingRide(false);
-                            else if (routeDetails) setRouteDetails(null);
-                            else setView('landing'); 
-                        }} />
-                        
-                        {requestingRide && (
-                            <MapRouter mode="two-step" onBack={() => setRequestingRide(false)} onConfirm={handleRouteConfirm} />
-                        )}
-
-                        {!requestingRide && (
-                            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center w-full">
-                                {!routeDetails ? (
-                                    <>
-                                        <div className={`w-20 h-20 ${bg} ${color} rounded-full flex items-center justify-center mb-4 shadow-inner border border-white`}><i className={`fa-solid ${icon} text-3xl`}></i></div>
-                                        <h2 className="text-xl font-black text-gray-800 mb-6">{user.storeName || user.name}</h2>
-                                        
-                                        <button onClick={() => setRequestingRide(true)} className={`w-full max-w-[280px] ${role === 'store' ? 'bg-amber-600' : 'bg-grita-red'} text-white font-bold py-4 rounded-xl shadow-lg mb-3 text-sm flex items-center justify-center gap-2 transition-transform hover:scale-105`}>
-                                            <i className="fa-solid fa-map-location-dot text-lg"></i> Solicitar {role === 'store' ? 'Encomienda' : 'Traslado'} (Fijar en Mapa)
-                                        </button>
-                                        <button onClick={logout} className="mt-12 text-xs text-gray-500 underline font-bold">Cerrar Sesión</button>
-                                    </>
-                                ) : (
-                                    <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-xl mb-6 animate-[bounce_0.3s_ease-out]">
-                                        <h3 className="text-center font-black text-lg mb-6 text-gray-800">Resumen del Viaje</h3>
-                                        <div className="space-y-4 mb-6 relative">
-                                            <div className="absolute left-3 top-4 bottom-4 w-0.5 bg-gray-200"></div>
-                                            <div className="flex items-start gap-3 relative">
-                                                <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center shrink-0 z-10 text-[10px]"><i className="fa-solid fa-A"></i></div>
-                                                <div className="text-left"><p className="text-[10px] text-gray-500 font-bold uppercase">Origen</p><p className="text-xs font-bold text-gray-800">{routeDetails.pickup}</p></div>
-                                            </div>
-                                            <div className="flex items-start gap-3 relative">
-                                                <div className="w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center shrink-0 z-10 text-[10px]"><i className="fa-solid fa-B"></i></div>
-                                                <div className="text-left"><p className="text-[10px] text-gray-500 font-bold uppercase">Destino</p><p className="text-xs font-bold text-gray-800">{routeDetails.dropoff}</p></div>
-                                            </div>
-                                        </div>
-                                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-6">
-                                            <div className="flex justify-between mb-2"><span className="text-xs text-gray-500 font-bold">Recorrido Estimado:</span><span className="font-black text-sm text-gray-800">{routeDetails.distance} km</span></div>
-                                            <div className="flex justify-between items-center"><span className="text-sm font-black text-gray-800">Tarifa a Pagar:</span><span className="text-2xl font-black text-green-600">{routeDetails.cop.toLocaleString()} COP</span></div>
-                                        </div>
-                                        <button onClick={executeCloudRequest} className="w-full bg-green-600 text-white font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-lg animate-pulse mb-3">
-                                            <i className="fa-brands fa-whatsapp"></i> Solicitar Ahora
-                                        </button>
-                                        <button onClick={() => setRouteDetails(null)} className="w-full bg-gray-100 text-gray-600 font-bold py-3 rounded-xl border border-gray-200 text-sm">
-                                            Modificar Ruta
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                );
-            };
-
-            const DriverDashboard = () => {
-                const [isOnline, setIsOnline] = useState(user?.isOnline || false);
-                const [activeRequest, setActiveRequest] = useState(null);
-                const [timeLeft, setTimeLeft] = useState(60);
-                const [tripStatus, setTripStatus] = useState('idle'); 
-                const [onlineDriversCount, setOnlineDriversCount] = useState(0);
-
-                const isBlocked = useMemo(() => {
-                    if (!user || !user.lastPaymentDate) return false;
-                    const paymentDate = new Date(user.lastPaymentDate);
-                    const now = new Date();
-                    const diffTime = Math.abs(now - paymentDate);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    return diffDays >= 30;
-                }, [user]);
-
-                useEffect(() => {
-                    const usersList = JSON.parse(localStorage.getItem('ubgrit_db') || '[]');
-                    const count = usersList.filter(u => u.role === 'driver' && u.isOnline).length;
-                    setOnlineDriversCount(count);
-
-                    if (user && user.id) {
-                        const updatedUsers = usersList.map(u => u.id === user.id ? { ...u, isOnline: isOnline && !isBlocked } : u);
-                        localStorage.setItem('ubgrit_db', JSON.stringify(updatedUsers));
-                    }
-                }, [isOnline, dbTrigger, isBlocked]);
-
-                useEffect(() => {
-                    let timer;
-                    if (tripStatus === 'incoming' && timeLeft > 0) {
-                        timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-                    } else if (tripStatus === 'incoming' && timeLeft === 0) {
-                        handleReject();
-                    }
-                    return () => clearInterval(timer);
-                }, [tripStatus, timeLeft]);
-
-                const handleAccept = async () => {
-                    setTripStatus('accepted');
-                    showAlert("¡Viaje Aceptado! El admin ya tiene los detalles.", "success");
-                };
-
-                const handleReject = async () => {
-                    setTripStatus('idle'); 
-                    setActiveRequest(null); 
-                    showAlert("Solicitud omitida (Reasignando equitativamente...).", "error");
-                };
-
-                const completeTrip = () => {
-                    if(!activeRequest) return;
-                    const newEarnings = (user.totalEarnings || 0) + activeRequest.cop;
-                    const newTrips = (user.totalTrips || 0) + 1;
-                    
-                    const updatedUser = { ...user, totalEarnings: newEarnings, totalTrips: newTrips };
-                    setUser(updatedUser);
-                    localStorage.setItem('ubgrit_user', JSON.stringify(updatedUser));
-                    
-                    const usersList = JSON.parse(localStorage.getItem('ubgrit_db') || '[]');
-                    const updatedUsers = usersList.map(u => u.id === user.id ? updatedUser : u);
-                    localStorage.setItem('ubgrit_db', JSON.stringify(updatedUsers));
-
-                    setTripStatus('idle');
-                    setActiveRequest(null);
-                    showAlert("Viaje Completado. Ingresos actualizados.", "success");
-                };
-
-                const simulateIncomingOrder = () => {
-                    if (!isOnline) return showAlert("Debes estar en línea para recibir viajes.");
-                    setActiveRequest({ id: 'demo123', type: 'Traslado', pickup: 'Plaza Bolívar', dropoff: 'Sector Palenque', distance: '2.5', cop: 8000, clientName: 'Juan Pérez' });
-                    setTimeLeft(60); setTripStatus('incoming'); playAlertSound();
-                };
-
-                if (isBlocked) {
-                    return (
-                        <div className="flex flex-col h-full bg-gray-50 relative w-full">
-                            <HeaderNav title="Panel Conductor" onBack={() => setView('landing')} />
-                            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                                <i className="fa-solid fa-lock text-6xl text-red-600 mb-4"></i>
-                                <h2 className="text-xl font-black text-gray-800 mb-2">Cuenta Suspendida</h2>
-                                <p className="text-sm font-bold text-gray-500 mb-6">Tu ciclo mensual ha vencido. Debes pagar el 10% de comisión al administrador para renovar tu acceso.</p>
-                                <button onClick={() => window.open(`https://wa.me/${ADMIN_PHONE}`, '_blank')} className="bg-black text-white px-6 py-3 rounded-xl font-bold mb-6">Contactar Administrador</button>
-                                <button onClick={logout} className="text-xs text-gray-500 underline font-bold">Cerrar Sesión</button>
-                            </div>
-                        </div>
-                    );
-                }
-
-                const adminCut = Math.round((user?.totalEarnings || 0) * 0.10);
-
-                return (
-                    <div className="flex flex-col h-full bg-gray-50 relative overflow-y-auto w-full">
-                        <HeaderNav title="Panel Conductor" onBack={() => setView('landing')} />
-                        <div className="flex-1 flex flex-col items-center p-6 text-center">
-                            
-                            <div className="bg-white p-4 rounded-2xl shadow-sm w-full mb-4 border border-gray-100 flex items-center justify-between">
-                                <div className="text-left">
-                                    <h3 className="font-black text-gray-800 text-lg">{user?.name}</h3>
-                                    <p className={`text-xs font-bold ${isOnline ? 'text-green-600' : 'text-gray-400'}`}>
-                                        <span className={`inline-block w-2 h-2 rounded-full mr-1 ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></span>
-                                        {isOnline ? 'En línea' : 'Desconectado'}
-                                    </p>
-                                </div>
-                                <button onClick={() => setIsOnline(!isOnline)} className={`w-14 h-8 rounded-full relative transition-colors duration-300 ${isOnline ? 'bg-green-500' : 'bg-gray-300'} shadow-inner border border-gray-200`}>
-                                    <div className={`w-6 h-6 bg-white rounded-full absolute top-[3px] transition-transform duration-300 shadow-md ${isOnline ? 'translate-x-[26px]' : 'translate-x-1'}`}></div>
-                                </button>
-                            </div>
-
-                            {/* Driver Stats */}
-                            <div className="grid grid-cols-3 gap-2 w-full mb-6 shrink-0">
-                                <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl flex flex-col items-center">
-                                    <p className="text-[9px] font-bold text-blue-800 uppercase text-center">Viajes</p>
-                                    <p className="text-lg font-black text-blue-900">{user?.totalTrips || 0}</p>
-                                </div>
-                                <div className="bg-green-50 border border-green-100 p-3 rounded-xl flex flex-col items-center">
-                                    <p className="text-[9px] font-bold text-green-800 uppercase text-center">Generado (COP)</p>
-                                    <p className="text-sm font-black text-green-900 mt-1">{(user?.totalEarnings || 0).toLocaleString()}</p>
-                                </div>
-                                <div className="bg-red-50 border border-red-100 p-3 rounded-xl flex flex-col items-center">
-                                    <p className="text-[9px] font-bold text-red-800 uppercase text-center">Deuda Admin</p>
-                                    <p className="text-sm font-black text-red-900 mt-1">{adminCut.toLocaleString()}</p>
-                                </div>
-                            </div>
-
-                            {tripStatus === 'idle' && (
-                                <div className="flex-1 flex flex-col items-center justify-center w-full">
-                                    {isOnline ? (
-                                        <div className="relative w-32 h-32 flex items-center justify-center mb-6 mt-4">
-                                            <div className="absolute inset-0 bg-blue-200 rounded-full animate-ping opacity-75"></div>
-                                            <div className="absolute inset-2 bg-blue-300 rounded-full animate-pulse opacity-75"></div>
-                                            <div className="relative w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl shadow-lg border-2 border-white"><i className="fa-solid fa-radar"></i></div>
-                                        </div>
-                                    ) : (
-                                        <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center text-gray-400 text-4xl mb-6 mt-4 border-4 border-white"><i className="fa-solid fa-motorcycle"></i></div>
-                                    )}
-                                    <h2 className="text-xl font-black text-gray-800 mb-2">{isOnline ? 'Buscando viajes...' : 'Estás desconectado'}</h2>
-                                    <p className="text-xs text-gray-500 mb-4 max-w-[250px]">{isOnline ? 'El sistema te asignará viajes equitativamente.' : 'Conéctate para trabajar.'}</p>
-                                    
-                                    <div className="bg-gray-100 px-4 py-2 rounded-full border border-gray-200 mb-8">
-                                        <p className="text-[10px] font-bold text-gray-600">👥 Conductores Activos en Sistema: <span className="text-green-600">{onlineDriversCount}</span></p>
-                                    </div>
-
-                                    {isOnline && (
-                                        <button onClick={simulateIncomingOrder} className="text-[10px] bg-gray-200 text-gray-600 font-bold px-4 py-2.5 rounded-xl border mt-auto mb-4"><i className="fa-solid fa-vial"></i> Simular Viaje Entrante</button>
-                                    )}
-                                    <button onClick={logout} className="mt-4 text-xs text-gray-500 underline font-bold">Cerrar Sesión</button>
-                                </div>
-                            )}
-
-                            {tripStatus === 'incoming' && activeRequest && (
-                                <div className="w-full bg-white rounded-3xl p-5 shadow-2xl border-2 border-grita-red animate-[bounce_0.5s_ease-in-out]">
-                                    <div className="w-16 h-16 bg-red-100 text-grita-red rounded-full flex items-center justify-center mx-auto mb-2 border border-red-200"><i className="fa-solid fa-bell text-3xl animate-pulse"></i></div>
-                                    <h2 className="text-xl font-black text-gray-800 mb-1">¡Nuevo Viaje Asignado!</h2>
-                                    <p className={`text-xs font-bold bg-red-50 py-1.5 px-4 rounded-full inline-flex items-center gap-2 mb-4 border border-red-100 ${timeLeft < 20 ? 'text-red-700 animate-pulse' : 'text-grita-red'}`}>
-                                        <i className="fa-regular fa-clock"></i> Responde en: {timeLeft}s
-                                    </p>
-                                    <div className="bg-gray-50 rounded-xl p-4 text-left mb-5 border border-gray-100">
-                                        <p className="text-[10px] font-bold text-gray-500 mb-1">SERVICIO: {activeRequest.type}</p>
-                                        <p className="text-xs font-bold text-gray-800 mb-2">👤 {activeRequest.clientName}</p>
-                                        <div className="pl-2 border-l-2 border-gray-300">
-                                            <p className="text-[10px] text-gray-500 font-bold">BUSCAR EN:</p>
-                                            <p className="text-xs font-bold text-blue-600 mb-2">{activeRequest.pickup}</p>
-                                            <p className="text-[10px] text-gray-500 font-bold">LLEVAR A:</p>
-                                            <p className="text-xs font-bold text-red-600">{activeRequest.dropoff}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between items-end mb-6 px-4 bg-green-50 p-3 rounded-xl border border-green-200">
-                                        <div className="text-left"><p className="text-[10px] font-bold text-green-800">Recorrido</p><p className="text-sm font-black">{activeRequest.distance} km</p></div>
-                                        <div className="text-right"><p className="text-[10px] font-bold text-green-800">Cobrar al Cliente</p><p className="text-2xl font-black text-green-600">{activeRequest.cop.toLocaleString()} COP</p></div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <button onClick={handleReject} className="bg-white text-red-600 border-2 border-red-100 font-black py-3.5 rounded-xl text-xs">No Disponible</button>
-                                        <button onClick={handleAccept} className="bg-green-600 text-white font-black py-3.5 rounded-xl text-xs">Aceptar Viaje</button>
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {tripStatus === 'accepted' && (
-                                <div className="w-full flex-1 flex flex-col items-center justify-center">
-                                    <div className="text-6xl text-green-500 mb-4"><i className="fa-solid fa-circle-check"></i></div>
-                                    <h2 className="text-2xl font-black text-gray-800 mb-2">Viaje en Curso</h2>
-                                    <button onClick={completeTrip} className="bg-black text-white w-full py-4 rounded-xl font-bold mt-4">Completar y Cobrar</button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                );
-            };
-
-            const MercadoDashboard = () => {
-                const [internalView, setInternalView] = useState('shop'); 
-                const [cart, setCart] = useState({});
-                const [categoryIdx, setCategoryIdx] = useState(0);
-                const [paymentCurrency, setPaymentCurrency] = useState('COP');
-                const [routeInfo, setRouteInfo] = useState(null);
-
-                const currentCat = mercadoCategories[categoryIdx];
-                const currentProducts = mercadoInventory.filter(p => p.category === currentCat);
-                const totalItems = Object.keys(cart).length;
-                const cartSubtotalCOP = Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-                const updateCart = (name, qty, price) => {
-                    const cleanQty = Math.max(0, Math.round(qty * 100) / 100);
-                    setCart(prev => {
-                        const newCart = { ...prev };
-                        if (cleanQty <= 0) delete newCart[name];
-                        else newCart[name] = { quantity: cleanQty, price };
-                        return newCart;
-                    });
-                };
-
-                const handleMercadoMapConfirm = (routeData) => {
-                    const fares = calculateFares(routeData.distance);
-                    setRouteInfo({ 
-                        distance: routeData.distance, dropoff: routeData.dropoff,
-                        mapLink: `https://www.google.com/maps/search/?api=1&query=${routeData.dropoffCoords[0]},${routeData.dropoffCoords[1]}`, 
-                        ...fares 
-                    });
-                    setInternalView('checkout');
-                };
-
-                const submitMarketOrder = async () => {
-                    const deliveryFee = routeInfo.cop;
-                    const grandTotalCOP = cartSubtotalCOP + deliveryFee;
-                    let orderText = Object.keys(cart).map(k => `${formatQuantity(cart[k].quantity, k)} ${k}`).join(", ");
-                    
-                    const rawText = `🛒 *MERCADO EN CASA*\n\n*Cliente:* ${user.name}\n*Tel:* ${user.phone}\n\n*PEDIDO:*\n${orderText}\n\n*Subtotal:* ${cartSubtotalCOP.toLocaleString()} COP\n*Delivery:* ${deliveryFee.toLocaleString()} COP\n💰 *TOTAL:* ${grandTotalCOP.toLocaleString()} COP\n💵 *Moneda:* ${paymentCurrency}\n\n📍 *ENTREGA:* ${routeInfo.dropoff}\n${routeInfo.mapLink}`;
-                    
-                    await logToSheets({ action: 'new_ride', passenger: `MERCADO - ${user.name}`, phone: user.phone, pickup: "Mercado Central", dropoff: routeInfo.dropoff, distance: routeInfo.distance, cop: grandTotalCOP, adminCut: routeInfo.admin });
-
-                    window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(rawText)}`, '_blank');
-                    
-                    playAlertSound();
-                    showAlert("¡Pedido enviado!", "success");
-                    setView('landing');
-                };
-
-                if (internalView === 'map') {
-                    return <MapRouter mode="one-step" onBack={() => setInternalView('cart')} onConfirm={handleMercadoMapConfirm} />;
-                }
-
-                return (
-                    <div className="flex flex-col h-full bg-gray-50 relative w-full overflow-hidden">
-                        {internalView === 'shop' && <HeaderNav title="Mercado en Casa" onBack={() => setView('landing')} />}
-                        {internalView === 'cart' && <HeaderNav title="Carrito" onBack={() => setInternalView('shop')} />}
-                        {internalView === 'checkout' && <HeaderNav title="Confirmación" onBack={() => { setInternalView('cart'); setRouteInfo(null); }} />}
-                        
-                        {internalView === 'shop' && (
-                            <div className="flex-1 overflow-y-auto p-4 flex flex-col pb-24">
-                                <div className="flex items-center justify-between bg-white p-3 rounded-2xl shadow-sm mb-4 border border-green-100 shrink-0 sticky top-0 z-10">
-                                    <button onClick={() => setCategoryIdx(Math.max(0, categoryIdx-1))} disabled={categoryIdx===0} className="text-green-600 disabled:opacity-30 p-2"><i className="fa-solid fa-chevron-left"></i></button>
-                                    <h2 className="text-[11px] font-black text-green-800 uppercase tracking-widest text-center flex-1">{currentCat}</h2>
-                                    <button onClick={() => setCategoryIdx(Math.min(mercadoCategories.length-1, categoryIdx+1))} disabled={categoryIdx===mercadoCategories.length-1} className="text-green-600 disabled:opacity-30 p-2"><i className="fa-solid fa-chevron-right"></i></button>
-                                </div>
-                                <div className="grid grid-cols-2 gap-3 pb-6 shrink-0">
-                                    {currentProducts.map(p => {
-                                        const qty = cart[p.name]?.quantity || 0;
-                                        return (
-                                            <div key={p.name} className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
-                                                <div className="text-3xl mb-1">{p.icon}</div>
-                                                <h3 className="font-bold text-gray-800 text-[11px] leading-tight mb-1 h-8 flex items-center justify-center">{p.name}</h3>
-                                                <p className="text-green-700 font-black text-[11px] mb-3">{p.price.toLocaleString()} COP</p>
-                                                {qty === 0 ? (
-                                                    <button onClick={() => updateCart(p.name, 0.25, p.price)} className="w-full bg-green-50 text-green-700 border border-green-200 py-1.5 rounded-lg text-xs font-bold hover:bg-green-100">Agregar</button>
-                                                ) : (
-                                                    <div className="flex items-center justify-between w-full bg-gray-50 rounded-lg p-1 border">
-                                                        <button onClick={() => updateCart(p.name, qty-0.25, p.price)} className="w-6 h-6 bg-white rounded text-red-500 font-bold shadow-sm">-</button>
-                                                        <span className="font-bold text-[10px]">{formatQuantity(qty, p.name)}</span>
-                                                        <button onClick={() => updateCart(p.name, qty+0.25, p.price)} className="w-6 h-6 bg-white rounded text-green-600 font-bold shadow-sm">+</button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
-                        {internalView === 'cart' && (
-                            <div className="flex-1 overflow-y-auto p-4 flex flex-col pb-24">
-                                {totalItems === 0 ? (
-                                    <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
-                                        <i className="fa-solid fa-basket-shopping text-5xl mb-3 opacity-50"></i>
-                                        <p className="text-xs font-bold mb-4">El carrito está vacío</p>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 p-2 shrink-0">
-                                            {Object.keys(cart).map(name => (
-                                                <div key={name} className="flex justify-between items-center p-3 border-b last:border-0 border-gray-50">
-                                                    <div><p className="font-bold text-xs text-gray-800">{name}</p><p className="text-[10px] text-gray-500">{formatQuantity(cart[name].quantity, name)}</p></div>
-                                                    <p className="font-black text-xs text-green-700">{(cart[name].price * cart[name].quantity).toLocaleString()} COP</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="flex justify-between items-center bg-green-50 p-4 rounded-xl border border-green-200 mb-6 shrink-0">
-                                            <span className="font-black text-sm text-green-900">Subtotal Productos</span>
-                                            <span className="font-black text-xl text-green-700">{cartSubtotalCOP.toLocaleString()} COP</span>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        )}
-
-                        {(internalView === 'shop' || internalView === 'cart') && totalItems > 0 && (
-                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-gray-200 z-20 shadow-[0_-5px_15px_rgba(0,0,0,0.1)]">
-                                <button onClick={()=>setInternalView(internalView==='shop' ? 'cart' : 'map')} className="w-full bg-green-600 text-white font-black py-4 rounded-xl shadow-lg text-sm flex justify-between px-6 items-center hover:bg-green-700 transition">
-                                    {internalView==='shop' && <span className="bg-white text-green-700 px-2 py-1 rounded-md text-xs shadow-sm">{totalItems} ítems</span>}
-                                    <span className="mx-auto">{internalView==='shop' ? 'Ir al Carrito' : 'Continuar (Fijar Envío)'} <i className="fa-solid fa-arrow-right ml-1"></i></span>
-                                </button>
-                            </div>
-                        )}
-
-                        {internalView === 'checkout' && routeInfo && (
-                            <div className="flex-1 overflow-y-auto flex flex-col p-6 bg-gray-100">
-                                <div className="bg-white p-6 rounded-3xl shadow-xl z-20 shrink-0 w-full max-w-sm mx-auto animate-[bounce_0.3s_ease-out]">
-                                    <h3 className="font-black text-lg text-center mb-4 text-gray-800">Comprobante</h3>
-                                    <div className="flex justify-between mb-1 text-xs"><span className="text-gray-500 font-bold">Subtotal Productos</span><span className="font-bold">{cartSubtotalCOP.toLocaleString()} COP</span></div>
-                                    <div className="flex justify-between mb-3 text-xs border-b pb-2"><span className="text-gray-500 font-bold">Delivery ({routeInfo.distance} km)</span><span className="font-bold text-orange-600">+{routeInfo.cop.toLocaleString()} COP</span></div>
-                                    <div className="flex justify-between items-center mb-6"><span className="font-black text-sm text-gray-800">TOTAL A PAGAR</span><span className="font-black text-2xl text-green-700">{(cartSubtotalCOP + routeInfo.cop).toLocaleString()} COP</span></div>
-                                    
-                                    <p className="text-center text-xs font-bold text-gray-500 mb-2">SELECCIONA MONEDA DE PAGO</p>
-                                    <div className="grid grid-cols-3 gap-2 mb-4">
-                                        {['COP', 'VES', 'USD'].map(c => (
-                                            <button key={c} onClick={() => setPaymentCurrency(c)} className={`py-2 rounded-lg text-xs font-black border-2 ${paymentCurrency === c ? 'bg-green-50 border-green-500 text-green-700' : 'bg-white border-gray-100 text-gray-400'}`}>{c}</button>
-                                        ))}
-                                    </div>
-                                    
-                                    {paymentCurrency === 'VES' && <p className="mb-4 text-center font-black text-blue-800 bg-blue-50 p-2 rounded-xl border border-blue-200">Equivalente a pagar:<br/><span className="text-xl">{((cartSubtotalCOP + routeInfo.cop) / TASA_VES_COP).toLocaleString(undefined, {maximumFractionDigits: 2})} VES</span></p>}
-                                    {paymentCurrency === 'USD' && <p className="mb-4 text-center font-black text-emerald-800 bg-emerald-50 p-2 rounded-xl border border-emerald-200">${((cartSubtotalCOP + routeInfo.cop) / TASA_USD_COP).toFixed(2)} USD</p>}
-
-                                    <button onClick={submitMarketOrder} className="w-full bg-green-600 text-white font-black py-4 rounded-xl shadow-lg text-sm flex justify-center items-center gap-2 animate-pulse mt-4">
-                                        <i className="fa-brands fa-whatsapp text-lg"></i> Confirmar Pedido
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
-            };
-
-            const AdminDash = () => {
-                const [drivers, setDrivers] = useState([]);
-                
-                useEffect(() => {
-                    const usersList = JSON.parse(localStorage.getItem('ubgrit_db') || '[]');
-                    setDrivers(usersList.filter(u => u.role === 'driver'));
-                }, [dbTrigger]);
-
-                const renewDriver = (driverId) => {
-                    const usersList = JSON.parse(localStorage.getItem('ubgrit_db') || '[]');
-                    const updatedUsers = usersList.map(u => {
-                        if(u.id === driverId) {
-                            return { ...u, lastPaymentDate: new Date().toISOString() };
-                        }
-                        return u;
-                    });
-                    localStorage.setItem('ubgrit_db', JSON.stringify(updatedUsers));
-                    setDrivers(updatedUsers.filter(u => u.role === 'driver'));
-                    showAlert("Pago confirmado. Mes renovado exitosamente.", "success");
-                };
-
-                return (
-                    <div className="flex flex-col h-full bg-gray-100 relative w-full overflow-y-auto">
-                        <HeaderNav title="Panel Administrador" onBack={logout} />
-                        <div className="p-6">
-                            <div className="w-20 h-20 bg-grita-dark text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg"><i className="fa-solid fa-shield-halved text-3xl"></i></div>
-                            <h2 className="text-xl font-black text-gray-800 mb-1 text-center">Panel Maestro UBGrit</h2>
-                            <p className="text-xs text-gray-500 mb-8 text-center">Control de Conductores y Pagos (10%)</p>
-
-                            <div className="space-y-4">
-                                {drivers.length === 0 ? (
-                                    <p className="text-center text-sm font-bold text-gray-400">No hay conductores registrados.</p>
-                                ) : drivers.map(d => {
-                                    const paymentDate = new Date(d.lastPaymentDate || d.registrationDate);
-                                    const now = new Date();
-                                    const diffDays = Math.ceil(Math.abs(now - paymentDate) / (1000 * 60 * 60 * 24));
-                                    const isBlocked = diffDays >= 30;
-                                    const adminCut = Math.round((d.totalEarnings || 0) * 0.10);
-
-                                    return (
-                                        <div key={d.id} className={`bg-white p-4 rounded-2xl shadow-sm border-l-4 ${isBlocked ? 'border-red-500' : 'border-green-500'}`}>
-                                            <div className="flex justify-between items-start mb-2">
-                                                <div>
-                                                    <h3 className="font-black text-gray-800 text-sm">{d.name}</h3>
-                                                    <p className="text-[10px] font-bold text-gray-500">{d.phone}</p>
-                                                    {d.motoModel && (
-                                                        <p className="text-[9px] font-bold text-gray-500 mt-1">
-                                                            🏍️ {d.motoModel} ({d.motoYear}) - Placa: <span className="uppercase">{d.motoPlate}</span>
-                                                        </p>
-                                                    )}
-                                                </div>
-                                                <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${d.isOnline && !isBlocked ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                    {d.isOnline && !isBlocked ? 'En Línea' : 'Desconectado'}
-                                                </span>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-2 mb-3 bg-gray-50 p-2 rounded-xl">
-                                                <div className="text-center"><p className="text-[9px] font-bold text-gray-400">Total Generado</p><p className="font-black text-sm text-gray-700">{(d.totalEarnings || 0).toLocaleString()} COP</p></div>
-                                                <div className="text-center"><p className="text-[9px] font-bold text-gray-400">Pagar al Admin (10%)</p><p className="font-black text-sm text-red-600">{adminCut.toLocaleString()} COP</p></div>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <p className="text-[10px] font-bold text-gray-500">
-                                                    Ciclo: <span className={isBlocked ? 'text-red-600' : 'text-gray-700'}>{diffDays} días</span> / 30
-                                                </p>
-                                                <button onClick={() => renewDriver(d.id)} className="bg-amber-100 text-amber-700 text-[10px] font-black px-3 py-1.5 rounded-lg border border-amber-200">
-                                                    Verificar Pago y Renovar Mes
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                )
-            };
-
             return (
                 <div id="root-container">
                     {alert && <AlertBox msg={alert.msg} type={alert.type} />}
                     
-                    {view === 'landing' && <Landing />}
-                    {view === 'adminLogin' && <AdminLoginView />}
+                    {view === 'landing' && <Landing setView={setView} />}
+                    {view === 'adminLogin' && <AdminLoginView setView={setView} setUser={setUser} showAlert={showAlert} />}
                     
-                    {view === 'auth_client' && <AuthHub role="client" title="Cliente" targetView="clientDash" />}
-                    {view === 'auth_store' && <AuthHub role="store" title="Local / Empresa" targetView="storeDash" />}
-                    {view === 'auth_driver' && <AuthHub role="driver" title="Conductor" targetView="driverDash" />}
-                    {view === 'auth_mercado' && <AuthHub role="mercado" title="Mercado en Casa" targetView="mercadoDash" />}
+                    {view === 'auth_client' && <AuthHub role="client" title="Cliente" targetView="clientDash" user={user} setUser={setUser} setView={setView} showAlert={showAlert} />}
+                    {view === 'auth_store' && <AuthHub role="store" title="Local / Empresa" targetView="storeDash" user={user} setUser={setUser} setView={setView} showAlert={showAlert} />}
+                    {view === 'auth_driver' && <AuthHub role="driver" title="Conductor" targetView="driverDash" user={user} setUser={setUser} setView={setView} showAlert={showAlert} />}
+                    {view === 'auth_mercado' && <AuthHub role="mercado" title="Mercado en Casa" targetView="mercadoDash" user={user} setUser={setUser} setView={setView} showAlert={showAlert} />}
                     
-                    {view === 'clientDash' && <ClientDashboard role="client" title="Cliente" icon="fa-user" bg="bg-red-100" color="text-grita-red" />}
-                    {view === 'storeDash' && <ClientDashboard role="store" title="Local" icon="fa-store" bg="bg-amber-100" color="text-amber-600" />}
-                    {view === 'driverDash' && <DriverDashboard />}
-                    {view === 'mercadoDash' && <MercadoDashboard />}
-                    {view === 'adminDash' && <AdminDash />}
+                    {view === 'clientDash' && <ClientDashboard role="client" title="Cliente" icon="fa-user" bg="bg-red-100" color="text-grita-red" user={user} setView={setView} showAlert={showAlert} logout={logout} />}
+                    {view === 'storeDash' && <ClientDashboard role="store" title="Local" icon="fa-store" bg="bg-amber-100" color="text-amber-600" user={user} setView={setView} showAlert={showAlert} logout={logout} />}
+                    {view === 'driverDash' && <DriverDashboard user={user} setUser={setUser} setView={setView} showAlert={showAlert} logout={logout} />}
+                    {view === 'mercadoDash' && <MercadoDashboard user={user} setView={setView} showAlert={showAlert} />}
+                    {view === 'adminDash' && <AdminDash logout={logout} showAlert={showAlert} />}
                 </div>
             );
         }
@@ -1080,4 +1116,4 @@
         root.render(<App />);
     </script>
 </body>
-</html> 
+</html>
