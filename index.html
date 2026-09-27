@@ -2,72 +2,44 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Moto UBGrit - La Grita</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Moto UBGrit App</title>
     
-    <!-- Enlace Manifest Dinámico para PWA (Netlify / PWABuilder) -->
-    <link rel="manifest" href="manifest.json">
-
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        grita: {
-                            red: '#dc2626',
-                            darkred: '#b91c1c',
-                            black: '#000000',
-                            dark: '#111111',
-                            gray: '#1f2937'
-                        }
-                    }
-                }
-            }
+            theme: { extend: { colors: { grita: { red: '#dc2626', darkred: '#b91c1c', black: '#000000', dark: '#111111' } } } }
         }
     </script>
-
-    <!-- Leaflet CSS for Maps -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     
-    <!-- React & ReactDOM -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- Babel for JSX -->
     <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></link>
-
-    <!-- Tone.js for Sound Notifications -->
     <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
-
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #000000; overflow: hidden; margin: 0; padding: 0; touch-action: manipulation; }
-        .map-container { height: 100%; width: 100%; z-index: 10; }
-        .leaflet-container { font-family: 'Inter', sans-serif; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(220, 38, 38, 0.5); border-radius: 10px; }
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: #0b0f19; overflow: hidden; margin: 0; padding: 0; touch-action: manipulation; }
+        .leaflet-container { font-family: 'Inter', sans-serif; z-index: 10; }
+        ::-webkit-scrollbar { display: none; } 
         
-        /* Mobile-first full screen, desktop frame optimization */
         #root-container {
             width: 100vw;
-            height: 100dvh;
+            height: 100dvh; /* altura dinámica para evitar que la barra del navegador oculte cosas */
             background-color: #0b0f19;
             display: flex;
             flex-direction: column;
             position: relative;
             overflow: hidden;
+            margin: 0 auto;
         }
+        
         @media (min-width: 768px) {
             body { display: flex; align-items: center; justify-content: center; background-color: #1a1a1a; }
             #root-container {
-                max-width: 400px; height: 850px; max-height: 90vh;
+                max-width: 420px; height: 850px; max-height: 95vh;
                 border-radius: 2.5rem; border: 12px solid #27272a;
                 box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
             }
@@ -75,20 +47,16 @@
     </style>
 </head>
 <body class="text-gray-900">
-    <div id="root" class="w-full h-full flex justify-center items-center">
-        <!-- Contenedor React -->
-    </div>
+    <div id="root" class="w-full h-full flex justify-center items-center"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        const ADMIN_PHONE = "584140792843"; // Oficial y único número
+        const ADMIN_PHONE = "584140792843"; 
         const ADMIN_EMAIL = "motoubgrit@gmail.com";
-        const ADMIN_PASS = "Universal11!!";
         const LA_GRITA_COORDS = [8.1333, -71.9833];
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyCxtrFExgrWMSZfbIcx_KGwa2ZLpbepaTzTjdwPxI5qpe62z29-bUy3X-UFylc_ZoGCw/exec";
         
-        // Tasas de cambio actualizadas
         const TASA_USD_COP = 3000;
         const TASA_VES_COP = 3.0;
 
@@ -168,25 +136,24 @@
             const R = 6371; 
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c * 1.35; // Factor urbano
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) * 1.35; 
         };
 
         const calculateFares = (distKm) => {
-            let copPrice = 5000; // Base para el casco central (hasta 1.5km)
+            // Tarifa dinámica: Base 5000 (hasta 1.5km), luego 3000 por cada km extra
+            let rawPrice = 5000; 
             if (distKm > 1.5) {
-                // Fórmula Delivery: Base de 5000 + 3000 pesos por cada kilómetro adicional
-                const rawPrice = 5000 + ((distKm - 1.5) * 3000);
-                // Redondeo inteligente a los 500 pesos más cercanos para dar un cobro justo y manejable en efectivo
-                copPrice = Math.round(rawPrice / 500) * 500;
+                rawPrice += ((distKm - 1.5) * 3000); 
             }
-            let usdPrice = (copPrice / TASA_USD_COP).toFixed(2);
-            let vesPrice = (copPrice / TASA_VES_COP).toFixed(2);
-            let adminCommission = Math.round(copPrice * 0.12); // 12% comisión de admin
-            return { cop: copPrice, usd: usdPrice, ves: vesPrice, admin: adminCommission };
+            // Redondeo a los 500 COP más cercanos
+            const copPrice = Math.round(rawPrice / 500) * 500; 
+            return { 
+                cop: copPrice, 
+                usd: (copPrice / TASA_USD_COP).toFixed(2), 
+                ves: (copPrice / TASA_VES_COP).toFixed(2), 
+                admin: Math.round(copPrice * 0.12) // Comisión
+            };
         };
 
         const playAlertSound = () => {
@@ -194,79 +161,141 @@
                 const synth = new Tone.Synth().toDestination();
                 synth.triggerAttackRelease("C5", "8n");
                 setTimeout(() => synth.triggerAttackRelease("E5", "8n"), 200);
-                setTimeout(() => synth.triggerAttackRelease("G5", "4n"), 400);
-            } catch (e) { console.log("Audio not allowed yet"); }
+            } catch (e) {}
         };
 
-        // Función global para enviar copia a Google Sheets
         const logToSheets = async (data) => {
             try {
                 await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(data)
                 });
-            } catch (e) { console.log("Error logging to sheets:", e); }
+            } catch (e) { console.log("Sheets Log Error:", e); }
         };
 
         const HeaderNav = ({ title, onBack }) => (
-            <div className="bg-grita-black text-white p-4 sticky top-0 z-20 flex items-center shadow-md">
-                <button type="button" onClick={onBack} className="mr-3 text-sm font-bold bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20 transition flex items-center gap-2">
+            <div className="bg-grita-black text-white p-4 sticky top-0 z-20 flex items-center shadow-md shrink-0 w-full h-16">
+                <button type="button" onClick={onBack} className="mr-3 text-xs font-bold bg-white/10 px-3 py-2 rounded-lg hover:bg-white/20 transition flex items-center gap-2">
                     <i className="fa-solid fa-arrow-left"></i> Regresar
                 </button>
                 <h2 className="text-sm font-bold truncate flex-1 text-right">{title}</h2>
             </div>
         );
 
-        const AlertBox = ({ msg, type = 'error', onClose }) => (
-            <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-[300] text-white font-bold flex items-center gap-3 text-sm whitespace-nowrap ${type === 'error' ? 'bg-red-600' : 'bg-green-600'} animate-bounce`}>
+        const AlertBox = ({ msg, type = 'error' }) => (
+            <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-[1000] text-white font-bold flex items-center gap-3 text-sm whitespace-nowrap ${type === 'error' ? 'bg-red-600' : 'bg-green-600'} animate-bounce`}>
                 <i className={type === 'error' ? "fa-solid fa-circle-exclamation text-lg" : "fa-solid fa-circle-check text-lg"}></i>
                 <span>{msg}</span>
             </div>
         );
 
-        const PostOrderModal = ({ onExit, onNewOrder }) => (
-            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[250] p-4">
-                <div className="bg-white rounded-3xl max-w-[300px] w-full p-6 text-center shadow-2xl">
-                    <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-green-200">
-                        <i className="fa-solid fa-check text-3xl"></i>
-                    </div>
-                    <h3 className="text-xl font-black text-gray-800 mb-2">¡Pedido Enviado!</h3>
-                    <p className="text-gray-600 text-xs mb-6 font-medium">
-                        Tu solicitud ha sido enviada con éxito por WhatsApp. ¿Qué deseas hacer ahora?
-                    </p>
-                    <div className="space-y-3">
-                        <button onClick={onNewOrder} className="w-full bg-grita-red text-white font-bold py-3 rounded-xl shadow-lg hover:bg-grita-darkred transition flex items-center justify-center gap-2 text-sm">
-                            <i className="fa-solid fa-rotate-right"></i> Hacer otro pedido
-                        </button>
-                        <button onClick={onExit} className="w-full bg-gray-100 text-gray-800 font-bold py-3 rounded-xl hover:bg-gray-200 transition border border-gray-300 flex items-center justify-center gap-2 text-sm">
-                            <i className="fa-solid fa-arrow-right-from-bracket"></i> Regresar al Menú
-                        </button>
+        const MapRouter = ({ mode = 'two-step', onConfirm, onBack }) => {
+            const [step, setStep] = useState(mode === 'one-step' ? 'dropoff' : 'pickup'); 
+            const [pickupLoc, setPickupLoc] = useState(LA_GRITA_COORDS);
+            const [pickupText, setPickupText] = useState('');
+            const [dropoffText, setDropoffText] = useState('');
+            const [isSearching, setIsSearching] = useState(false);
+            const mapRef = useRef(null);
+            const mapInst = useRef(null);
+
+            const currentInputText = step === 'pickup' ? pickupText : dropoffText;
+            const setCurrentInputText = step === 'pickup' ? setPickupText : setDropoffText;
+
+            const initMap = () => {
+                if (mapRef.current && !mapInst.current) {
+                    mapInst.current = L.map(mapRef.current, { zoomControl: false }).setView(LA_GRITA_COORDS, 16);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInst.current);
+                } else if (mapInst.current) {
+                    setTimeout(() => mapInst.current.invalidateSize(), 200);
+                }
+            };
+            useEffect(() => { setTimeout(initMap, 100); }, [step]);
+
+            const handleSearch = async () => {
+                if(!currentInputText) return;
+                setIsSearching(true);
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(currentInputText + ', La Grita, Táchira')}`);
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        if(mapInst.current) mapInst.current.flyTo([data[0].lat, data[0].lon], 17);
+                    }
+                } catch(e) {} 
+                finally { setIsSearching(false); }
+            };
+
+            const handleFixPoint = () => {
+                if(!mapInst.current) return;
+                const center = mapInst.current.getCenter();
+
+                if (step === 'pickup') {
+                    if(!pickupText) setPickupText("Punto fijado en mapa");
+                    setPickupLoc([center.lat, center.lng]);
+                    setStep('dropoff');
+                } else if (step === 'dropoff') {
+                    if(!dropoffText) setDropoffText("Punto fijado en mapa");
+                    const endLoc = [center.lat, center.lng];
+                    
+                    const pLoc = mode === 'one-step' ? LA_GRITA_COORDS : pickupLoc;
+                    const pText = mode === 'one-step' ? "Mercado Central" : pickupText;
+                    const dist = calculateDistance(pLoc[0], pLoc[1], endLoc[0], endLoc[1]);
+                    
+                    onConfirm({
+                        pickup: pText || "Punto fijado", dropoff: dropoffText || "Punto fijado",
+                        pickupCoords: pLoc, dropoffCoords: endLoc,
+                        distance: dist.toFixed(1)
+                    });
+                }
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-gray-50 absolute inset-0 z-[100] w-full">
+                    <HeaderNav title={step === 'pickup' ? '1. ¿Dónde estás?' : (mode==='one-step' ? 'Destino de Envío' : '2. ¿A dónde vas?')} onBack={() => {
+                        if(step === 'pickup' || mode === 'one-step') onBack();
+                        if(step === 'dropoff' && mode !== 'one-step') setStep('pickup');
+                    }} />
+                    
+                    <div className="flex-1 flex flex-col relative w-full h-full overflow-hidden">
+                        <div className="bg-white p-4 shadow-md z-20 shrink-0 border-b border-gray-200">
+                            <p className="text-xs font-bold text-gray-800 mb-2">
+                                <i className={`fa-solid fa-location-dot ${step === 'pickup' ? 'text-blue-600' : 'text-red-600'} mr-1`}></i> 
+                                {step === 'pickup' ? 'Escribe o busca donde estás (Origen)' : 'Escribe o busca a donde vas (Destino)'}
+                            </p>
+                            <div className="flex gap-2">
+                                <input type="text" placeholder="Ej. Sector Babuquena" className="w-full p-3 border-2 border-gray-300 rounded-xl bg-gray-50 text-sm font-bold focus:border-blue-500 outline-none" value={currentInputText} onChange={e => setCurrentInputText(e.target.value)} />
+                                <button onClick={handleSearch} className="bg-black text-white px-5 rounded-xl shadow-md flex items-center justify-center hover:bg-gray-800">
+                                    {isSearching ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-magnifying-glass"></i>}
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-gray-500 text-center font-bold mt-2">Mueve el mapa para ajustar el punto exacto bajo el icono ⬇️</p>
+                        </div>
+                        
+                        <div className="flex-1 relative bg-gray-200 w-full h-full">
+                            <div ref={mapRef} className="absolute inset-0 w-full h-full z-0"></div>
+                            {/* Puntero Fijo Central */}
+                            <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-[400] pb-10">
+                                <i className={`fa-solid fa-location-dot text-4xl drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)] transform -translate-y-1/2 animate-bounce ${step==='pickup' ? 'text-blue-600' : 'text-red-600'}`}></i>
+                            </div>
+                        </div>
+                        
+                        <div className="p-4 bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-20 shrink-0 border-t border-gray-200">
+                            <button onClick={handleFixPoint} className={`w-full text-white font-black py-4 rounded-xl shadow-lg text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] ${step === 'pickup' ? 'bg-blue-600' : 'bg-red-600'}`}>
+                                {step === 'pickup' ? 'Fijar Origen y Continuar' : 'Fijar Destino y Calcular'} <i className="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        );
+            );
+        };
 
         function App() {
             const [view, setView] = useState('landing'); 
             const [user, setUser] = useState(null);
             const [alert, setAlert] = useState(null);
-            const [showPostOrderModal, setShowPostOrderModal] = useState(false);
             
-            // Mock DB temporal para la sesión
-            const [usersDB, setUsersDB] = useState([]);
-            
-            // Estado para la instalación de la PWA
-            const [deferredPrompt, setDeferredPrompt] = useState(null);
-
             useEffect(() => {
-                const handleBeforeInstallPrompt = (e) => {
-                    // Prevenir que Chrome muestre el prompt nativo automáticamente
-                    e.preventDefault();
-                    // Guardar el evento para dispararlo luego con el botón
-                    setDeferredPrompt(e);
-                };
-                window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-                return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+                const savedUser = localStorage.getItem('ubgrit_user');
+                if (savedUser) setUser(JSON.parse(savedUser));
             }, []);
 
             const showAlert = (msg, type = 'error') => {
@@ -275,99 +304,61 @@
             };
 
             const logout = () => {
+                localStorage.removeItem('ubgrit_user');
                 setUser(null);
-                setShowPostOrderModal(false);
                 setView('landing');
             };
 
-            const handleOrderComplete = () => {
-                playAlertSound();
-                setShowPostOrderModal(true);
-            };
-
-            const handleInstallApp = async () => {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    const { outcome } = await deferredPrompt.userChoice;
-                    if (outcome === 'accepted') {
-                        setDeferredPrompt(null);
-                    }
-                } else {
-                    showAlert("Para instalar: Toca los 3 puntos (⋮) o el ícono de Compartir en tu navegador y elige 'Agregar a inicio' o 'Instalar app'.", "success");
-                }
-            };
-
             const Landing = () => (
-                <div className="flex flex-col h-full bg-[#0b0f19] text-white relative overflow-y-auto overflow-x-hidden">
-                    
-                    {/* Top Bar: Iniciar Sesión removido - Cada servicio maneja su Auth */}
-                    {!user && (
-                        <div className="absolute top-4 left-4 right-4 z-10 flex justify-end">
-                            <button onClick={() => setView('adminLogin')} className="bg-[#1a1a1a] border border-gray-700 hover:bg-gray-800 text-amber-500 px-4 py-2 rounded-xl text-xs font-bold shadow-lg flex items-center gap-2 transition transform hover:scale-105">
-                                <i className="fa-solid fa-shield-halved"></i> Admin
-                            </button>
-                        </div>
-                    )}
+                <div className="flex flex-col h-full bg-[#0b0f19] text-white relative overflow-y-auto w-full">
+                    {/* Botón Administrador Secreto/Discreto */}
+                    <div className="absolute top-4 right-4 z-10">
+                         <button onClick={() => setView('adminLogin')} className="text-gray-600 hover:text-gray-400 p-2 text-xl transition"><i className="fa-solid fa-shield-halved"></i></button>
+                    </div>
 
-                    <div className="flex-grow flex flex-col items-center justify-center p-6 text-center mt-12">
-                        <div className="w-24 h-24 bg-grita-red rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(220,38,38,0.5)] border-4 border-white shrink-0">
+                    <div className="flex-grow flex flex-col items-center justify-center p-6 text-center">
+                        <div className="w-24 h-24 bg-grita-red rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(220,38,38,0.5)] border-4 border-white shrink-0 mt-8">
                             <i className="fa-solid fa-motorcycle text-4xl text-white"></i>
                         </div>
-                            <h1 className="text-3xl font-black mb-1 tracking-tight"><span className="text-grita-red">Moto</span> UBGrit</h1>
+                        <h1 className="text-4xl font-black mb-1 tracking-tight"><span className="text-grita-red">Moto</span> UBGrit</h1>
                         
-                        {/* Eslogan Solicitado */}
-                        <div className="text-gray-300 mb-8 text-[11px] leading-relaxed font-bold max-w-[280px] uppercase tracking-wide">
-                            <p>Tu traslado/encomienda/mercado</p>
-                            <p>rápido y seguro</p>
+                        {/* NUEVO ESLOGAN */}
+                        <div className="text-gray-300 mb-8 text-[11px] leading-relaxed font-bold uppercase tracking-wide px-4">
+                            <p>Tu traslado, encomienda</p>
+                            <p>y mercado rápido y seguro</p>
                         </div>
                         
-                        <div className="space-y-3 w-full max-w-[280px]">
-                            
-                            {!user ? (
-                                // Flujo para ingresar a los submenús (Auth individual)
-                                <>
-                                    <button onClick={() => setView('auth_client')} className="w-full bg-white text-grita-black font-bold py-3.5 px-4 rounded-xl shadow text-xs flex items-center justify-center gap-2 hover:bg-gray-100 transition">
-                                        <i className="fa-solid fa-user text-gray-500"></i> Soy Cliente (servicio de traslado)
-                                    </button>
-                                    <button onClick={() => setView('auth_store')} className="w-full bg-amber-600 text-white font-bold py-3.5 px-4 rounded-xl shadow text-xs flex items-center justify-center gap-2 hover:bg-amber-500 transition">
-                                        <i className="fa-solid fa-box text-amber-200"></i> Local / Empresa (traslado de encomienda)
-                                    </button>
-                                    <button onClick={() => setView('auth_mercado')} className="w-full bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl shadow text-xs flex items-center justify-center gap-2 hover:bg-green-500 transition">
-                                        <i className="fa-solid fa-basket-shopping text-green-200"></i> Mercado en Casa (pedido mercado)
-                                    </button>
-                                    <button onClick={() => setView('auth_driver')} className="w-full border-2 border-grita-red text-white hover:bg-grita-red/20 font-bold py-3.5 px-4 rounded-xl shadow text-xs flex items-center justify-center gap-2 transition">
-                                        <i className="fa-solid fa-motorcycle text-grita-red"></i> Quiero ser Conductor
-                                    </button>
-                                </>
-                            ) : (
-                                // Flujo para usuarios SI registrados
-                                <>
-                                    <p className="text-xs text-green-400 font-bold mb-2">¡Hola, {user.name}!</p>
-                                    <button onClick={() => setView(user.role + 'Dash')} className="w-full bg-white text-grita-black font-bold py-3.5 px-4 rounded-xl shadow text-sm mb-2 flex items-center justify-center gap-2 hover:bg-gray-100">
-                                        <i className="fa-solid fa-table-columns"></i> Ir a mi Panel ({user.role === 'client' ? 'Cliente' : (user.role === 'store' ? 'Local' : 'Conductor')})
-                                    </button>
-                                    {(user.role === 'client' || user.role === 'store') && (
-                                        <button onClick={() => setView('mercadoDash')} className="w-full bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl shadow text-sm flex items-center justify-center gap-2 hover:bg-green-500">
-                                            <i className="fa-solid fa-basket-shopping"></i> Ir al Mercado en Casa
-                                        </button>
-                                    )}
-                                    <button onClick={logout} className="w-full mt-4 text-xs text-gray-500 underline font-bold">Cerrar Sesión</button>
-                                </>
-                            )}
-                        </div>
-
-                        {/* Banner de Instalación PWA */}
-                        <div className="mt-8 bg-gray-800/60 p-4 rounded-2xl border border-gray-700 max-w-[280px] w-full text-center shadow-lg backdrop-blur-sm">
-                            <div className="text-amber-400 text-2xl mb-2 animate-bounce"><i className="fa-solid fa-mobile-screen-button"></i></div>
-                            <p className="text-[11px] text-gray-200 mb-3 font-medium leading-relaxed">
-                                ¿Deseas tener acceso directo en tu pantalla de inicio para pedir más rápido?
-                            </p>
-                            <button onClick={handleInstallApp} className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-xl shadow-md text-xs flex items-center justify-center gap-2 transition transform hover:scale-105 border border-green-500">
-                                <i className="fa-solid fa-download"></i> Instalar Aplicación
+                        {/* Botones de Servicios Específicos */}
+                        <div className="space-y-3 w-full max-w-[300px]">
+                            <button onClick={() => setView('auth_client')} className="w-full bg-white text-grita-black font-black py-3.5 px-4 rounded-xl shadow-md text-xs hover:bg-gray-100 transition">
+                                <div className="flex flex-col items-center gap-1">
+                                    <span><i className="fa-solid fa-user text-gray-500 mr-1"></i> Soy Cliente</span>
+                                    <span className="font-normal text-gray-500 text-[10px]">(Servicio de Traslado)</span>
+                                    <span className="text-[10px] text-blue-600">(Registrarse)</span>
+                                </div>
                             </button>
-                            <p className="text-[9px] text-gray-500 mt-2 font-mono">https://motoubergrit.vercel.app/</p>
+                            
+                            <button onClick={() => setView('auth_store')} className="w-full bg-amber-600 text-white font-bold py-3.5 px-4 rounded-xl shadow text-xs hover:bg-amber-500 transition">
+                                <div className="flex flex-col items-center gap-1">
+                                    <span><i className="fa-solid fa-box mr-1"></i> Local / Empresa (Traslado de Encomienda)</span>
+                                    <span className="font-normal text-amber-200 text-[10px]">(Registrarse)</span>
+                                </div>
+                            </button>
+                            
+                            <button onClick={() => setView('auth_mercado')} className="w-full bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl shadow text-xs hover:bg-green-500 transition">
+                                <div className="flex flex-col items-center gap-1">
+                                    <span><i className="fa-solid fa-basket-shopping mr-1"></i> Mercado en Casa (Pedido Mercado)</span>
+                                    <span className="font-normal text-green-200 text-[10px]">(Registrarse)</span>
+                                </div>
+                            </button>
+                            
+                            <button onClick={() => setView('auth_driver')} className="w-full bg-[#1a1a1a] border border-gray-700 text-gray-300 py-3.5 px-4 rounded-xl shadow text-xs font-bold hover:bg-gray-800 transition">
+                                <div className="flex flex-col items-center gap-1">
+                                    <span><i className="fa-solid fa-motorcycle mr-1"></i> Quiero ser Conductor</span>
+                                    <span className="text-[10px] text-gray-500">(Registrarse)</span>
+                                </div>
+                            </button>
                         </div>
-
                     </div>
                 </div>
             );
@@ -378,29 +369,23 @@
 
                 const submitAdminLogin = (e) => {
                     e.preventDefault();
-                    if (adminEmail === ADMIN_EMAIL && adminPass === ADMIN_PASS) {
+                    if (adminEmail === ADMIN_EMAIL && adminPass === "Universal11!!") {
                         setUser({ id: 'admin', role: 'admin', name: 'Administrador UBGrit' });
                         setView('adminDash');
-                    } else {
-                        showAlert("Credenciales de administrador incorrectas.");
-                    }
+                    } else showAlert("Credenciales incorrectas.");
                 };
 
                 return (
-                    <div className="flex flex-col h-full bg-[#0b0f19] text-white">
+                    <div className="flex flex-col h-full bg-[#0b0f19] text-white w-full">
                         <HeaderNav title="Acceso Admin" onBack={() => setView('landing')} />
                         <div className="flex-1 flex flex-col justify-center items-center p-6">
                             <div className="bg-[#111] border border-gray-700 rounded-3xl max-w-[320px] w-full p-6 shadow-2xl">
                                 <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-500 text-xl"><i className="fa-solid fa-shield-halved"></i></div>
-                                <h3 className="text-xl font-black mb-1 text-center text-amber-500">Solo Administrador</h3>
-                                <p className="text-gray-500 text-xs mb-6 text-center leading-tight">Ingresa los datos de seguridad.</p>
-                                
+                                <h3 className="text-xl font-black mb-6 text-center text-amber-500">Administrador</h3>
                                 <form onSubmit={submitAdminLogin}>
-                                    <input type="email" placeholder="Correo Administrativo" required className="w-full p-3 mb-3 border border-gray-700 rounded-xl text-sm bg-[#1a1a1a] text-white focus:border-amber-500 outline-none" value={adminEmail} onChange={e=>setAdminEmail(e.target.value)}/>
-                                    <input type="password" placeholder="Contraseña Maestra" required className="w-full p-3 mb-6 border border-gray-700 rounded-xl text-sm bg-[#1a1a1a] text-white focus:border-amber-500 outline-none" value={adminPass} onChange={e=>setAdminPass(e.target.value)}/>
-                                    <button type="submit" className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3.5 rounded-xl shadow-lg transition text-sm">
-                                        Ingresar al Panel
-                                    </button>
+                                    <input type="email" placeholder="Correo" required className="w-full p-3 mb-3 border border-gray-700 rounded-xl text-sm bg-[#1a1a1a] text-white focus:border-amber-500 outline-none" value={adminEmail} onChange={e=>setAdminEmail(e.target.value)}/>
+                                    <input type="password" placeholder="Clave" required className="w-full p-3 mb-6 border border-gray-700 rounded-xl text-sm bg-[#1a1a1a] text-white focus:border-amber-500 outline-none" value={adminPass} onChange={e=>setAdminPass(e.target.value)}/>
+                                    <button type="submit" className="w-full bg-amber-600 text-white font-bold py-3.5 rounded-xl shadow-lg transition text-sm">Ingresar</button>
                                 </form>
                             </div>
                         </div>
@@ -409,331 +394,293 @@
             };
 
             const AuthHub = ({ role, title, targetView }) => {
-                const [mode, setMode] = useState('login'); // 'login', 'register', 'forgot'
-                
-                // Estados para login
+                const [mode, setMode] = useState('login'); 
                 const [email, setEmail] = useState('');
                 const [pass, setPass] = useState('');
-                
-                // Estados para registro
                 const [formData, setFormData] = useState({ name: '', phone: '', address: '', email: '', password: '', storeName: '' });
-                
-                // Estados para recuperación
                 const [recoverEmail, setRecoverEmail] = useState('');
-
                 const isStore = role === 'store';
+
+                useEffect(() => {
+                    if(user && (user.role === role || (role==='mercado' && (user.role==='client' || user.role==='store')))) {
+                        setView(targetView);
+                    }
+                }, [user]);
 
                 const submitLogin = (e) => {
                     e.preventDefault();
-                    const found = usersDB.find(u => u.email === email && u.password === pass);
+                    const usersList = JSON.parse(localStorage.getItem('ubgrit_db') || '[]');
+                    const found = usersList.find(u => u.email === email && u.password === pass);
                     if (found) {
+                        localStorage.setItem('ubgrit_user', JSON.stringify(found));
                         setUser(found);
                         showAlert("¡Sesión iniciada!", "success");
                         setView(targetView);
-                    } else {
-                        showAlert("Correo o contraseña incorrectos.");
-                    }
+                    } else showAlert("Correo o clave incorrectos.");
                 };
 
                 const submitRegister = (e) => {
                     e.preventDefault();
                     const finalRole = role === 'mercado' ? 'client' : role;
-                    const newUser = { ...formData, id: Date.now().toString(), role: finalRole, isOnline: true };
-                    setUsersDB(prev => [...prev, newUser]);
+                    const newUser = { ...formData, id: Date.now().toString(), role: finalRole };
+                    
+                    const usersList = JSON.parse(localStorage.getItem('ubgrit_db') || '[]');
+                    usersList.push(newUser);
+                    localStorage.setItem('ubgrit_db', JSON.stringify(usersList));
+                    localStorage.setItem('ubgrit_user', JSON.stringify(newUser));
                     setUser(newUser);
                     
-                    logToSheets({
-                        action: 'new_registration',
-                        role: title,
-                        name: formData.name,
-                        email: formData.email,
-                        phone: formData.phone,
-                        date: new Date().toLocaleString()
-                    });
-
-                    showAlert(`¡Registro de ${title} exitoso!`, "success");
+                    logToSheets({ action: 'new_registration', role: title, name: formData.name, email: formData.email, phone: formData.phone, date: new Date().toLocaleString() });
+                    showAlert(`¡Registro exitoso!`, "success");
                     setView(targetView);
                 };
 
                 const handleRecoverPassword = () => {
-                    if(!recoverEmail) {
-                        showAlert("Debes ingresar tu correo.");
-                        return;
-                    }
-                    // Notificar al admin por Google Sheets y WhatsApp
-                    logToSheets({
-                        action: 'password_recovery',
-                        email: recoverEmail,
-                        date: new Date().toLocaleString()
-                    });
-                    
-                    const text = `Hola Admin, necesito recuperar la contraseña de mi cuenta UBGrit. Mi correo registrado es: ${recoverEmail}. Por favor, envíala desde el correo de la empresa motoubgrit@gmail.com`;
+                    if(!recoverEmail) return showAlert("Debes ingresar tu correo.");
+                    logToSheets({ action: 'password_recovery', email: recoverEmail, date: new Date().toLocaleString() });
+                    const text = `Hola Admin, olvidé mi clave. Mi correo registrado es: ${recoverEmail}. Por favor, envíala desde motoubgrit@gmail.com`;
                     window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(text)}`, '_blank');
-                    
                     showAlert("Notificación enviada al administrador.", "success");
                     setMode('login');
                 };
 
                 return (
-                    <div className="flex flex-col h-full bg-[#0b0f19] text-white">
-                        <HeaderNav title={`Acceso - ${title}`} onBack={() => setView('landing')} />
-                        
+                    <div className="flex flex-col h-full bg-[#0b0f19] text-white w-full">
+                        <HeaderNav title={title} onBack={() => setView('landing')} />
                         <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center pb-12">
                             <div className="bg-white text-gray-900 rounded-3xl max-w-[320px] w-full p-6 shadow-2xl">
-                                
                                 {mode === 'login' && (
                                     <>
-                                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-grita-red text-xl"><i className="fa-solid fa-lock"></i></div>
-                                        <h3 className="text-xl font-black mb-1 text-center">Iniciar Sesión</h3>
-                                        <p className="text-gray-500 text-xs mb-6 text-center leading-tight">Ingresa tus datos de {title}</p>
-                                        
+                                        <h3 className="text-xl font-black mb-1 text-center">Acceso {title}</h3>
+                                        <p className="text-gray-500 text-[10px] mb-6 text-center">Inicia sesión para continuar</p>
                                         <form onSubmit={submitLogin}>
-                                            <input type="email" placeholder="Correo Electrónico" required className="w-full p-3 mb-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-grita-red outline-none transition" value={email} onChange={e=>setEmail(e.target.value)}/>
-                                            <input type="password" placeholder="Contraseña" required className="w-full p-3 mb-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-grita-red outline-none transition" value={pass} onChange={e=>setPass(e.target.value)}/>
-                                            
-                                            <div className="text-right mb-5">
-                                                <button type="button" onClick={() => setMode('forgot')} className="text-[11px] text-grita-red font-bold hover:underline">¿Olvidaste tu contraseña?</button>
-                                            </div>
-                                            <button type="submit" className="w-full bg-grita-red hover:bg-grita-darkred text-white font-bold py-3.5 rounded-xl shadow-lg transition text-sm mb-4">
-                                                Entrar
-                                            </button>
+                                            <input type="email" placeholder="Correo" required className="w-full p-3 mb-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-grita-red outline-none" value={email} onChange={e=>setEmail(e.target.value)}/>
+                                            <input type="password" placeholder="Clave" required className="w-full p-3 mb-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-grita-red outline-none" value={pass} onChange={e=>setPass(e.target.value)}/>
+                                            <div className="text-right mb-5"><button type="button" onClick={() => setMode('forgot')} className="text-[11px] text-grita-red font-bold hover:underline">¿Olvidaste tu contraseña?</button></div>
+                                            <button type="submit" className="w-full bg-grita-red text-white font-bold py-3.5 rounded-xl shadow-lg text-sm mb-4">Iniciar Sesión</button>
                                         </form>
                                         <div className="text-center pt-4 border-t border-gray-100">
                                             <p className="text-xs text-gray-500 mb-2">¿No tienes cuenta?</p>
-                                            <button onClick={() => setMode('register')} className="w-full bg-gray-100 text-gray-800 font-bold py-3 rounded-xl hover:bg-gray-200 transition border border-gray-300 text-sm">
-                                                Registrarse como {title}
-                                            </button>
+                                            <button onClick={() => setMode('register')} className="w-full bg-gray-100 text-gray-800 font-black py-3 rounded-xl border border-gray-300 text-sm">Registrarse Aquí</button>
                                         </div>
                                     </>
                                 )}
-
                                 {mode === 'register' && (
                                     <>
-                                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600 text-xl"><i className="fa-solid fa-user-plus"></i></div>
                                         <h3 className="text-xl font-black mb-4 text-center">Registro Nuevo</h3>
-                                        
                                         <form onSubmit={submitRegister} className="space-y-3">
-                                            {isStore && <input required placeholder="Nombre del Local / Empresa" className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm" onChange={e=>setFormData({...formData, storeName: e.target.value})}/>}
-                                            <input required placeholder="Nombre y Apellido" className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm" onChange={e=>setFormData({...formData, name: e.target.value})}/>
-                                            <input required type="tel" placeholder="WhatsApp (Ej: 0414...)" className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm" onChange={e=>setFormData({...formData, phone: e.target.value})}/>
-                                            <textarea required placeholder="Dirección Exacta" className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm h-16" onChange={e=>setFormData({...formData, address: e.target.value})}></textarea>
-                                            
-                                            <div className="pt-2 border-t border-gray-100">
-                                                <input required type="email" placeholder="Correo Electrónico" className="w-full p-3 mb-3 border border-gray-200 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-grita-red" onChange={e=>setFormData({...formData, email: e.target.value})}/>
-                                                <input required type="password" placeholder="Crear Contraseña" className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-grita-red" onChange={e=>setFormData({...formData, password: e.target.value})}/>
-                                            </div>
-                                            
-                                            <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition text-sm mb-4">
-                                                Completar Registro
-                                            </button>
+                                            {isStore && <input required placeholder="Nombre del Local" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" onChange={e=>setFormData({...formData, storeName: e.target.value})}/>}
+                                            <input required placeholder="Nombre y Apellido" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" onChange={e=>setFormData({...formData, name: e.target.value})}/>
+                                            <input required type="tel" placeholder="WhatsApp (Ej: 0414...)" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" onChange={e=>setFormData({...formData, phone: e.target.value})}/>
+                                            <input required type="email" placeholder="Correo" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" onChange={e=>setFormData({...formData, email: e.target.value})}/>
+                                            <input required type="password" placeholder="Crear Clave" className="w-full p-3 border rounded-xl bg-gray-50 text-sm mb-4" onChange={e=>setFormData({...formData, password: e.target.value})}/>
+                                            <button type="submit" className="w-full bg-green-600 text-white font-bold py-3.5 rounded-xl shadow-lg text-sm mb-4">Completar Registro</button>
                                         </form>
                                         <div className="text-center pt-4 border-t border-gray-100">
-                                            <p className="text-xs text-gray-500 mb-2">¿Ya estás registrado?</p>
-                                            <button onClick={() => setMode('login')} className="w-full bg-gray-100 text-gray-800 font-bold py-3 rounded-xl hover:bg-gray-200 transition border border-gray-300 text-sm">
-                                                Iniciar Sesión
-                                            </button>
+                                            <button onClick={() => setMode('login')} className="w-full bg-gray-100 text-gray-800 font-bold py-3 rounded-xl border border-gray-300 text-sm">← Volver a Iniciar Sesión</button>
                                         </div>
                                     </>
                                 )}
-
                                 {mode === 'forgot' && (
                                     <>
-                                        <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600 text-xl"><i className="fa-solid fa-envelope"></i></div>
                                         <h3 className="text-xl font-black mb-1 text-center">Recuperar Clave</h3>
-                                        <p className="text-gray-500 text-[10px] mb-6 text-center">Se notificará al administrador para que la envíe desde motoubgrit@gmail.com</p>
-                                        
-                                        <input type="email" placeholder="Tu correo registrado" className="w-full p-3 mb-4 border border-gray-200 rounded-xl text-sm bg-gray-50" value={recoverEmail} onChange={e=>setRecoverEmail(e.target.value)} />
-                                        
-                                        <button onClick={handleRecoverPassword} className="w-full bg-amber-600 text-white font-bold py-3.5 rounded-xl shadow text-sm mb-3">
-                                            Notificar al Admin
-                                        </button>
-                                        <button onClick={() => setMode('login')} className="w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl text-xs">
-                                            Cancelar y Volver
-                                        </button>
+                                        <p className="text-gray-500 text-[10px] mb-6 text-center leading-tight">El sistema notificará al administrador para despachar la clave a tu correo.</p>
+                                        <input type="email" placeholder="Tu correo registrado" className="w-full p-3 mb-4 border rounded-xl text-sm bg-gray-50" value={recoverEmail} onChange={e=>setRecoverEmail(e.target.value)} />
+                                        <button onClick={handleRecoverPassword} className="w-full bg-amber-600 text-white font-bold py-3.5 rounded-xl shadow text-sm mb-3">Solicitar al Administrador</button>
+                                        <button onClick={() => setMode('login')} className="w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl text-xs">← Cancelar</button>
                                     </>
                                 )}
-
                             </div>
                         </div>
                     </div>
                 );
             };
 
-            const RideRequestFlow = ({ role, user, onBack, onComplete }) => {
-                const [step, setStep] = useState('pickup'); // 'pickup', 'dropoff', 'confirm'
-                const [pickupLoc, setPickupLoc] = useState(LA_GRITA_COORDS);
-                const [dropoffLoc, setDropoffLoc] = useState(null);
-                const [pickupText, setPickupText] = useState(user.address || '');
-                const [dropoffText, setDropoffText] = useState('');
+            const ClientDashboard = ({ role, title, icon, color, bg }) => {
+                const [requestingRide, setRequestingRide] = useState(false);
                 const [routeDetails, setRouteDetails] = useState(null);
 
-                const mapRef = useRef(null);
-                const mapInst = useRef(null);
-                const markerInst = useRef(null);
-
-                useEffect(() => {
-                    if (step === 'pickup' || step === 'dropoff') {
-                        setTimeout(() => {
-                            if (!mapInst.current && mapRef.current) {
-                                mapInst.current = L.map(mapRef.current, { zoomControl: false }).setView(LA_GRITA_COORDS, 15);
-                                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInst.current);
-                                
-                                const icon = L.divIcon({ html: `<div class="w-4 h-4 bg-red-600 rounded-full border-2 border-white shadow-lg"></div>`, className: '' });
-                                markerInst.current = L.marker(LA_GRITA_COORDS, {icon, draggable: true}).addTo(mapInst.current);
-                                
-                                mapInst.current.on('click', (e) => {
-                                    markerInst.current.setLatLng(e.latlng);
-                                    if(step === 'pickup') setPickupLoc([e.latlng.lat, e.latlng.lng]);
-                                    if(step === 'dropoff') setDropoffLoc([e.latlng.lat, e.latlng.lng]);
-                                });
-                                
-                                markerInst.current.on('dragend', () => {
-                                    const pos = markerInst.current.getLatLng();
-                                    if(step === 'pickup') setPickupLoc([pos.lat, pos.lng]);
-                                    if(step === 'dropoff') setDropoffLoc([pos.lat, pos.lng]);
-                                });
-                            }
-                        }, 200);
-                    }
-                }, [step]);
-
-                useEffect(() => {
-                    if (mapInst.current && markerInst.current) {
-                        if (step === 'pickup' && pickupLoc) markerInst.current.setLatLng(pickupLoc);
-                        if (step === 'dropoff') {
-                            if (dropoffLoc) markerInst.current.setLatLng(dropoffLoc);
-                            else markerInst.current.setLatLng(pickupLoc); 
-                        }
-                    }
-                }, [step, pickupLoc, dropoffLoc]);
-
-                const handleNext = () => {
-                    if (step === 'pickup') {
-                        if(!pickupText) return showAlert("Escribe la dirección de origen.");
-                        setStep('dropoff');
-                    } else if (step === 'dropoff') {
-                        if(!dropoffLoc || !dropoffText) return showAlert("Marca el destino y escribe la dirección.");
-                        const dist = calculateDistance(pickupLoc[0], pickupLoc[1], dropoffLoc[0], dropoffLoc[1]);
-                        const fares = calculateFares(dist);
-                        setRouteDetails({ distance: dist.toFixed(1), ...fares });
-                        setStep('confirm');
-                    }
+                const handleRouteConfirm = (routeData) => {
+                    const fares = calculateFares(routeData.distance);
+                    setRouteDetails({ ...routeData, ...fares });
+                    setRequestingRide(false); 
                 };
 
-                const handleConfirm = () => {
+                const executeCloudRequest = async () => {
                     const typeStr = role === 'store' ? 'Encomienda' : 'Traslado';
-                    const msg = `Hola Admin, necesito un ${typeStr}.\n\n*Origen:* ${pickupText}\nMapa: https://www.google.com/maps/search/?api=1&query=${pickupLoc[0]},${pickupLoc[1]}\n\n*Destino:* ${dropoffText}\nMapa: https://www.google.com/maps/search/?api=1&query=${dropoffLoc[0]},${dropoffLoc[1]}\n\n*Distancia:* ${routeDetails.distance} km\n*Costo Estimado:* ${routeDetails.cop.toLocaleString()} COP`;
+                    const msg = `🚀 *NUEVO ${typeStr.toUpperCase()}*\n\n*Cliente:* ${user.storeName || user.name}\n*Origen:* ${routeDetails.pickup}\nMapa: https://www.google.com/maps/search/?api=1&query=${routeDetails.pickupCoords[0]},${routeDetails.pickupCoords[1]}\n\n*Destino:* ${routeDetails.dropoff}\nMapa: https://www.google.com/maps/search/?api=1&query=${routeDetails.dropoffCoords[0]},${routeDetails.dropoffCoords[1]}\n\n*Recorrido:* ${routeDetails.distance} km\n*Tarifa a cobrar:* ${routeDetails.cop.toLocaleString()} COP`;
                     
-                    logToSheets({
-                        action: 'service_request',
-                        passenger: user.name,
-                        phone: user.phone,
-                        type: typeStr,
-                        pickup: pickupText,
-                        dropoff: dropoffText,
-                        distance: routeDetails.distance,
-                        cop: routeDetails.cop,
-                        adminCut: routeDetails.admin,
-                        date: new Date().toLocaleString()
-                    });
-
+                    logToSheets({ action: 'service_request', passenger: user.name, phone: user.phone, type: typeStr, pickup: routeDetails.pickup, dropoff: routeDetails.dropoff, distance: routeDetails.distance, cop: routeDetails.cop, adminCut: routeDetails.admin, date: new Date().toLocaleString() });
                     window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
-                    onComplete();
+                    
+                    setRouteDetails(null);
+                    playAlertSound();
+                    showAlert("¡Pedido generado! Será procesado.", "success");
+                    setView('landing');
                 };
 
                 return (
-                    <div className="flex flex-col h-full bg-gray-50 absolute inset-0 z-50">
-                        <HeaderNav title={step === 'pickup' ? '1. ¿Dónde estás?' : (step === 'dropoff' ? '2. ¿A dónde vas?' : '3. Confirmar')} onBack={() => {
-                            if(step === 'pickup') onBack();
-                            if(step === 'dropoff') setStep('pickup');
-                            if(step === 'confirm') setStep('dropoff');
+                    <div className="flex flex-col h-full bg-gray-50 relative overflow-y-auto w-full">
+                        <HeaderNav title={`Panel ${title}`} onBack={() => { 
+                            if(requestingRide) setRequestingRide(false);
+                            else if (routeDetails) setRouteDetails(null);
+                            else setView('landing'); 
                         }} />
                         
-                        {(step === 'pickup' || step === 'dropoff') && (
-                            <div className="flex-1 flex flex-col relative">
-                                <div className="bg-white p-4 shadow-md z-10 shrink-0 space-y-2">
-                                    <p className="text-xs font-bold text-gray-600"><i className="fa-solid fa-location-dot text-grita-red"></i> {step === 'pickup' ? 'Ubica el punto de partida (Origen)' : 'Ubica el punto de llegada (Destino)'}</p>
-                                    <input type="text" placeholder={step === 'pickup' ? "Ej. Plaza Bolívar (Origen)" : "Ej. Sector El Sur (Destino)"} className="w-full p-3 border rounded-lg bg-gray-50 text-xs font-medium focus:ring-2 focus:ring-grita-red outline-none" value={step === 'pickup' ? pickupText : dropoffText} onChange={e => step === 'pickup' ? setPickupText(e.target.value) : setDropoffText(e.target.value)} />
-                                </div>
-                                <div className="flex-1 relative min-h-[250px]">
-                                    <div ref={mapRef} className="absolute inset-0 z-0"></div>
-                                </div>
-                                <div className="p-4 bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-10 pb-8">
-                                    <button onClick={handleNext} className="w-full bg-grita-red text-white font-bold py-3.5 rounded-xl shadow-lg text-sm">Continuar <i className="fa-solid fa-arrow-right ml-2"></i></button>
-                                </div>
-                            </div>
+                        {requestingRide && (
+                            <MapRouter mode="two-step" onBack={() => setRequestingRide(false)} onConfirm={handleRouteConfirm} />
                         )}
 
-                        {step === 'confirm' && routeDetails && (
-                            <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center pb-24">
-                                <div className="bg-white w-full rounded-3xl p-6 shadow-xl border border-gray-100">
-                                    <div className="w-16 h-16 bg-red-50 text-grita-red rounded-full flex items-center justify-center mx-auto mb-4 border border-red-100"><i className="fa-solid fa-route text-2xl"></i></div>
-                                    <h3 className="text-center font-black text-lg mb-6 text-gray-800">Resumen del Viaje</h3>
-                                    
-                                    <div className="space-y-4 mb-6 relative">
-                                        <div className="absolute left-3 top-4 bottom-4 w-0.5 bg-gray-200"></div>
-                                        <div className="flex items-start gap-3 relative">
-                                            <div className="w-6 h-6 bg-gray-800 text-white rounded-full flex items-center justify-center shrink-0 z-10 border-2 border-white text-[10px]"><i className="fa-solid fa-A"></i></div>
-                                            <div><p className="text-[10px] text-gray-500 font-bold uppercase">Origen</p><p className="text-xs font-medium text-gray-800">{pickupText}</p></div>
+                        {!requestingRide && (
+                            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center w-full">
+                                {!routeDetails ? (
+                                    <>
+                                        <div className={`w-20 h-20 ${bg} ${color} rounded-full flex items-center justify-center mb-4 shadow-inner border border-white`}><i className={`fa-solid ${icon} text-3xl`}></i></div>
+                                        <h2 className="text-xl font-black text-gray-800 mb-6">{user.storeName || user.name}</h2>
+                                        
+                                        <button onClick={() => setRequestingRide(true)} className={`w-full max-w-[280px] ${role === 'store' ? 'bg-amber-600' : 'bg-grita-red'} text-white font-bold py-4 rounded-xl shadow-lg mb-3 text-sm flex items-center justify-center gap-2 transition-transform hover:scale-105`}>
+                                            <i className="fa-solid fa-map-location-dot text-lg"></i> Solicitar {role === 'store' ? 'Encomienda' : 'Traslado'} (Fijar en Mapa)
+                                        </button>
+                                        <button onClick={logout} className="mt-12 text-xs text-gray-500 underline font-bold">Cerrar Sesión</button>
+                                    </>
+                                ) : (
+                                    <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-xl mb-6 animate-[bounce_0.3s_ease-out]">
+                                        <h3 className="text-center font-black text-lg mb-6 text-gray-800">Resumen del Viaje</h3>
+                                        <div className="space-y-4 mb-6 relative">
+                                            <div className="absolute left-3 top-4 bottom-4 w-0.5 bg-gray-200"></div>
+                                            <div className="flex items-start gap-3 relative">
+                                                <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center shrink-0 z-10 text-[10px]"><i className="fa-solid fa-A"></i></div>
+                                                <div className="text-left"><p className="text-[10px] text-gray-500 font-bold uppercase">Origen</p><p className="text-xs font-bold text-gray-800">{routeDetails.pickup}</p></div>
+                                            </div>
+                                            <div className="flex items-start gap-3 relative">
+                                                <div className="w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center shrink-0 z-10 text-[10px]"><i className="fa-solid fa-B"></i></div>
+                                                <div className="text-left"><p className="text-[10px] text-gray-500 font-bold uppercase">Destino</p><p className="text-xs font-bold text-gray-800">{routeDetails.dropoff}</p></div>
+                                            </div>
                                         </div>
-                                        <div className="flex items-start gap-3 relative">
-                                            <div className="w-6 h-6 bg-grita-red text-white rounded-full flex items-center justify-center shrink-0 z-10 border-2 border-white text-[10px]"><i className="fa-solid fa-B"></i></div>
-                                            <div><p className="text-[10px] text-gray-500 font-bold uppercase">Destino</p><p className="text-xs font-medium text-gray-800">{dropoffText}</p></div>
+                                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-6">
+                                            <div className="flex justify-between mb-2"><span className="text-xs text-gray-500 font-bold">Recorrido Estimado:</span><span className="font-black text-sm text-gray-800">{routeDetails.distance} km</span></div>
+                                            <div className="flex justify-between items-center"><span className="text-sm font-black text-gray-800">Tarifa a Pagar:</span><span className="text-2xl font-black text-green-600">{routeDetails.cop.toLocaleString()} COP</span></div>
                                         </div>
+                                        <button onClick={executeCloudRequest} className="w-full bg-green-600 text-white font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-lg animate-pulse mb-3">
+                                            <i className="fa-brands fa-whatsapp"></i> Solicitar Ahora
+                                        </button>
+                                        <button onClick={() => setRouteDetails(null)} className="w-full bg-gray-100 text-gray-600 font-bold py-3 rounded-xl border border-gray-200 text-sm">
+                                            Modificar Ruta
+                                        </button>
                                     </div>
-                                    
-                                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-6">
-                                        <div className="flex justify-between mb-2"><span className="text-xs text-gray-500">Distancia Estimada</span><span className="font-bold text-sm text-gray-800">{routeDetails.distance} km</span></div>
-                                        <div className="flex justify-between items-center"><span className="text-sm font-black text-gray-800">Costo del Traslado</span><span className="text-xl font-black text-green-600">{routeDetails.cop.toLocaleString()} COP</span></div>
-                                    </div>
-
-                                    <button onClick={handleConfirm} className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition text-sm">
-                                        <i className="fa-brands fa-whatsapp text-xl"></i> Solicitar Ahora
-                                    </button>
-                                </div>
+                                )}
                             </div>
                         )}
                     </div>
                 );
             };
 
-            const Dashboard = ({ role, title, icon, color, bg }) => {
-                const [requestingRide, setRequestingRide] = useState(false);
+            const DriverDashboard = () => {
+                const [isOnline, setIsOnline] = useState(false);
+                const [activeRequest, setActiveRequest] = useState(null);
+                const [timeLeft, setTimeLeft] = useState(120);
+                const [tripStatus, setTripStatus] = useState('idle'); 
 
-                if (requestingRide) {
-                    return <RideRequestFlow role={role} user={user} onBack={() => setRequestingRide(false)} onComplete={() => { setRequestingRide(false); handleOrderComplete(); }} />;
-                }
+                useEffect(() => {
+                    let timer;
+                    if (tripStatus === 'incoming' && timeLeft > 0) {
+                        timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+                    } else if (tripStatus === 'incoming' && timeLeft === 0) {
+                        handleReject();
+                    }
+                    return () => clearInterval(timer);
+                }, [tripStatus, timeLeft]);
 
-                const handleDriverReport = () => {
-                    const msg = "Hola Admin, estoy activo y en línea para recibir viajes.";
-                    logToSheets({ action: 'service_request', passenger: user.name, phone: user.phone, type: "Conductor_Activo", date: new Date().toLocaleString() });
-                    window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
-                    handleOrderComplete();
+                const handleAccept = async () => {
+                    setTripStatus('accepted');
+                    showAlert("¡Viaje Aceptado! El admin ya tiene los detalles.", "success");
+                };
+
+                const handleReject = async () => {
+                    setTripStatus('idle'); 
+                    setActiveRequest(null); 
+                    showAlert("Solicitud omitida (Reasignando equitativamente...).", "error");
+                };
+
+                const simulateIncomingOrder = () => {
+                    if (!isOnline) return showAlert("Debes estar en línea para recibir viajes.");
+                    setActiveRequest({ id: 'demo123', type: 'Traslado', pickup: 'Plaza Bolívar', dropoff: 'Sector Palenque', distance: '2.5', cop: 8000, clientName: 'Juan Pérez' });
+                    setTimeLeft(120); setTripStatus('incoming'); playAlertSound();
                 };
 
                 return (
-                    <div className="flex flex-col h-full bg-gray-50">
-                        <HeaderNav title={`Panel de ${title}`} onBack={() => setView('landing')} />
-                        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                            <div className={`w-20 h-20 ${bg} ${color} rounded-full flex items-center justify-center mb-4 shadow-inner border border-white`}><i className={`fa-solid ${icon} text-3xl`}></i></div>
-                            <h2 className="text-xl font-black text-gray-800 mb-1">{user.storeName || user.name}</h2>
-                            {role === 'driver' && <p className="text-xs text-green-600 font-bold mb-6 flex items-center justify-center gap-1"><span className="w-2 h-2 bg-green-500 rounded-full inline-block animate-pulse"></span> Conectado</p>}
-                            {role !== 'driver' && <p className="text-xs text-gray-500 font-medium mb-8 bg-gray-200 px-3 py-1 rounded-full">{user.email}</p>}
+                    <div className="flex flex-col h-full bg-gray-50 relative overflow-y-auto w-full">
+                        <HeaderNav title="Panel Conductor" onBack={() => setView('landing')} />
+                        <div className="flex-1 flex flex-col items-center p-6 text-center">
                             
-                            {role === 'driver' ? (
-                                <button onClick={handleDriverReport} className="w-full max-w-[280px] bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg mb-3 text-sm flex items-center justify-center gap-2 transition hover:scale-105">
-                                    <i className="fa-brands fa-whatsapp text-lg"></i> Reportarse con Central
+                            <div className="bg-white p-4 rounded-2xl shadow-sm w-full mb-6 border border-gray-100 flex items-center justify-between">
+                                <div className="text-left">
+                                    <h3 className="font-black text-gray-800 text-lg">{user?.name}</h3>
+                                    <p className={`text-xs font-bold ${isOnline ? 'text-green-600' : 'text-gray-400'}`}>
+                                        <span className={`inline-block w-2 h-2 rounded-full mr-1 ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></span>
+                                        {isOnline ? 'En línea conectado' : 'Desconectado'}
+                                    </p>
+                                </div>
+                                <button onClick={() => setIsOnline(!isOnline)} className={`w-14 h-8 rounded-full relative transition-colors duration-300 ${isOnline ? 'bg-green-500' : 'bg-gray-300'} shadow-inner border border-gray-200`}>
+                                    <div className={`w-6 h-6 bg-white rounded-full absolute top-[3px] transition-transform duration-300 shadow-md ${isOnline ? 'translate-x-[26px]' : 'translate-x-1'}`}></div>
                                 </button>
-                            ) : (
-                                <button onClick={() => setRequestingRide(true)} className={`w-full max-w-[280px] ${role === 'store' ? 'bg-amber-600' : 'bg-grita-red'} text-white font-bold py-4 rounded-xl shadow-lg mb-3 text-sm flex items-center justify-center gap-2 transition hover:scale-105`}>
-                                    <i className="fa-solid fa-map-location-dot text-lg"></i> Solicitar {role === 'store' ? 'Encomienda' : 'Traslado'}
-                                </button>
+                            </div>
+
+                            {tripStatus === 'idle' && (
+                                <div className="flex-1 flex flex-col items-center justify-center w-full">
+                                    {isOnline ? (
+                                        <div className="relative w-32 h-32 flex items-center justify-center mb-6 mt-4">
+                                            <div className="absolute inset-0 bg-blue-200 rounded-full animate-ping opacity-75"></div>
+                                            <div className="absolute inset-2 bg-blue-300 rounded-full animate-pulse opacity-75"></div>
+                                            <div className="relative w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl shadow-lg border-2 border-white"><i className="fa-solid fa-radar"></i></div>
+                                        </div>
+                                    ) : (
+                                        <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center text-gray-400 text-4xl mb-6 mt-4 border-4 border-white"><i className="fa-solid fa-motorcycle"></i></div>
+                                    )}
+                                    <h2 className="text-xl font-black text-gray-800 mb-2">{isOnline ? 'Buscando viajes...' : 'Estás desconectado'}</h2>
+                                    <p className="text-xs text-gray-500 mb-8 max-w-[250px]">{isOnline ? 'El sistema te asignará viajes equitativamente.' : 'Conéctate para trabajar.'}</p>
+                                    
+                                    {isOnline && (
+                                        <button onClick={simulateIncomingOrder} className="text-[10px] bg-gray-200 text-gray-600 font-bold px-4 py-2.5 rounded-xl border mt-auto mb-4"><i className="fa-solid fa-vial"></i> Simular Viaje Entrante</button>
+                                    )}
+                                    <button onClick={logout} className="mt-8 text-xs text-gray-500 underline font-bold">Cerrar Sesión</button>
+                                </div>
+                            )}
+
+                            {tripStatus === 'incoming' && activeRequest && (
+                                <div className="w-full bg-white rounded-3xl p-5 shadow-2xl border-2 border-grita-red animate-[bounce_0.5s_ease-in-out]">
+                                    <div className="w-16 h-16 bg-red-100 text-grita-red rounded-full flex items-center justify-center mx-auto mb-2 border border-red-200"><i className="fa-solid fa-bell text-3xl animate-pulse"></i></div>
+                                    <h2 className="text-xl font-black text-gray-800 mb-1">¡Nuevo Viaje Asignado!</h2>
+                                    <p className={`text-xs font-bold bg-red-50 py-1.5 px-4 rounded-full inline-flex items-center gap-2 mb-4 border border-red-100 ${timeLeft < 30 ? 'text-red-700 animate-pulse' : 'text-grita-red'}`}>
+                                        <i className="fa-regular fa-clock"></i> Responde en: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                                    </p>
+                                    <div className="bg-gray-50 rounded-xl p-4 text-left mb-5 border border-gray-100">
+                                        <p className="text-[10px] font-bold text-gray-500 mb-1">SERVICIO: {activeRequest.type}</p>
+                                        <p className="text-xs font-bold text-gray-800 mb-2">👤 {activeRequest.clientName}</p>
+                                        <div className="pl-2 border-l-2 border-gray-300">
+                                            <p className="text-[10px] text-gray-500 font-bold">BUSCAR EN:</p>
+                                            <p className="text-xs font-bold text-blue-600 mb-2">{activeRequest.pickup}</p>
+                                            <p className="text-[10px] text-gray-500 font-bold">LLEVAR A:</p>
+                                            <p className="text-xs font-bold text-red-600">{activeRequest.dropoff}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-end mb-6 px-4 bg-green-50 p-3 rounded-xl border border-green-200">
+                                        <div className="text-left"><p className="text-[10px] font-bold text-green-800">Recorrido</p><p className="text-sm font-black">{activeRequest.distance} km</p></div>
+                                        <div className="text-right"><p className="text-[10px] font-bold text-green-800">Cobrar al Cliente</p><p className="text-2xl font-black text-green-600">{activeRequest.cop.toLocaleString()} COP</p></div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button onClick={handleReject} className="bg-white text-red-600 border-2 border-red-100 font-black py-3.5 rounded-xl text-xs">No Disponible</button>
+                                        <button onClick={handleAccept} className="bg-green-600 text-white font-black py-3.5 rounded-xl text-xs">Aceptar Viaje</button>
+                                    </div>
+                                </div>
                             )}
                             
-                            {role !== 'driver' && role !== 'admin' && (
-                                <button onClick={() => setView('mercadoDash')} className="w-full max-w-[280px] bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg text-sm flex items-center justify-center gap-2 transition hover:scale-105 mt-2">
-                                    <i className="fa-solid fa-basket-shopping text-lg"></i> Ir al Mercado en Casa
-                                </button>
+                            {tripStatus === 'accepted' && (
+                                <div className="w-full flex-1 flex flex-col items-center justify-center">
+                                    <div className="text-6xl text-green-500 mb-4"><i className="fa-solid fa-circle-check"></i></div>
+                                    <h2 className="text-2xl font-black text-gray-800 mb-2">Viaje en Curso</h2>
+                                    <button onClick={()=>setTripStatus('idle')} className="bg-black text-white w-full py-4 rounded-xl font-bold mt-4">Finalizar Viaje</button>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -745,14 +692,7 @@
                 const [cart, setCart] = useState({});
                 const [categoryIdx, setCategoryIdx] = useState(0);
                 const [paymentCurrency, setPaymentCurrency] = useState('COP');
-                
-                const [dropoffLocation, setDropoffLocation] = useState(null);
-                const [exactDropoff, setExactDropoff] = useState(user.address || '');
                 const [routeInfo, setRouteInfo] = useState(null);
-
-                const mapRef = useRef(null);
-                const mapInstance = useRef(null);
-                const markerDestino = useRef(null);
 
                 const currentCat = mercadoCategories[categoryIdx];
                 const currentProducts = mercadoInventory.filter(p => p.category === currentCat);
@@ -769,92 +709,64 @@
                     });
                 };
 
-                const setupMap = () => {
-                    if (!mapInstance.current && mapRef.current) {
-                        mapInstance.current = L.map(mapRef.current, { zoomControl: false }).setView(LA_GRITA_COORDS, 15);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance.current);
-                        mapInstance.current.on('click', (e) => {
-                            setDropoffLocation(e.latlng);
-                            const distKm = calculateDistance(LA_GRITA_COORDS[0], LA_GRITA_COORDS[1], e.latlng.lat, e.latlng.lng);
-                            const fares = calculateFares(distKm);
-                            setRouteInfo({ distance: distKm.toFixed(1), ...fares });
-                        });
-                    }
+                const handleMercadoMapConfirm = (routeData) => {
+                    const fares = calculateFares(routeData.distance);
+                    setRouteInfo({ 
+                        distance: routeData.distance, dropoff: routeData.dropoff,
+                        mapLink: `https://www.google.com/maps/search/?api=1&query=${routeData.dropoffCoords[0]},${routeData.dropoffCoords[1]}`, 
+                        ...fares 
+                    });
+                    setInternalView('checkout');
                 };
 
-                useEffect(() => { if (internalView === 'checkout') setTimeout(setupMap, 100); }, [internalView]);
-
-                useEffect(() => {
-                    if (!mapInstance.current) return;
-                    const redIcon = L.divIcon({ html: `<div class="w-4 h-4 bg-red-600 rounded-full border-2 border-white shadow-lg"></div>`, className: '' });
-                    if (dropoffLocation) {
-                        if(!markerDestino.current) markerDestino.current = L.marker(dropoffLocation, {icon: redIcon}).addTo(mapInstance.current);
-                        else markerDestino.current.setLatLng(dropoffLocation);
-                    }
-                }, [dropoffLocation]);
-
                 const submitMarketOrder = async () => {
-                    if (!dropoffLocation || !exactDropoff) {
-                        showAlert("Por favor, marca tu ubicación en el mapa y escribe la dirección.");
-                        return;
-                    }
                     const deliveryFee = routeInfo.cop;
                     const grandTotalCOP = cartSubtotalCOP + deliveryFee;
                     let orderText = Object.keys(cart).map(k => `${formatQuantity(cart[k].quantity, k)} ${k}`).join(", ");
-                    const linkDestino = `https://www.google.com/maps/search/?api=1&query=${dropoffLocation.lat},${dropoffLocation.lng}`;
                     
-                    const rawText = `🛒 *MERCADO EN CASA - UBGRIT*\n\n*Cliente:* ${user.name}\n*Tel:* ${user.phone}\n\n*PRODUCTOS:*\n${orderText}\n\n*Subtotal:* ${cartSubtotalCOP.toLocaleString()} COP\n*Delivery:* ${deliveryFee.toLocaleString()} COP\n💰 *TOTAL A PAGAR:* ${grandTotalCOP.toLocaleString()} COP\n💵 *Moneda de pago:* ${paymentCurrency}\n\n📍 *ENTREGA:* ${exactDropoff}\n${linkDestino}`;
+                    const rawText = `🛒 *MERCADO EN CASA*\n\n*Cliente:* ${user.name}\n*Tel:* ${user.phone}\n\n*PEDIDO:*\n${orderText}\n\n*Subtotal:* ${cartSubtotalCOP.toLocaleString()} COP\n*Delivery:* ${deliveryFee.toLocaleString()} COP\n💰 *TOTAL:* ${grandTotalCOP.toLocaleString()} COP\n💵 *Moneda:* ${paymentCurrency}\n\n📍 *ENTREGA:* ${routeInfo.dropoff}\n${routeInfo.mapLink}`;
                     
-                    // Enviar copia a Sheets con 12% admin cut
-                    await logToSheets({
-                        action: 'new_ride',
-                        passenger: `MERCADO - ${user.name}`,
-                        phone: user.phone,
-                        pickup: "Mercado Central",
-                        dropoff: exactDropoff,
-                        distance: routeInfo.distance,
-                        cop: grandTotalCOP,
-                        ves: (grandTotalCOP / TASA_VES_COP).toFixed(2),
-                        adminCut: routeInfo.admin // 12% del delivery va a Sheets
-                    });
+                    await logToSheets({ action: 'new_ride', passenger: `MERCADO - ${user.name}`, phone: user.phone, pickup: "Mercado Central", dropoff: routeInfo.dropoff, distance: routeInfo.distance, cop: grandTotalCOP, adminCut: routeInfo.admin });
 
-                    // Notificar al admin por WA
                     window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(rawText)}`, '_blank');
-                    handleOrderComplete();
+                    
+                    playAlertSound();
+                    showAlert("¡Pedido enviado!", "success");
+                    setView('landing');
                 };
 
+                if (internalView === 'map') {
+                    return <MapRouter mode="one-step" onBack={() => setInternalView('cart')} onConfirm={handleMercadoMapConfirm} />;
+                }
+
                 return (
-                    <div className="flex flex-col h-full bg-gray-50">
-                        {internalView === 'shop' && <HeaderNav title="Mercado en Casa" onBack={() => {
-                            if(user.role === 'client') setView('clientDash');
-                            else if (user.role === 'store') setView('storeDash');
-                            else setView('landing');
-                        }} />}
+                    <div className="flex flex-col h-full bg-gray-50 relative w-full overflow-hidden">
+                        {internalView === 'shop' && <HeaderNav title="Mercado en Casa" onBack={() => setView('landing')} />}
                         {internalView === 'cart' && <HeaderNav title="Carrito" onBack={() => setInternalView('shop')} />}
-                        {internalView === 'checkout' && <HeaderNav title="Fijar Envío" onBack={() => setInternalView('cart')} />}
+                        {internalView === 'checkout' && <HeaderNav title="Confirmación" onBack={() => { setInternalView('cart'); setRouteInfo(null); }} />}
                         
                         {internalView === 'shop' && (
-                            <div className="flex-1 overflow-y-auto p-4 flex flex-col relative pb-24">
-                                <div className="flex items-center justify-between bg-white p-3 rounded-2xl shadow-sm mb-4 border border-green-100 sticky top-0 z-10">
-                                    <button onClick={() => setCategoryIdx(Math.max(0, categoryIdx-1))} disabled={categoryIdx===0} className="text-green-600 disabled:opacity-30 p-2"><i className="fa-solid fa-chevron-left text-lg"></i></button>
-                                    <h2 className="text-[11px] font-black text-green-800 uppercase tracking-widest text-center px-1 flex-1">{currentCat}</h2>
-                                    <button onClick={() => setCategoryIdx(Math.min(mercadoCategories.length-1, categoryIdx+1))} disabled={categoryIdx===mercadoCategories.length-1} className="text-green-600 disabled:opacity-30 p-2"><i className="fa-solid fa-chevron-right text-lg"></i></button>
+                            <div className="flex-1 overflow-y-auto p-4 flex flex-col pb-24">
+                                <div className="flex items-center justify-between bg-white p-3 rounded-2xl shadow-sm mb-4 border border-green-100 shrink-0 sticky top-0 z-10">
+                                    <button onClick={() => setCategoryIdx(Math.max(0, categoryIdx-1))} disabled={categoryIdx===0} className="text-green-600 disabled:opacity-30 p-2"><i className="fa-solid fa-chevron-left"></i></button>
+                                    <h2 className="text-[11px] font-black text-green-800 uppercase tracking-widest text-center flex-1">{currentCat}</h2>
+                                    <button onClick={() => setCategoryIdx(Math.min(mercadoCategories.length-1, categoryIdx+1))} disabled={categoryIdx===mercadoCategories.length-1} className="text-green-600 disabled:opacity-30 p-2"><i className="fa-solid fa-chevron-right"></i></button>
                                 </div>
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-2 gap-3 pb-6 shrink-0">
                                     {currentProducts.map(p => {
                                         const qty = cart[p.name]?.quantity || 0;
                                         return (
                                             <div key={p.name} className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
                                                 <div className="text-3xl mb-1">{p.icon}</div>
-                                                <h3 className="font-bold text-gray-800 text-[11px] leading-tight mb-1 h-6 flex items-center justify-center">{p.name}</h3>
+                                                <h3 className="font-bold text-gray-800 text-[11px] leading-tight mb-1 h-8 flex items-center justify-center">{p.name}</h3>
                                                 <p className="text-green-700 font-black text-[11px] mb-3">{p.price.toLocaleString()} COP</p>
                                                 {qty === 0 ? (
-                                                    <button onClick={() => updateCart(p.name, 0.25, p.price)} className="w-full bg-green-50 text-green-700 border border-green-200 py-1.5 rounded-lg text-xs font-bold shadow-sm">Agregar</button>
+                                                    <button onClick={() => updateCart(p.name, 0.25, p.price)} className="w-full bg-green-50 text-green-700 border border-green-200 py-1.5 rounded-lg text-xs font-bold hover:bg-green-100">Agregar</button>
                                                 ) : (
                                                     <div className="flex items-center justify-between w-full bg-gray-50 rounded-lg p-1 border">
-                                                        <button onClick={() => updateCart(p.name, qty-0.25, p.price)} className="w-6 h-6 bg-white rounded text-red-500 shadow-sm font-bold">-</button>
+                                                        <button onClick={() => updateCart(p.name, qty-0.25, p.price)} className="w-6 h-6 bg-white rounded text-red-500 font-bold shadow-sm">-</button>
                                                         <span className="font-bold text-[10px]">{formatQuantity(qty, p.name)}</span>
-                                                        <button onClick={() => updateCart(p.name, qty+0.25, p.price)} className="w-6 h-6 bg-white rounded text-green-600 shadow-sm font-bold">+</button>
+                                                        <button onClick={() => updateCart(p.name, qty+0.25, p.price)} className="w-6 h-6 bg-white rounded text-green-600 font-bold shadow-sm">+</button>
                                                     </div>
                                                 )}
                                             </div>
@@ -863,109 +775,64 @@
                                 </div>
                             </div>
                         )}
-                        
-                        {internalView === 'shop' && totalItems > 0 && (
-                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-sm border-t border-gray-200 z-20">
-                                <button onClick={()=>setInternalView('cart')} className="w-full bg-green-600 text-white font-black py-4 rounded-xl shadow-[0_10px_20px_rgba(22,101,52,0.4)] text-sm flex justify-between px-6 items-center animate-bounce">
-                                    <span className="bg-white text-green-700 px-2 py-1 rounded-md text-xs">{totalItems} ítems</span>
-                                    <span>Ir al Carrito <i className="fa-solid fa-arrow-right ml-1"></i></span>
-                                </button>
-                            </div>
-                        )}
 
                         {internalView === 'cart' && (
-                            <div className="flex-1 overflow-y-auto p-4 flex flex-col pb-24 relative">
+                            <div className="flex-1 overflow-y-auto p-4 flex flex-col pb-24">
                                 {totalItems === 0 ? (
                                     <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
                                         <i className="fa-solid fa-basket-shopping text-5xl mb-3 opacity-50"></i>
                                         <p className="text-xs font-bold mb-4">El carrito está vacío</p>
-                                        <button onClick={()=>setInternalView('shop')} className="bg-green-100 text-green-700 px-4 py-2 rounded-full text-xs font-bold">Volver al Mercado</button>
                                     </div>
                                 ) : (
                                     <>
-                                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 p-2">
+                                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 p-2 shrink-0">
                                             {Object.keys(cart).map(name => (
                                                 <div key={name} className="flex justify-between items-center p-3 border-b last:border-0 border-gray-50">
-                                                    <div>
-                                                        <p className="font-bold text-xs text-gray-800">{name}</p>
-                                                        <p className="text-[10px] text-gray-500">{formatQuantity(cart[name].quantity, name)}</p>
-                                                    </div>
+                                                    <div><p className="font-bold text-xs text-gray-800">{name}</p><p className="text-[10px] text-gray-500">{formatQuantity(cart[name].quantity, name)}</p></div>
                                                     <p className="font-black text-xs text-green-700">{(cart[name].price * cart[name].quantity).toLocaleString()} COP</p>
                                                 </div>
                                             ))}
                                         </div>
-                                        <div className="flex justify-between items-center bg-green-50 p-4 rounded-xl border border-green-200 mb-6">
+                                        <div className="flex justify-between items-center bg-green-50 p-4 rounded-xl border border-green-200 mb-6 shrink-0">
                                             <span className="font-black text-sm text-green-900">Subtotal Productos</span>
                                             <span className="font-black text-xl text-green-700">{cartSubtotalCOP.toLocaleString()} COP</span>
                                         </div>
-                                        <button onClick={()=>setInternalView('checkout')} className="w-full bg-green-600 text-white font-black py-4 rounded-xl shadow-lg mt-auto text-sm">
-                                            Continuar (Fijar Envío) <i className="fa-solid fa-map-location-dot ml-2"></i>
-                                        </button>
                                     </>
                                 )}
                             </div>
                         )}
-                        
-                        {internalView === 'cart' && totalItems > 0 && (
-                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-sm border-t border-gray-200 z-20">
-                                <button onClick={()=>setInternalView('checkout')} className="w-full bg-green-600 text-white font-black py-4 rounded-xl shadow-lg text-sm">
-                                    Continuar (Fijar Envío) <i className="fa-solid fa-map-location-dot ml-2"></i>
+
+                        {(internalView === 'shop' || internalView === 'cart') && totalItems > 0 && (
+                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-gray-200 z-20 shadow-[0_-5px_15px_rgba(0,0,0,0.1)]">
+                                <button onClick={()=>setInternalView(internalView==='shop' ? 'cart' : 'map')} className="w-full bg-green-600 text-white font-black py-4 rounded-xl shadow-lg text-sm flex justify-between px-6 items-center hover:bg-green-700 transition">
+                                    {internalView==='shop' && <span className="bg-white text-green-700 px-2 py-1 rounded-md text-xs shadow-sm">{totalItems} ítems</span>}
+                                    <span className="mx-auto">{internalView==='shop' ? 'Ir al Carrito' : 'Continuar (Fijar Envío)'} <i className="fa-solid fa-arrow-right ml-1"></i></span>
                                 </button>
                             </div>
                         )}
 
-                        {internalView === 'checkout' && (
-                            <div className="flex-1 flex flex-col relative">
-                                <div className="bg-white p-3 shadow-md z-10 shrink-0 space-y-2">
-                                    <p className="text-xs font-bold text-gray-600"><i className="fa-solid fa-location-dot text-red-500"></i> Marca en el mapa tu casa</p>
-                                    <input type="text" placeholder="Escribe detalles (Ej. Casa amarilla)" className="w-full p-3 border rounded-lg bg-gray-50 border-gray-200 text-xs font-medium focus:ring-2 focus:ring-green-500" value={exactDropoff} onChange={e => setExactDropoff(e.target.value)} />
-                                </div>
-                                <div className="flex-1 relative min-h-[250px]">
-                                    <div ref={mapRef} className="h-full w-full absolute inset-0 z-0"></div>
-                                </div>
-                                {routeInfo && (
-                                    <div className="bg-white p-4 rounded-t-3xl shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-10 shrink-0 overflow-y-auto max-h-[60vh] pb-8">
-                                        <div className="flex justify-between mb-1 text-xs">
-                                            <span className="text-gray-500">Subtotal Productos</span>
-                                            <span className="font-bold text-gray-800">{cartSubtotalCOP.toLocaleString()} COP</span>
-                                        </div>
-                                        <div className="flex justify-between mb-3 text-xs border-b pb-2">
-                                            <span className="text-gray-500">Delivery ({routeInfo.distance} km)</span>
-                                            <span className="font-bold text-orange-600">+{routeInfo.cop.toLocaleString()} COP</span>
-                                        </div>
-                                        <div className="flex justify-between items-center mb-4">
-                                            <span className="font-black text-sm">TOTAL A PAGAR</span>
-                                            <div className="text-right">
-                                                <span className="font-black text-xl text-green-700">{(cartSubtotalCOP + routeInfo.cop).toLocaleString()} COP</span>
-                                            </div>
-                                        </div>
-                                        
-                                        <h3 className="font-bold text-center mb-2 text-xs text-gray-800 uppercase tracking-widest">Moneda de Pago</h3>
-                                        <div className="grid grid-cols-3 gap-2 mb-4">
-                                            {['COP', 'VES', 'USD'].map(c => (
-                                                <button key={c} onClick={() => setPaymentCurrency(c)} className={`py-2 rounded-lg text-xs font-black border-2 transition ${paymentCurrency === c ? 'bg-green-50 border-green-500 text-green-700' : 'bg-white border-gray-100 text-gray-400'}`}>{c}</button>
-                                            ))}
-                                        </div>
-                                        
-                                        {/* Montos actualizados dividiendo entre 3.0 para VES y 3000 para USD, sin datos bancarios */}
-                                        {paymentCurrency === 'VES' && (
-                                            <div className="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-200 text-center shadow-inner">
-                                                <p className="font-bold text-blue-900 text-[10px] uppercase mb-1">Monto equivalente en Bolívares</p>
-                                                <p className="font-black text-lg text-blue-800">{((cartSubtotalCOP + routeInfo.cop) / TASA_VES_COP).toLocaleString(undefined, {maximumFractionDigits: 2})} VES</p>
-                                            </div>
-                                        )}
-                                        {paymentCurrency === 'USD' && (
-                                            <div className="mb-4 p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-center shadow-inner">
-                                                <p className="font-bold text-emerald-900 text-[10px] uppercase mb-1">Monto equivalente en Dólares</p>
-                                                <p className="font-black text-lg text-emerald-800">${((cartSubtotalCOP + routeInfo.cop) / TASA_USD_COP).toFixed(2)} USD</p>
-                                            </div>
-                                        )}
-
-                                        <button onClick={submitMarketOrder} className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-3.5 rounded-xl shadow-lg text-sm flex justify-center items-center gap-2">
-                                            <i className="fa-brands fa-whatsapp text-lg"></i> Enviar Pedido
-                                        </button>
+                        {internalView === 'checkout' && routeInfo && (
+                            <div className="flex-1 overflow-y-auto flex flex-col p-6 bg-gray-100">
+                                <div className="bg-white p-6 rounded-3xl shadow-xl z-20 shrink-0 w-full max-w-sm mx-auto animate-[bounce_0.3s_ease-out]">
+                                    <h3 className="font-black text-lg text-center mb-4 text-gray-800">Comprobante</h3>
+                                    <div className="flex justify-between mb-1 text-xs"><span className="text-gray-500 font-bold">Subtotal Productos</span><span className="font-bold">{cartSubtotalCOP.toLocaleString()} COP</span></div>
+                                    <div className="flex justify-between mb-3 text-xs border-b pb-2"><span className="text-gray-500 font-bold">Delivery ({routeInfo.distance} km)</span><span className="font-bold text-orange-600">+{routeInfo.cop.toLocaleString()} COP</span></div>
+                                    <div className="flex justify-between items-center mb-6"><span className="font-black text-sm text-gray-800">TOTAL A PAGAR</span><span className="font-black text-2xl text-green-700">{(cartSubtotalCOP + routeInfo.cop).toLocaleString()} COP</span></div>
+                                    
+                                    <p className="text-center text-xs font-bold text-gray-500 mb-2">SELECCIONA MONEDA DE PAGO</p>
+                                    <div className="grid grid-cols-3 gap-2 mb-4">
+                                        {['COP', 'VES', 'USD'].map(c => (
+                                            <button key={c} onClick={() => setPaymentCurrency(c)} className={`py-2 rounded-lg text-xs font-black border-2 ${paymentCurrency === c ? 'bg-green-50 border-green-500 text-green-700' : 'bg-white border-gray-100 text-gray-400'}`}>{c}</button>
+                                        ))}
                                     </div>
-                                )}
+                                    
+                                    {paymentCurrency === 'VES' && <p className="mb-4 text-center font-black text-blue-800 bg-blue-50 p-2 rounded-xl border border-blue-200">Equivalente a pagar:<br/><span className="text-xl">{((cartSubtotalCOP + routeInfo.cop) / TASA_VES_COP).toLocaleString(undefined, {maximumFractionDigits: 2})} VES</span></p>}
+                                    {paymentCurrency === 'USD' && <p className="mb-4 text-center font-black text-emerald-800 bg-emerald-50 p-2 rounded-xl border border-emerald-200">${((cartSubtotalCOP + routeInfo.cop) / TASA_USD_COP).toFixed(2)} USD</p>}
+
+                                    <button onClick={submitMarketOrder} className="w-full bg-green-600 text-white font-black py-4 rounded-xl shadow-lg text-sm flex justify-center items-center gap-2 animate-pulse mt-4">
+                                        <i className="fa-brands fa-whatsapp text-lg"></i> Confirmar Pedido
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -975,30 +842,27 @@
             return (
                 <div id="root-container">
                     {alert && <AlertBox msg={alert.msg} type={alert.type} />}
-                    {showPostOrderModal && <PostOrderModal onExit={() => { setShowPostOrderModal(false); setView('landing'); }} onNewOrder={() => setShowPostOrderModal(false)} />}
                     
                     {view === 'landing' && <Landing />}
                     {view === 'adminLogin' && <AdminLoginView />}
                     
-                    {/* Flujo Unificado de Auth por Servicio */}
                     {view === 'auth_client' && <AuthHub role="client" title="Cliente" targetView="clientDash" />}
                     {view === 'auth_store' && <AuthHub role="store" title="Local / Empresa" targetView="storeDash" />}
                     {view === 'auth_driver' && <AuthHub role="driver" title="Conductor" targetView="driverDash" />}
                     {view === 'auth_mercado' && <AuthHub role="mercado" title="Mercado en Casa" targetView="mercadoDash" />}
                     
-                    {view === 'clientDash' && <Dashboard role="client" title="Cliente" icon="fa-user" bg="bg-red-100" color="text-grita-red" />}
-                    {view === 'storeDash' && <Dashboard role="store" title="Local" icon="fa-store" bg="bg-amber-100" color="text-amber-600" />}
-                    {view === 'driverDash' && <Dashboard role="driver" title="Conductor" icon="fa-motorcycle" bg="bg-green-100" color="text-green-600" />}
-                    
+                    {view === 'clientDash' && <ClientDashboard role="client" title="Cliente" icon="fa-user" bg="bg-red-100" color="text-grita-red" />}
+                    {view === 'storeDash' && <ClientDashboard role="store" title="Local" icon="fa-store" bg="bg-amber-100" color="text-amber-600" />}
+                    {view === 'driverDash' && <DriverDashboard />}
                     {view === 'mercadoDash' && <MercadoDashboard />}
                     
                     {view === 'adminDash' && (
-                        <div className="flex flex-col h-full bg-gray-100">
+                        <div className="flex flex-col h-full bg-gray-100 relative w-full">
                             <HeaderNav title="Panel Administrador" onBack={logout} />
                             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                                 <div className="w-20 h-20 bg-grita-dark text-white rounded-full flex items-center justify-center mb-4 shadow-lg"><i className="fa-solid fa-shield-halved text-3xl"></i></div>
                                 <h2 className="text-xl font-black text-gray-800 mb-1">Panel Maestro UBGrit</h2>
-                                <p className="text-xs text-gray-500 mb-8 max-w-[200px]">Las peticiones llegan directamente a su WhatsApp ({ADMIN_PHONE}) y se respaldan en Google Sheets automáticamente.</p>
+                                <p className="text-xs text-gray-500 mb-8">WhatsApp Central: {ADMIN_PHONE}</p>
                             </div>
                         </div>
                     )}
@@ -1010,4 +874,4 @@
         root.render(<App />);
     </script>
 </body>
-</html> 
+</html>
