@@ -3,777 +3,753 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Moto UBGrit App</title>
+    <title>Moto UBGrit</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            theme: { extend: { colors: { grita: { red: '#dc2626', darkred: '#b91c1c', black: '#000000', dark: '#111111' } } } }
+        tailwind.config = { 
+            theme: { extend: { colors: { grita: { red: '#dc2626', black: '#000000', dark: '#111111' } } } } 
         }
     </script>
     
-    <!-- LEAFLET & LEAFLET ROUTING MACHINE -->
+    <!-- Leaflet CSS y JS para mapas -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     
-    <!-- FIREBASE COMPAT -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
-
-    <!-- REACT -->
+    <!-- React -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></link>
-    <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
     
-    <!-- LEAFLET SCRIPTS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body { font-family: 'Inter', system-ui, sans-serif; background-color: #0b0f19; overflow: hidden; margin: 0; padding: 0; touch-action: manipulation; }
-        .leaflet-container { font-family: 'Inter', sans-serif; z-index: 10; }
-        /* Ocultar la interfaz de Leaflet Routing para usar nuestra propia interfaz */
-        .leaflet-routing-container { display: none !important; }
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: #0b0f19; margin: 0; padding: 0; touch-action: manipulation; display: flex; justify-content: center; align-items: center; height: 100dvh; overflow: hidden; }
         ::-webkit-scrollbar { display: none; } 
-        
-        #root-container {
-            width: 100vw;
-            height: 100dvh;
-            background-color: #0b0f19;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            overflow: hidden;
-            margin: 0 auto;
-        }
-        
-        .fade-in { animation: fadeIn 0.8s ease-in-out; }
-        .fade-out { animation: fadeOut 0.5s ease-in-out forwards; }
-        
+        #mobile-container { width: 100%; max-width: 430px; height: 100%; max-height: 100dvh; background-color: #f9fafb; position: relative; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
-
-        /* Splash Animation */
-        @keyframes slideUpFade {
-            0% { transform: translateY(20px); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
-        }
-        @keyframes pulseLogo {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220,38,38, 0.7); }
-            70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(220,38,38, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220,38,38, 0); }
-        }
-        .animate-title { animation: slideUpFade 0.8s ease-out forwards; }
-        .animate-subtitle { animation: slideUpFade 0.8s ease-out 0.3s forwards; opacity: 0; }
+        @keyframes pulseLogo { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220,38,38, 0.7); } 70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(220,38,38, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220,38,38, 0); } }
         .animate-logo { animation: pulseLogo 2s infinite; }
-
-        @media (min-width: 768px) {
-            body { display: flex; align-items: center; justify-content: center; background-color: #1a1a1a; }
-            #root-container {
-                max-width: 420px; height: 850px; max-height: 95vh;
-                border-radius: 2.5rem; border: 12px solid #27272a;
-                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-            }
-        }
+        .leaflet-container { z-index: 10; font-family: 'Inter', sans-serif; }
+        .custom-pin { filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.5)); font-size: 30px; line-height: 30px; text-align: center; }
     </style>
 </head>
-<body class="text-gray-900">
-    <div id="root" class="w-full h-full flex justify-center items-center"></div>
+<body>
+    <div id="mobile-container">
+        <div id="root" class="w-full h-full"></div>
+    </div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- CONFIGURACIÓN DE FIREBASE ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyC4RaeKy1IjcAKK6tJtSD5-hxAbhra6wEU",
-            authDomain: "moto-ubgrit.firebaseapp.com",
-            projectId: "moto-ubgrit",
-            storageBucket: "moto-ubgrit.firebasestorage.app",
-            messagingSenderId: "1079394065391",
-            appId: "1:1079394065391:web:6744ccdaa2a26a344bf41a"
-        };
+        const TASA_USD_COP = 3000; 
+        const TASA_VES_COP = 3.0;  
+        const ADMIN_PHONE = "584140792843";
+
+        // INVENTARIO COMPLETO MERCADO
+        const inventory = [
+            { category: "Hortalizas y Verduras", name: "Tomate", price: 4000, icon: "🍅" },
+            { category: "Hortalizas y Verduras", name: "Cebolla", price: 3500, icon: "🧅" },
+            { category: "Hortalizas y Verduras", name: "Ajo", price: 12000, icon: "🧄" },
+            { category: "Hortalizas y Verduras", name: "Zanahoria", price: 3000, icon: "🥕" },
+            { category: "Hortalizas y Verduras", name: "Pimentón", price: 5000, icon: "🫑" },
+            { category: "Tubérculos y Vituallas", name: "Papa", price: 3500, icon: "🥔" },
+            { category: "Tubérculos y Vituallas", name: "Yuca", price: 2000, icon: "🍠" },
+            { category: "Tubérculos y Vituallas", name: "Plátano Maduro", price: 3000, icon: "🍌" },
+            { category: "Frutas", name: "Lechoza", price: 2500, icon: "🍈" },
+            { category: "Frutas", name: "Manzana", price: 8000, icon: "🍎" },
+            { category: "Frutas", name: "Fresa", price: 8000, icon: "🍓" },
+            { category: "Ramas, Hierbas y Especias", name: "Cilantro", price: 2000, icon: "🌿" },
+            { category: "Ramas, Hierbas y Especias", name: "Cebollín", price: 2000, icon: "🌱" },
+            { category: "Proteínas y Huevos", name: "Cartón de Huevos", price: 16000, icon: "🥚" }
+        ];
         
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.firestore();
-        // ---------------------------------
-
-        const ADMIN_PHONE = "584140792843"; 
-        const LA_GRITA_COORDS = [8.1333, -71.9833];
+        const categoriesList = ["Hortalizas y Verduras", "Tubérculos y Vituallas", "Frutas", "Ramas, Hierbas y Especias", "Proteínas y Huevos"];
         
-        const calculateFares = (distKm) => {
-            let rawPrice = 5000; 
-            if (distKm > 1.5) {
-                rawPrice += ((distKm - 1.5) * 3000); 
-            }
-            const copPrice = Math.round(rawPrice / 500) * 500; 
-            return { cop: copPrice };
+        const categoryStyles = {
+            "Hortalizas y Verduras": { bg: "bg-green-600", text: "text-green-700", lightBg: "bg-green-50", border: "border-green-500" },
+            "Tubérculos y Vituallas": { bg: "bg-amber-600", text: "text-amber-700", lightBg: "bg-amber-50", border: "border-amber-500" },
+            "Frutas": { bg: "bg-orange-500", text: "text-orange-700", lightBg: "bg-orange-50", border: "border-orange-500" },
+            "Ramas, Hierbas y Especias": { bg: "bg-teal-600", text: "text-teal-700", lightBg: "bg-teal-50", border: "border-teal-500" },
+            "Proteínas y Huevos": { bg: "bg-red-500", text: "text-red-700", lightBg: "bg-red-50", border: "border-red-500" }
         };
 
-        const playContinuousAlert = (stopRef) => {
-            let synth;
-            try { synth = new Tone.Synth().toDestination(); } catch(e) { return; }
-            
-            const beep = () => {
-                if (stopRef.current) return;
-                synth.triggerAttackRelease("C5", "8n");
-                setTimeout(() => { if (!stopRef.current) synth.triggerAttackRelease("E5", "8n"); }, 200);
-                
-                if (!stopRef.current) {
-                    setTimeout(beep, 20000); // Repetir cada 20 segundos
-                }
-            };
-            beep();
+        const formatQuantity = (qty, itemName = "") => {
+            const isEgg = itemName.toLowerCase().includes("huevo");
+            if (qty === 0.25) return isEgg ? "1/4 Cartón" : "250g";
+            if (qty === 0.5) return isEgg ? "Medio Cartón" : "Medio Kg";
+            if (qty === 0.75) return isEgg ? "3/4 Cartón" : "750g";
+            if (qty === 1) return isEgg ? "1 Cartón" : "1 Kg";
+            return `${qty} ${isEgg ? 'Cartones' : 'Kg'}`;
         };
 
-        const HeaderNav = ({ title, onBack, rightIcon }) => (
-            <div className="bg-grita-black text-white p-4 sticky top-0 z-20 flex items-center shadow-md shrink-0 w-full h-16">
+        // --- COMPONENTES BASE ---
+        const HeaderNav = ({ title, onBack, rightContent, bgClass = "bg-black" }) => (
+            <div className={`${bgClass} text-white p-4 sticky top-0 z-20 flex items-center justify-between shadow-md shrink-0 w-full h-16`}>
                 {onBack ? (
-                    <button type="button" onClick={onBack} className="mr-3 text-xs font-bold bg-white/10 px-3 py-2 rounded-lg hover:bg-white/20 transition flex items-center gap-2">
-                        <i className="fa-solid fa-arrow-left"></i>
+                    <button onClick={onBack} className="text-xs font-bold bg-white/20 px-3 py-2 rounded-lg hover:bg-white/30 transition">
+                        <i className="fa-solid fa-arrow-left"></i> Volver
                     </button>
-                ) : <div className="w-12 mr-3"></div>}
-                <h2 className="text-sm font-bold truncate flex-1 text-center pr-2">{title}</h2>
-                <div className="w-12 flex justify-end">{rightIcon}</div>
+                ) : <div className="w-16"></div>}
+                <h2 className="text-sm font-black truncate flex-1 text-center">{title}</h2>
+                <div className="w-16 flex justify-end">{rightContent}</div>
             </div>
         );
 
-        const AlertBox = ({ msg, type = 'error' }) => (
-            <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-[1000] text-white font-bold flex items-center gap-3 text-sm whitespace-nowrap ${type === 'error' ? 'bg-red-600' : 'bg-green-600'} animate-bounce`}>
-                <i className={type === 'error' ? "fa-solid fa-circle-exclamation text-lg" : "fa-solid fa-circle-check text-lg"}></i>
-                <span>{msg}</span>
-            </div>
-        );
+        const MercadoDashboard = ({ user, goBack, triggerToast }) => {
+            const [view, setView] = useState('shop');
+            const [cart, setCart] = useState({});
+            const [currentCatIdx, setCurrentCatIdx] = useState(0);
+            const [paymentCurrency, setPaymentCurrency] = useState('COP');
+            const [deliveryFee, setDeliveryFee] = useState(5000); // Fijo en La Grita por defecto
 
-        const AnimatedSplashScreen = () => (
-            <div className="flex flex-col items-center justify-center h-full w-full bg-[#0b0f19] text-white absolute z-[9999]">
-                <div className="w-32 h-32 bg-grita-red rounded-full flex items-center justify-center mb-6 border-4 border-white animate-logo shadow-[0_0_40px_rgba(220,38,38,0.6)]">
-                    <i className="fa-solid fa-motorcycle text-6xl text-white"></i>
-                </div>
-                <h1 className="text-4xl font-black mb-3 tracking-tight animate-title"><span className="text-grita-red">Moto</span> UBGrit</h1>
-                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-widest text-center px-4 leading-relaxed animate-subtitle">
-                    <p>Tu traslado / Encomienda / Mercado / Medicamento</p>
-                    <p className="mt-1 text-white font-black text-xs">Rápido y Seguro</p>
-                </div>
-            </div>
-        );
+            const updateCart = (name, qty, price) => {
+                const cleanQty = Math.max(0, Math.round(qty * 100) / 100);
+                setCart(prev => { const n = { ...prev }; if (cleanQty <= 0) delete n[name]; else n[name] = { quantity: cleanQty, price }; return n; });
+            };
 
-        const MapRouter = ({ onConfirm, onBack, isEncomienda = false }) => {
-            const [step, setStep] = useState('pickup'); // pickup -> dropoff -> route
-            const [pickupLoc, setPickupLoc] = useState(LA_GRITA_COORDS);
-            const [dropoffLoc, setDropoffLoc] = useState(LA_GRITA_COORDS);
-            const [distanceKm, setDistanceKm] = useState(0);
+            const cartSubtotal = Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const totalCOP = cartSubtotal > 0 ? cartSubtotal + deliveryFee : 0;
+            const totalUSD = (totalCOP / TASA_USD_COP).toFixed(2);
+            const totalVES = (totalCOP / TASA_VES_COP).toFixed(2);
             
-            const mapRef = useRef(null);
-            const mapInst = useRef(null);
-            const routingControl = useRef(null);
-            const centerMarker = useRef(null);
+            const currentCatName = categoriesList[currentCatIdx];
+            const products = inventory.filter(p => p.category === currentCatName);
 
-            const initMap = useCallback(() => {
-                if (mapRef.current && !mapInst.current) {
-                    mapInst.current = L.map(mapRef.current, { zoomControl: false }).setView(LA_GRITA_COORDS, 16);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '© OpenStreetMap contributors',
-                        maxZoom: 19
-                    }).addTo(mapInst.current);
-
-                    centerMarker.current = L.marker(LA_GRITA_COORDS, {
-                        icon: L.divIcon({
-                            className: 'custom-div-icon',
-                            html: "<div style='font-size: 32px; text-shadow: 0 2px 5px rgba(0,0,0,0.5);'>📍</div>",
-                            iconSize: [30, 42],
-                            iconAnchor: [15, 42]
-                        })
-                    }).addTo(mapInst.current);
-
-                    mapInst.current.on('move', () => {
-                        if(step !== 'route' && centerMarker.current) {
-                            centerMarker.current.setLatLng(mapInst.current.getCenter());
-                        }
-                    });
-                }
-            }, [step]);
-
-            useEffect(() => { 
-                if(step !== 'route') setTimeout(initMap, 100); 
-            }, [step, initMap]);
-
-            const calculateRoute = () => {
-                if(!mapInst.current) return;
-                setStep('route');
-                if(centerMarker.current) mapInst.current.removeLayer(centerMarker.current);
-
-                routingControl.current = L.Routing.control({
-                    waypoints: [
-                        L.latLng(pickupLoc[0], pickupLoc[1]),
-                        L.latLng(dropoffLoc[0], dropoffLoc[1])
-                    ],
-                    routeWhileDragging: false,
-                    showAlternatives: false,
-                    addWaypoints: false,
-                    fitSelectedRoutes: true,
-                    lineOptions: { styles: [{color: '#2563eb', opacity: 0.8, weight: 6}] },
-                    createMarker: function(i, wp, nWps) {
-                        return L.marker(wp.latLng, {
-                            icon: L.divIcon({
-                                className: 'custom-div-icon',
-                                html: `<div style='background-color: ${i===0 ? '#3b82f6' : '#ef4444'}; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);'>${i===0 ? 'A' : 'B'}</div>`,
-                                iconSize: [24, 24], iconAnchor: [12, 12]
-                            })
-                        });
-                    }
-                }).addTo(mapInst.current);
-
-                routingControl.current.on('routesfound', function(e) {
-                    const routes = e.routes;
-                    const summary = routes[0].summary;
-                    setDistanceKm(summary.totalDistance / 1000);
-                });
+            const handleWhatsAppCheckout = () => {
+                let msg = `*🛒 MERCADO EN CASA 🛒*%0A%0A*Cliente:* ${user?.nombre}%0A*Tel:* ${user?.telefono}%0A*Dir:* ${user?.direccion}%0A%0A*PEDIDO:*%0A`;
+                Object.keys(cart).forEach(name => { msg += `▪ ${formatQuantity(cart[name].quantity, name)} de ${name} - ${(cart[name].price * cart[name].quantity).toLocaleString()} COP%0A`; });
+                msg += `🛵 *Delivery:* ${deliveryFee.toLocaleString()} COP%0A💵 *TOTAL:* ${totalCOP.toLocaleString()} COP%0A`;
+                
+                msg += `%0A*MÉTODO DE PAGO SELECCIONADO:*%0A`;
+                if (paymentCurrency === 'COP') msg += `🇨🇴 Pesos (Efectivo): ${totalCOP.toLocaleString()} COP`;
+                if (paymentCurrency === 'USD') msg += `💵 Dólares (Efectivo): $${totalUSD} USD`;
+                if (paymentCurrency === 'VES') msg += `🇻🇪 Bolívares (Transferencia): ${totalVES} VES`;
+                
+                window.open(`https://wa.me/${ADMIN_PHONE}?text=${msg}`, '_blank');
+                setCart({}); setView('success');
             };
 
-            const handleFixPoint = () => {
-                const center = mapInst.current.getCenter();
-                if (step === 'pickup') {
-                    setPickupLoc([center.lat, center.lng]);
-                    setStep('dropoff');
-                } else if (step === 'dropoff') {
-                    setDropoffLoc([center.lat, center.lng]);
-                    calculateRoute();
-                }
-            };
-
-            const handleConfirm = () => {
-                onConfirm({
-                    pickupCoords: pickupLoc,
-                    dropoffCoords: dropoffLoc,
-                    distance: distanceKm.toFixed(1)
-                });
-            };
-
-            return (
-                <div className="flex flex-col h-full bg-gray-50 absolute inset-0 z-[100] w-full fade-in">
-                    <HeaderNav 
-                        title={step === 'pickup' ? '1. Origen' : step === 'dropoff' ? '2. Destino' : 'Ruta Calculada'} 
-                        onBack={() => {
-                            if(step === 'pickup') onBack();
-                            else if(step === 'dropoff') setStep('pickup');
-                            else {
-                                if(routingControl.current) mapInst.current.removeControl(routingControl.current);
-                                setStep('dropoff');
-                            }
-                        }} 
-                    />
-                    
-                    <div className="flex-1 relative w-full h-full">
-                        <div ref={mapRef} className="absolute inset-0 w-full h-full z-0"></div>
+            if (view === 'shop') {
+                return (
+                    <div className="flex flex-col h-full bg-gray-100 fade-in w-full relative">
+                        <HeaderNav title="Mercado en Casa" onBack={goBack} bgClass="bg-green-700" rightContent={<button onClick={() => setView('cart')} className="bg-white text-green-700 px-3 py-1.5 rounded-full font-bold text-xs shadow">🛒 {Object.keys(cart).length}</button>} />
                         
-                        {step !== 'route' && (
-                             <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-4 py-2 rounded-full text-xs font-bold z-[400] shadow-md flex items-center gap-2">
-                                 <i className="fa-solid fa-arrows-up-down-left-right"></i> Mueve el mapa para ubicar el pin
-                             </div>
-                        )}
-
-                        <div className="absolute bottom-0 left-0 w-full bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-20 rounded-t-3xl p-5 border-t border-gray-200">
-                            {step !== 'route' ? (
-                                <button onClick={handleFixPoint} className={`w-full text-white font-black py-4 rounded-xl shadow-lg text-sm flex items-center justify-center gap-2 ${step === 'pickup' ? 'bg-blue-600' : 'bg-red-600'}`}>
-                                    {step === 'pickup' ? 'Fijar Origen' : 'Fijar Destino'} <i className="fa-solid fa-arrow-right"></i>
+                        <div className={`p-3 border-b-4 flex items-center justify-between shadow-sm shrink-0 ${categoryStyles[currentCatName].lightBg} ${categoryStyles[currentCatName].border}`}>
+                            <button onClick={() => setCurrentCatIdx(Math.max(0, currentCatIdx - 1))} disabled={currentCatIdx === 0} className="text-xs font-bold text-gray-600 bg-white px-3 py-2 rounded shadow disabled:opacity-50">← Ant</button>
+                            <h2 className={`text-sm font-black ${categoryStyles[currentCatName].text}`}>{currentCatName}</h2>
+                            <button onClick={() => setCurrentCatIdx(Math.min(categoriesList.length - 1, currentCatIdx + 1))} disabled={currentCatIdx === categoriesList.length - 1} className="text-xs font-bold text-gray-600 bg-white px-3 py-2 rounded shadow disabled:opacity-50">Sig →</button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-4 pb-24">
+                            <div className="grid grid-cols-2 gap-3">
+                                {products.map(p => {
+                                    const qty = cart[p.name]?.quantity || 0;
+                                    const style = categoryStyles[currentCatName];
+                                    return (
+                                        <div key={p.name} className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 flex flex-col items-center">
+                                            <div className="text-4xl mb-2">{p.icon}</div>
+                                            <h3 className="font-bold text-xs text-center text-gray-800">{p.name}</h3>
+                                            <p className={`${style.text} font-black text-xs my-2`}>{p.price.toLocaleString()} COP</p>
+                                            {qty === 0 ? (
+                                                <button onClick={() => { updateCart(p.name, 0.25, p.price); triggerToast(`${p.name} agregado`, 'success'); }} className={`w-full ${style.lightBg} ${style.text} py-2 rounded-lg text-xs font-bold`}>➕ Agregar</button>
+                                            ) : (
+                                                <div className="flex justify-between items-center w-full bg-gray-50 rounded-lg p-1 border">
+                                                    <button onClick={() => updateCart(p.name, qty - 0.25, p.price)} className="px-2 py-1 bg-white text-red-500 rounded font-bold shadow-sm">-</button>
+                                                    <span className="font-bold text-[10px]">{formatQuantity(qty, p.name)}</span>
+                                                    <button onClick={() => updateCart(p.name, qty + 0.25, p.price)} className={`px-2 py-1 bg-white ${style.text} rounded font-bold shadow-sm`}>+</button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            
+                            {currentCatIdx < categoriesList.length - 1 ? (
+                                <button onClick={() => { document.querySelector('.overflow-y-auto').scrollTo(0,0); setCurrentCatIdx(currentCatIdx + 1); }} className="w-full mt-6 bg-white border-2 border-green-500 text-green-700 py-3 rounded-xl font-bold shadow-sm">
+                                    Siguiente: {categoriesList[currentCatIdx + 1]} ↓
                                 </button>
                             ) : (
-                                <div>
-                                    <div className="flex justify-between items-center mb-4 bg-gray-50 p-3 rounded-xl border">
-                                        <div>
-                                            <p className="text-[10px] text-gray-500 font-bold uppercase">Distancia</p>
-                                            <p className="text-sm font-black">{distanceKm.toFixed(1)} km</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] text-gray-500 font-bold uppercase">Costo Aprox</p>
-                                            <p className="text-xl font-black text-green-600">{calculateFares(distanceKm).cop.toLocaleString()} COP</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={handleConfirm} className="w-full bg-black text-white font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-sm">
-                                        Continuar con el Pedido <i className="fa-solid fa-check"></i>
-                                    </button>
-                                </div>
+                                <button onClick={() => setView('cart')} className="w-full mt-6 bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg">Ir al Carrito 🛒</button>
                             )}
                         </div>
                     </div>
-                </div>
-            );
+                );
+            }
+
+            if (view === 'cart') {
+                return (
+                    <div className="flex flex-col h-full bg-gray-100 fade-in w-full">
+                        <HeaderNav title="Tu Carrito" onBack={() => setView('shop')} bgClass="bg-green-700" />
+                        <div className="flex-1 overflow-y-auto p-4 pb-6">
+                            <div className="bg-white rounded-2xl shadow-sm p-4 mb-4">
+                                {Object.keys(cart).length === 0 ? <p className="text-center text-gray-500 text-sm py-4">El carrito está vacío</p> : null}
+                                {Object.keys(cart).map(name => (
+                                    <div key={name} className="flex justify-between items-center py-2 border-b border-gray-100 text-xs">
+                                        <span>{formatQuantity(cart[name].quantity, name)} {name}</span>
+                                        <span className="font-bold">{(cart[name].price * cart[name].quantity).toLocaleString()} COP</span>
+                                    </div>
+                                ))}
+                                <div className="flex justify-between items-center py-3 text-xs text-orange-600 font-bold border-b border-gray-100">
+                                    <span>Delivery Básico (Casco Central)</span>
+                                    <span>+{deliveryFee.toLocaleString()} COP</span>
+                                </div>
+                                <div className="flex justify-between py-3 text-lg text-green-700 font-black"><span>TOTAL COP</span><span>{totalCOP.toLocaleString()} COP</span></div>
+                            </div>
+
+                            <div className="bg-white p-4 rounded-2xl shadow-sm mb-6">
+                                <h3 className="font-bold text-xs text-center text-gray-500 mb-3">Moneda de Pago</h3>
+                                <div className="grid grid-cols-3 gap-2 mb-4">
+                                    <button onClick={() => setPaymentCurrency('COP')} className={`py-3 rounded-lg font-bold text-xs border-2 ${paymentCurrency === 'COP' ? 'bg-green-100 border-green-500 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>COP</button>
+                                    <button onClick={() => setPaymentCurrency('VES')} className={`py-3 rounded-lg font-bold text-xs border-2 ${paymentCurrency === 'VES' ? 'bg-blue-100 border-blue-500 text-blue-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>VES</button>
+                                    <button onClick={() => setPaymentCurrency('USD')} className={`py-3 rounded-lg font-bold text-xs border-2 ${paymentCurrency === 'USD' ? 'bg-emerald-100 border-emerald-500 text-emerald-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>USD</button>
+                                </div>
+                                
+                                <div className="p-4 bg-gray-50 rounded-xl text-center border border-gray-200">
+                                    <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Monto Exacto a Pagar</p>
+                                    {paymentCurrency === 'COP' && <p className="font-black text-green-700 text-2xl">{totalCOP.toLocaleString()} COP</p>}
+                                    {paymentCurrency === 'VES' && <p className="font-black text-blue-700 text-2xl">{totalVES} VES <span className="text-[10px] block font-normal text-gray-500 mt-1">(Tasa: {TASA_VES_COP})</span></p>}
+                                    {paymentCurrency === 'USD' && <p className="font-black text-emerald-700 text-2xl">${totalUSD} USD <span className="text-[10px] block font-normal text-gray-500 mt-1">(Tasa: {TASA_USD_COP})</span></p>}
+                                </div>
+                            </div>
+
+                            <button onClick={handleWhatsAppCheckout} disabled={totalCOP === 0} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg flex justify-center items-center gap-2 disabled:opacity-50">
+                                <i className="fa-brands fa-whatsapp text-xl"></i> Enviar Pedido y Facturar
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'success') {
+                return (
+                    <div className="flex flex-col h-full bg-green-50 fade-in w-full items-center justify-center p-6 text-center">
+                        <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm border-t-8 border-green-600">
+                            <div className="text-6xl mb-4">✅</div>
+                            <h2 className="text-2xl font-black text-green-800 mb-2">¡Pedido Enviado!</h2>
+                            <p className="text-gray-600 mb-8 text-sm font-medium">El cajero ha recibido tu orden y se coordinará el envío a tu dirección de inmediato.</p>
+                            <div className="space-y-3">
+                                <button onClick={() => setView('shop')} className="w-full bg-green-600 text-white py-3.5 rounded-xl font-bold shadow-md">🛒 Hacer otro pedido</button>
+                                <button onClick={goBack} className="w-full border-2 border-gray-200 text-gray-700 py-3.5 rounded-xl font-bold bg-gray-50">🏠 Volver al Menú Principal</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
         };
 
-        const Landing = ({ setView, showAlert }) => (
-            <div className="flex flex-col h-full bg-[#0b0f19] text-white relative overflow-y-auto w-full fade-in">
-                <div className="absolute top-4 right-4 z-10">
-                     <button onClick={() => setView('adminLogin')} className="text-gray-600 hover:text-gray-400 p-2 text-xl transition"><i className="fa-solid fa-shield-halved"></i></button>
-                </div>
+        const TripPlanner = ({ user, type, onBack, triggerToast }) => {
+            const mapRef = useRef(null);
+            const mapInst = useRef(null);
+            const routeLayer = useRef(null);
+            const markers = useRef([]);
 
-                <div className="flex-grow flex flex-col items-center justify-center p-6 text-center">
-                    <div className="w-24 h-24 bg-grita-red rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(220,38,38,0.5)] border-4 border-white shrink-0 mt-8">
-                        <i className="fa-solid fa-motorcycle text-4xl text-white"></i>
-                    </div>
-                    <h1 className="text-4xl font-black mb-1 tracking-tight"><span className="text-grita-red">Moto</span> UBGrit</h1>
-                    
-                    <div className="text-gray-300 mb-8 text-[11px] leading-relaxed font-bold uppercase tracking-wide px-4">
-                        <p>Tu traslado / Encomienda / Mercado / Medicamento</p>
-                        <p className="mt-1 text-white">Rápido y Seguro</p>
-                    </div>
-                    
-                    <div className="space-y-3 w-full max-w-[300px]">
-                        <button onClick={() => setView('auth_client')} className="w-full bg-white text-grita-black font-black py-3.5 px-4 rounded-xl shadow-md text-xs hover:bg-gray-100 transition">
-                            <div className="flex flex-col items-center gap-1">
-                                <span><i className="fa-solid fa-user text-gray-500 mr-1"></i> Soy Cliente</span>
-                            </div>
-                        </button>
-                        <button onClick={() => setView('auth_store')} className="w-full bg-amber-600 text-white font-bold py-3.5 px-4 rounded-xl shadow text-xs hover:bg-amber-500 transition">
-                            <div className="flex flex-col items-center gap-1">
-                                <span><i className="fa-solid fa-box mr-1"></i> Local / Empresa (Encomiendas)</span>
-                            </div>
-                        </button>
-                        <button onClick={() => setView('auth_mercado')} className="w-full bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl shadow text-xs hover:bg-green-500 transition">
-                            <div className="flex flex-col items-center gap-1">
-                                <span><i className="fa-solid fa-basket-shopping mr-1"></i> Mercado en Casa</span>
-                            </div>
-                        </button>
-                        <button onClick={() => showAlert("Módulo de Farmacia estará disponible próximamente")} className="w-full bg-red-600/50 text-white font-bold py-3.5 px-4 rounded-xl shadow text-xs hover:bg-red-500 transition border border-red-500/30">
-                            <div className="flex flex-col items-center gap-1">
-                                <span><i className="fa-solid fa-staff-snake mr-1"></i> Farmacia (Próximamente)</span>
-                            </div>
-                        </button>
-                        <button onClick={() => setView('auth_driver')} className="w-full bg-[#1a1a1a] border border-gray-700 text-gray-300 py-3.5 px-4 rounded-xl shadow text-xs font-bold hover:bg-gray-800 transition mt-4">
-                            <div className="flex flex-col items-center gap-1">
-                                <span><i className="fa-solid fa-motorcycle mr-1"></i> Soy Conductor</span>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
+            const [view, setView] = useState('planner'); 
+            const [originText, setOriginText] = useState('');
+            const [destText, setDestText] = useState('');
+            const [originCoords, setOriginCoords] = useState(null);
+            const [destCoords, setDestCoords] = useState(null);
+            
+            const [priceCOP, setPriceCOP] = useState(0);
+            const [isSearching, setIsSearching] = useState(false);
+            
+            // Campos de encomienda
+            const [encDetails, setEncDetails] = useState({ queLleva: '', recibe: '', telRecibe: '' });
 
-        const AdminLoginView = ({ setView, setUser, showAlert }) => {
-            const [adminPass, setAdminPass] = useState('');
-            const submitAdminLogin = (e) => {
-                e.preventDefault();
-                if (adminPass === "Universal11!!") {
-                    setUser({ id: 'admin', role: 'admin', name: 'Administrador' });
-                    setView('adminDash');
-                } else showAlert("Clave incorrecta.");
+            // Inicializar Mapa CON GOOGLE MAPS (Solución definitiva al error 403)
+            useEffect(() => {
+                if (mapRef.current && !mapInst.current && view === 'planner') {
+                    mapInst.current = L.map(mapRef.current, { zoomControl: false }).setView([8.1333, -71.9833], 15);
+                    
+                    // AQUI ESTA LA MAGIA: Mapas de Google directamente para evitar bloqueos
+                    L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                        maxZoom: 19, attribution: '© Google Maps'
+                    }).addTo(mapInst.current);
+                }
+            }, [view]);
+
+            const geocodeAddress = async (text, isOrigin) => {
+                if (!text) return triggerToast("Escribe una referencia primero", "error");
+                setIsSearching(true);
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text + ', La Grita, Táchira')}`);
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                        if (isOrigin) { setOriginCoords(coords); triggerToast("Origen fijado 📍", "success"); }
+                        else { setDestCoords(coords); triggerToast("Destino fijado 🏁", "success"); }
+                        
+                        mapInst.current.setView(coords, 16);
+                        
+                        const iconHtml = isOrigin ? '🟢' : '🔴';
+                        const marker = L.marker(coords, {
+                            icon: L.divIcon({ className: 'custom-pin', html: iconHtml, iconSize: [30,30], iconAnchor: [15,30] })
+                        }).addTo(mapInst.current);
+                        markers.current.push(marker);
+
+                        if (isOrigin && destCoords) calculateRoute(coords, destCoords);
+                        else if (!isOrigin && originCoords) calculateRoute(originCoords, coords);
+                    } else {
+                        triggerToast("Lugar no encontrado. Sé más específico.", "error");
+                    }
+                } catch (e) { triggerToast("Error de red", "error"); }
+                setIsSearching(false);
             };
-            return (
-                <div className="flex flex-col h-full bg-[#0b0f19] text-white w-full fade-in">
-                    <HeaderNav title="Acceso Admin" onBack={() => setView('landing')} />
-                    <div className="flex-1 flex flex-col justify-center items-center p-6">
-                        <form onSubmit={submitAdminLogin} className="bg-[#111] border border-gray-700 rounded-3xl w-full p-6">
-                            <h3 className="text-xl font-black mb-6 text-center text-amber-500">Administrador</h3>
-                            <input type="password" placeholder="Clave" className="w-full p-3 mb-6 rounded-xl bg-[#1a1a1a] text-white" value={adminPass} onChange={e=>setAdminPass(e.target.value)}/>
-                            <button type="submit" className="w-full bg-amber-600 text-white font-bold py-3.5 rounded-xl">Ingresar</button>
-                        </form>
+
+            const calculateRoute = async (c1, c2) => {
+                try {
+                    const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${c1[1]},${c1[0]};${c2[1]},${c2[0]}?overview=full&geometries=geojson`);
+                    const data = await res.json();
+                    
+                    if (data.routes && data.routes.length > 0) {
+                        if (routeLayer.current) mapInst.current.removeLayer(routeLayer.current);
+                        
+                        const geojson = data.routes[0].geometry;
+                        routeLayer.current = L.geoJSON(geojson, { style: { color: '#2563eb', weight: 5, opacity: 0.9 } }).addTo(mapInst.current);
+                        mapInst.current.fitBounds(routeLayer.current.getBounds(), { padding: [40, 40] });
+
+                        const dist = data.routes[0].distance;
+                        
+                        let p = 5000;
+                        if (dist > 2000) {
+                            const extraKm = Math.ceil((dist - 2000) / 1000);
+                            p += (extraKm * 1500);
+                        }
+                        setPriceCOP(p);
+                    }
+                } catch(e) { console.log(e); }
+            };
+
+            const confirmRide = () => {
+                if (!originCoords || !destCoords) return triggerToast("Busca Origen y Destino en el mapa para calcular", "error");
+                if (type === 'encomienda') setView('details'); 
+                else submitToSystem(); 
+            };
+
+            const submitToSystem = () => {
+                const isEnc = type === 'encomienda';
+                const totalVES = (priceCOP / TASA_VES_COP).toFixed(2);
+                const totalUSD = (priceCOP / TASA_USD_COP).toFixed(2);
+                
+                const gMapsOrg = `https://www.google.com/maps?q=${originCoords[0]},${originCoords[1]}`;
+                const gMapsDst = `https://www.google.com/maps?q=${destCoords[0]},${destCoords[1]}`;
+
+                // Simular envío a Firebase para el Chofer
+                const tripData = {
+                    id: Date.now(),
+                    cliente: user.nombre,
+                    telefono: user.telefono,
+                    origen: originText,
+                    destino: destText,
+                    precio: priceCOP,
+                    tipo: isEnc ? 'Encomienda' : 'Pasajero',
+                    detalles: isEnc ? encDetails : null,
+                    coords: { o: originCoords, d: destCoords },
+                    fecha: new Date().toLocaleString()
+                };
+
+                let pending = JSON.parse(localStorage.getItem('ubgrit_pending_trips') || '[]');
+                pending.push(tripData);
+                localStorage.setItem('ubgrit_pending_trips', JSON.stringify(pending));
+
+                let msg = `*🚀 NUEVA SOLICITUD DE ${isEnc ? 'ENCOMIENDA' : 'MOTO'} 🚀*%0A%0A`;
+                msg += `*Cliente/Local:* ${user.nombre}%0A*Teléfono:* ${user.telefono}%0A%0A`;
+                msg += `📍 *De:* ${originText}%0A🏁 *Para:* ${destText}%0A`;
+                if (isEnc) {
+                    msg += `%0A📦 *Lleva:* ${encDetails.queLleva}%0A👤 *Recibe:* ${encDetails.recibe} (${encDetails.telRecibe})%0A`;
+                }
+                msg += `%0A💵 *Costo Traslado:*%0A▪ ${priceCOP.toLocaleString()} COP%0A▪ ${totalVES} VES%0A▪ $${totalUSD} USD%0A`;
+                msg += `%0A🗺️ *GPS Origen:* ${gMapsOrg}%0A🗺️ *GPS Destino:* ${gMapsDst}`;
+
+                window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
+                setView('success');
+            };
+
+            if (view === 'planner') {
+                return (
+                    <div className="flex flex-col h-full bg-gray-100 fade-in w-full relative">
+                        <HeaderNav title={type === 'encomienda' ? 'Ruta Encomienda' : 'Pedir Moto'} onBack={onBack} bgClass="bg-blue-600" />
+                        
+                        <div className="absolute top-20 left-4 right-4 z-[400] space-y-3">
+                            <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden">
+                                <span className="p-3 bg-gray-50 text-green-500 font-black"><i className="fa-solid fa-circle-dot"></i></span>
+                                <input placeholder="¿Dónde estás? Ej: Plaza Bolívar" value={originText} onChange={e => setOriginText(e.target.value)} className="flex-1 p-3 text-sm outline-none font-medium text-gray-800" />
+                                <button onClick={() => geocodeAddress(originText, true)} disabled={isSearching} className="bg-blue-600 text-white px-4 font-bold text-xs hover:bg-blue-700">Buscar</button>
+                            </div>
+                            
+                            <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden">
+                                <span className="p-3 bg-gray-50 text-red-500 font-black"><i className="fa-solid fa-location-dot"></i></span>
+                                <input placeholder="¿A dónde vas?" value={destText} onChange={e => setDestText(e.target.value)} className="flex-1 p-3 text-sm outline-none font-medium text-gray-800" />
+                                <button onClick={() => geocodeAddress(destText, false)} disabled={isSearching} className="bg-blue-600 text-white px-4 font-bold text-xs hover:bg-blue-700">Buscar</button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 relative z-0 bg-gray-200">
+                            <div ref={mapRef} className="absolute inset-0 w-full h-full"></div>
+                        </div>
+
+                        <div className="bg-white p-6 shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-[400] shrink-0 rounded-t-3xl">
+                            {priceCOP > 0 ? (
+                                <div className="mb-4 text-center">
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Costo Estimado Traslado</p>
+                                    <h3 className="text-3xl font-black text-green-600">{priceCOP.toLocaleString()} COP</h3>
+                                    <div className="flex justify-center gap-4 mt-2 text-xs font-bold text-gray-600">
+                                        <span>{(priceCOP / TASA_VES_COP).toFixed(2)} VES</span>
+                                        <span>|</span>
+                                        <span>${(priceCOP / TASA_USD_COP).toFixed(2)} USD</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-center text-xs font-bold text-gray-500 mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">Busca origen y destino para ver el precio.</p>
+                            )}
+                            <button onClick={confirmRide} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg">
+                                {type === 'encomienda' ? 'Datos de Encomienda →' : 'Pedir Moto Ahora'}
+                            </button>
+                        </div>
                     </div>
-                </div>
-            );
+                );
+            }
+
+            if (view === 'details') {
+                return (
+                    <div className="flex flex-col h-full bg-gray-50 fade-in w-full">
+                        <HeaderNav title="Datos de Encomienda" onBack={() => setView('planner')} bgClass="bg-blue-600" />
+                        <div className="flex-1 p-5 overflow-y-auto">
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 space-y-4">
+                                <div className="bg-blue-50 p-3 rounded-lg text-xs font-bold text-blue-800 text-center mb-2">Tarifa Traslado: {priceCOP.toLocaleString()} COP.<br/>(El producto se cobra aparte)</div>
+                                
+                                <div><label className="block text-xs font-black text-gray-500 uppercase mb-1">¿Qué se envía?</label>
+                                <input placeholder="Ej: Zapatos, Comida" value={encDetails.queLleva} onChange={e=>setEncDetails({...encDetails, queLleva: e.target.value})} className="w-full p-3 rounded-xl bg-gray-50 border-2 border-gray-200 outline-none" /></div>
+                                
+                                <div><label className="block text-xs font-black text-gray-500 uppercase mb-1 mt-2">Quién Recibe</label>
+                                <input placeholder="Nombre y Apellido" value={encDetails.recibe} onChange={e=>setEncDetails({...encDetails, recibe: e.target.value})} className="w-full p-3 rounded-xl bg-gray-50 border-2 border-gray-200 outline-none" /></div>
+                                
+                                <div><label className="block text-xs font-black text-gray-500 uppercase mb-1 mt-2">Teléfono destino</label>
+                                <input placeholder="Ej: 04141234567" type="tel" value={encDetails.telRecibe} onChange={e=>setEncDetails({...encDetails, telRecibe: e.target.value})} className="w-full p-3 rounded-xl bg-gray-50 border-2 border-gray-200 outline-none" /></div>
+                                
+                                <button onClick={submitToSystem} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg mt-6">Confirmar Envío</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'success') {
+                return (
+                    <div className="flex flex-col h-full bg-blue-50 fade-in w-full items-center justify-center p-6 text-center">
+                        <div className="bg-white p-8 rounded-3xl shadow-xl w-full border-t-8 border-blue-600">
+                            <div className="text-6xl mb-4">🏍️</div>
+                            <h2 className="text-2xl font-black text-blue-800 mb-2">¡Solicitud Enviada!</h2>
+                            <p className="text-gray-600 mb-8 text-sm font-medium">Un chofer recibirá la alerta en su pantalla y pasará por ti.</p>
+                            <div className="space-y-3">
+                                <button onClick={() => { setView('planner'); setOriginText(''); setDestText(''); setPriceCOP(0); setOriginCoords(null); setDestCoords(null); }} className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold shadow-md">📍 Pedir otro viaje</button>
+                                <button onClick={onBack} className="w-full border-2 border-gray-200 text-gray-700 py-3.5 rounded-xl font-bold bg-gray-50">🏠 Volver al Menú</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
         };
 
-        const AuthHub = ({ role, title, targetView, setUser, setView, showAlert }) => {
-            const [mode, setMode] = useState('register'); 
-            const [form, setForm] = useState({
-                email: '', password: '', name: '', phone: '',
-                address: '', motoModel: '', motoYear: '', motoPlate: ''
-            });
+        const DriverDashboard = ({ user, goBack, triggerToast }) => {
+            const [activeTrip, setActiveTrip] = useState(null);
+            const [history, setHistory] = useState([]);
+            const [pendingTrip, setPendingTrip] = useState(null);
+            const [view, setView] = useState('dash'); 
 
-            const handleChange = (e) => setForm({...form, [e.target.name]: e.target.value});
+            useEffect(() => {
+                const storedHistory = JSON.parse(localStorage.getItem(`ubgrit_history_${user.nombre}`) || '[]');
+                const storedActive = JSON.parse(localStorage.getItem(`ubgrit_active_${user.nombre}`) || 'null');
+                setHistory(storedHistory);
+                setActiveTrip(storedActive);
 
-            const submitAuth = (e) => {
-                e.preventDefault();
-                // Validación extra para choferes
-                if (role === 'driver' && mode === 'register' && (!form.motoPlate || !form.motoModel)) {
-                    showAlert("Por favor completa los datos de tu moto.");
-                    return;
-                }
-                
-                const newUser = { id: Date.now().toString(), role: role, ...form };
-                localStorage.setItem('ubgrit_user', JSON.stringify(newUser));
-                
-                if (role === 'driver' && mode === 'register') {
-                    showAlert("¡Registro de chofer exitoso! Datos vehiculares guardados.", "success");
-                } else if (mode === 'register') {
-                    showAlert("¡Registro exitoso! Bienvenido.", "success");
-                }
+                const pollTimer = setInterval(() => {
+                    const pendings = JSON.parse(localStorage.getItem('ubgrit_pending_trips') || '[]');
+                    if (pendings.length > 0 && !storedActive && !activeTrip) {
+                        setPendingTrip(pendings[0]); 
+                    } else {
+                        setPendingTrip(null);
+                    }
+                }, 3000);
+                return () => clearInterval(pollTimer);
+            }, [activeTrip]);
 
-                setUser(newUser); 
-                setView(targetView);
+            const acceptTrip = () => {
+                if (!pendingTrip) return;
+                let pendings = JSON.parse(localStorage.getItem('ubgrit_pending_trips') || '[]');
+                pendings = pendings.filter(t => t.id !== pendingTrip.id);
+                localStorage.setItem('ubgrit_pending_trips', JSON.stringify(pendings));
+
+                setActiveTrip(pendingTrip);
+                localStorage.setItem(`ubgrit_active_${user.nombre}`, JSON.stringify(pendingTrip));
+                setPendingTrip(null);
+                triggerToast("¡Viaje Aceptado! Se guardó en tu pantalla.", "success");
             };
 
-            return (
-                <div className="flex flex-col h-full bg-[#0b0f19] text-white w-full fade-in overflow-y-auto">
-                    <HeaderNav title={title} onBack={() => setView('landing')} />
-                    <div className="flex-1 p-6 flex flex-col justify-center">
-                        <form onSubmit={submitAuth} className="bg-white text-black p-6 rounded-3xl shadow-xl space-y-3 relative">
-                            <h3 className="font-black text-center text-xl mb-2">{mode === 'register' ? 'Crear Cuenta' : 'Iniciar Sesión'}</h3>
-                            
-                            <div className="flex justify-center gap-6 mb-4 border-b pb-2">
-                                <button type="button" onClick={()=>setMode('login')} className={`text-sm font-bold transition-colors ${mode==='login'?'text-grita-red':'text-gray-400'}`}>Ingresar</button>
-                                <button type="button" onClick={()=>setMode('register')} className={`text-sm font-bold transition-colors ${mode==='register'?'text-grita-red':'text-gray-400'}`}>Registrarse</button>
-                            </div>
+            const finishTrip = () => {
+                if (!activeTrip) return;
+                const updatedHistory = [activeTrip, ...history];
+                setHistory(updatedHistory);
+                localStorage.setItem(`ubgrit_history_${user.nombre}`, JSON.stringify(updatedHistory));
+                
+                setActiveTrip(null);
+                localStorage.removeItem(`ubgrit_active_${user.nombre}`);
+                triggerToast("Viaje completado y guardado en Billetera.", "success");
+            };
 
-                            <input required type="email" name="email" placeholder="Correo electrónico" className="w-full p-3 border rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-grita-red outline-none" onChange={handleChange} />
-                            <input required type="password" name="password" placeholder="Contraseña" className="w-full p-3 border rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-grita-red outline-none" onChange={handleChange} />
-                            
-                            {mode === 'register' && (
-                                <div className="space-y-3 animate-title">
-                                    <input required type="text" name="name" placeholder={role === 'store' ? "Nombre del Local o Empresa" : "Nombre Completo"} className="w-full p-3 border rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-grita-red outline-none" onChange={handleChange} />
-                                    <input required type="tel" name="phone" placeholder="Número de Teléfono" className="w-full p-3 border rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-grita-red outline-none" onChange={handleChange} />
-                                    
-                                    {role === 'driver' && (
-                                        <div className="border border-gray-300 p-4 rounded-xl bg-gray-100 space-y-3 mt-4 shadow-inner">
-                                            <p className="text-[11px] font-black text-gray-600 uppercase text-center tracking-wider mb-2"><i className="fa-solid fa-motorcycle"></i> Datos del Chofer y Vehículo</p>
-                                            <input required type="text" name="address" placeholder="Tu Dirección de Vivienda" className="w-full p-2 border-b border-gray-300 bg-transparent text-sm focus:border-grita-red outline-none" onChange={handleChange} />
-                                            <input required type="text" name="motoModel" placeholder="Modelo de la Moto (Ej: Bera SBR)" className="w-full p-2 border-b border-gray-300 bg-transparent text-sm focus:border-grita-red outline-none" onChange={handleChange} />
-                                            <div className="flex gap-3">
-                                                <input required type="number" name="motoYear" placeholder="Año" className="w-1/2 p-2 border-b border-gray-300 bg-transparent text-sm focus:border-grita-red outline-none" onChange={handleChange} />
-                                                <input required type="text" name="motoPlate" placeholder="Placa" className="w-1/2 p-2 border-b border-gray-300 bg-transparent text-sm uppercase focus:border-grita-red outline-none" onChange={handleChange} />
-                                            </div>
+            const totalGenerado = history.reduce((sum, t) => sum + t.precio, 0);
+            const totalDeuda = totalGenerado * 0.10; 
+
+            if (view === 'history') {
+                return (
+                    <div className="flex flex-col h-full bg-gray-100 w-full fade-in">
+                        <HeaderNav title="Mi Billetera" onBack={() => setView('dash')} bgClass="bg-black" />
+                        <div className="p-5 flex-1 overflow-y-auto">
+                            <div className="bg-black p-5 rounded-2xl text-white shadow-lg mb-6">
+                                <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">Total Generado (Ventas)</p>
+                                <h3 className="text-3xl font-black text-green-400 mb-4">{totalGenerado.toLocaleString()} COP</h3>
+                                <div className="bg-red-500/20 border border-red-500/50 p-3 rounded-xl">
+                                    <p className="text-[10px] uppercase font-bold text-red-300">Deuda Admin (10%)</p>
+                                    <p className="text-xl font-black text-red-400">{totalDeuda.toLocaleString()} COP</p>
+                                </div>
+                            </div>
+                            <h3 className="font-bold text-gray-800 mb-3 text-sm">Viajes Completados</h3>
+                            <div className="space-y-3">
+                                {history.map(t => (
+                                    <div key={t.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                                        <div className="flex justify-between border-b pb-2 mb-2">
+                                            <span className="font-bold text-xs">{t.tipo}</span>
+                                            <span className="font-black text-green-700 text-xs">{t.precio.toLocaleString()} COP</span>
+                                        </div>
+                                        <p className="text-[10px] text-gray-500 truncate">De: {t.origen}</p>
+                                        <p className="text-[10px] text-gray-500 truncate">A: {t.destino}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex flex-col h-full bg-gray-100 w-full fade-in relative">
+                    <div className="bg-black text-white p-4 sticky top-0 z-20 flex justify-between items-center shadow-md">
+                        <div><h1 className="font-black text-lg leading-none">Chofer</h1><p className="text-[9px] text-gray-400 font-bold uppercase">{user.nombre}</p></div>
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => setView('history')} className="text-xs bg-gray-800 px-3 py-1.5 rounded-lg font-bold border border-gray-700">💰 Billetera</button>
+                            <button onClick={goBack} className="text-red-400 text-xl"><i className="fa-solid fa-power-off"></i></button>
+                        </div>
+                    </div>
+
+                    <div className="p-4 flex-1 overflow-y-auto">
+                        {activeTrip ? (
+                            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border-2 border-blue-500 mb-6">
+                                <div className="bg-blue-600 p-3 text-white text-center font-black text-sm uppercase">Viaje Activo</div>
+                                <div className="p-4 space-y-3 text-sm">
+                                    <p className="font-bold text-gray-800">👤 {activeTrip.cliente} <a href={`tel:${activeTrip.telefono}`} className="text-blue-500 ml-2 underline">Llamar</a></p>
+                                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                                        <p className="font-bold text-gray-700 text-xs mb-2">📍 Origen: {activeTrip.origen}</p>
+                                        <p className="font-bold text-gray-700 text-xs">🏁 Destino: {activeTrip.destino}</p>
+                                    </div>
+                                    {activeTrip.tipo === 'Encomienda' && (
+                                        <div className="bg-orange-50 border border-orange-200 p-3 rounded-xl">
+                                            <p className="font-black text-orange-800 text-xs mb-1">📦 Encomienda</p>
+                                            <p className="text-xs text-gray-700">Lleva: {activeTrip.detalles.queLleva}</p>
+                                            <p className="text-xs text-gray-700">Recibe: {activeTrip.detalles.recibe} ({activeTrip.detalles.telRecibe})</p>
                                         </div>
                                     )}
-                                </div>
-                            )}
-                            <button type="submit" className="w-full bg-grita-red text-white font-black py-4 rounded-xl mt-4 shadow-lg text-lg">{mode === 'register' ? 'Completar Registro' : 'Entrar a mi Cuenta'}</button>
-                        </form>
-                    </div>
-                </div>
-            );
-        };
-
-        const ClientDashboard = ({ role, user, setView, showAlert, logout }) => {
-            const [dashboardView, setDashboardView] = useState('home'); 
-            const [routeDetails, setRouteDetails] = useState(null);
-            
-            const [encomiendaForm, setEncomiendaForm] = useState({
-                senderPhone: user?.phone || '', packageDesc: '', receiverName: '', receiverPhone: ''
-            });
-
-            const handleRouteConfirm = (routeData) => {
-                const fares = calculateFares(routeData.distance);
-                setRouteDetails({ ...routeData, ...fares });
-                setDashboardView(role === 'store' ? 'encomienda_form' : 'summary');
-            };
-
-            const executeCloudRequest = async () => {
-                const typeStr = role === 'store' ? 'Encomienda' : 'Traslado Cliente';
-                
-                let detailsText = `Origen (Coords): ${routeDetails.pickupCoords[0].toFixed(4)}, ${routeDetails.pickupCoords[1].toFixed(4)}\nDestino (Coords): ${routeDetails.dropoffCoords[0].toFixed(4)}, ${routeDetails.dropoffCoords[1].toFixed(4)}\nTarifa del Traslado: ${routeDetails.cop} COP`;
-
-                if(role === 'store') {
-                    // Texto especial de alerta con instrucciones claras sobre el cobro
-                    detailsText = `Local Remitente: ${user.name}\nTeléfono Local: ${encomiendaForm.senderPhone}\nLleva: ${encomiendaForm.packageDesc}\nRecibe: ${encomiendaForm.receiverName}\nTeléfono Recibe: ${encomiendaForm.receiverPhone}\n\n⚠️ REGLA: El chofer SOLO cobra el monto del TRASLADO (${routeDetails.cop} COP). El pago del producto se arregla entre local y cliente.\n\n` + detailsText;
-                }
-
-                try {
-                    await db.collection("solicitudes").add({
-                        type: typeStr,
-                        clientName: user.name,
-                        clientPhone: user.phone,
-                        details: detailsText,
-                        price: routeDetails.cop,
-                        pickupCoords: routeDetails.pickupCoords,
-                        dropoffCoords: routeDetails.dropoffCoords,
-                        status: 'pending',
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        driverAssigned: null
-                    });
-                    
-                    showAlert("¡Solicitud enviada con éxito!", "success");
-                } catch (error) {
-                    showAlert("Error al enviar. Revisa tu conexión.");
-                }
-                
-                setRouteDetails(null);
-                setDashboardView('home');
-            };
-
-            return (
-                <div className="flex flex-col h-full bg-gray-50 w-full fade-in">
-                    <HeaderNav title={role === 'store' ? 'Panel Empresa / Local' : 'Panel Cliente'} onBack={() => {
-                        if(dashboardView === 'summary' || dashboardView === 'encomienda_form') setDashboardView('map');
-                        else if(dashboardView === 'map') setDashboardView('home');
-                        else setView('landing');
-                    }} />
-                    
-                    {dashboardView === 'map' && (
-                        <MapRouter onBack={() => setDashboardView('home')} onConfirm={handleRouteConfirm} isEncomienda={role === 'store'} />
-                    )}
-
-                    {dashboardView === 'home' && (
-                        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                            <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4"><i className={`fa-solid ${role === 'store' ? 'fa-store' : 'fa-user'} text-3xl`}></i></div>
-                            <h2 className="text-xl font-black text-gray-800 mb-1">{user?.name}</h2>
-                            <p className="text-xs text-gray-500 font-bold mb-6">{user?.email}</p>
-                            <button onClick={() => setDashboardView('map')} className="w-full max-w-[280px] bg-black text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2">
-                                <i className="fa-solid fa-map-location-dot"></i> Solicitar {role === 'store' ? 'Encomienda' : 'Viaje'}
-                            </button>
-                            <button onClick={logout} className="mt-8 text-xs text-red-500 underline font-bold"><i className="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</button>
-                        </div>
-                    )}
-
-                    {dashboardView === 'encomienda_form' && (
-                        <div className="flex-1 p-6 overflow-y-auto bg-gray-100">
-                            <h3 className="font-black text-xl mb-3 text-center">Datos del Envío</h3>
-                            
-                            <div className="bg-red-100 border-l-4 border-red-600 p-3 mb-5 rounded-r-xl shadow-sm">
-                                <p className="text-[11px] text-red-800 font-bold leading-tight">
-                                    <i className="fa-solid fa-circle-exclamation mr-1 text-red-600"></i> ORIENTACIÓN DE COBRO: <br/>Moto UBGrit y sus choferes SOLO cobran el costo del traslado. El método de pago del producto o mercancía debe acordarse directamente entre el Local y el Cliente que recibe.
-                                </p>
-                            </div>
-
-                            <div className="space-y-5 bg-white p-6 rounded-3xl shadow-sm border border-gray-200">
-                                <div><label className="text-[11px] font-black uppercase text-gray-400 tracking-wider">Nombre del Local / Quien Envía</label>
-                                <input type="text" readOnly value={user?.name} className="w-full p-2 border-b-2 border-gray-100 bg-gray-50 mt-1 text-gray-600 font-bold outline-none" /></div>
-
-                                <div><label className="text-[11px] font-black uppercase text-gray-400 tracking-wider">Teléfono de Quien Envía</label>
-                                <input type="tel" defaultValue={user?.phone} className="w-full p-2 border-b-2 border-blue-200 bg-blue-50/30 mt-1 font-bold outline-none focus:border-blue-500" onChange={e=>setEncomiendaForm({...encomiendaForm, senderPhone: e.target.value})} /></div>
-                                
-                                <div><label className="text-[11px] font-black uppercase text-gray-400 tracking-wider">¿Qué se va a trasladar?</label>
-                                <input type="text" placeholder="Ej: Caja de zapatos, comida..." className="w-full p-2 border-b-2 border-blue-200 bg-blue-50/30 mt-1 font-bold outline-none focus:border-blue-500" onChange={e=>setEncomiendaForm({...encomiendaForm, packageDesc: e.target.value})} /></div>
-                                
-                                <div className="pt-2"><label className="text-[11px] font-black uppercase text-gray-400 tracking-wider">Nombre de Quien Recibe</label>
-                                <input type="text" placeholder="Nombre del destinatario final" className="w-full p-2 border-b-2 border-blue-200 bg-blue-50/30 mt-1 font-bold outline-none focus:border-blue-500" onChange={e=>setEncomiendaForm({...encomiendaForm, receiverName: e.target.value})} /></div>
-                                
-                                <div><label className="text-[11px] font-black uppercase text-gray-400 tracking-wider">Teléfono de Quien Recibe</label>
-                                <input type="tel" placeholder="0414-XXXXXXX" className="w-full p-2 border-b-2 border-blue-200 bg-blue-50/30 mt-1 font-bold outline-none focus:border-blue-500" onChange={e=>setEncomiendaForm({...encomiendaForm, receiverPhone: e.target.value})} /></div>
-                                
-                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mt-4 text-center">
-                                    <p className="text-[10px] text-gray-500 font-black uppercase">Costo del Traslado (A cobrar al destino)</p>
-                                    <span className="text-3xl block text-green-600 font-black">{routeDetails?.cop.toLocaleString()} COP</span>
-                                </div>
-
-                                <button onClick={() => setDashboardView('summary')} className="w-full bg-black text-white font-black py-4 rounded-xl mt-4 shadow-lg text-lg">Revisar y Enviar</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {dashboardView === 'summary' && routeDetails && (
-                        <div className="flex-1 flex flex-col items-center justify-center p-6">
-                            <div className="bg-white w-full rounded-3xl p-6 shadow-xl border border-gray-100">
-                                <h3 className="text-center font-black text-xl mb-6">Confirmar Solicitud</h3>
-                                <div className="bg-gray-50 rounded-2xl p-6 border mb-6 text-center">
-                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Tarifa Final</p>
-                                    <span className="text-4xl font-black text-green-600">{routeDetails.cop.toLocaleString()} COP</span>
-                                </div>
-                                <button onClick={executeCloudRequest} className="w-full bg-grita-red text-white font-black py-4 rounded-xl shadow-[0_10px_20px_rgba(220,38,38,0.3)] text-lg animate-pulse active:scale-95 transition">
-                                    Enviar Solicitud <i className="fa-solid fa-paper-plane ml-2"></i>
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        const DriverDashboard = ({ user, logout }) => {
-            const [activeTrips, setActiveTrips] = useState([]);
-
-            useEffect(() => {
-                const unsubscribe = db.collection("solicitudes")
-                    .where("status", "==", "active")
-                    .onSnapshot((snapshot) => {
-                        const reqs = [];
-                        snapshot.forEach((doc) => reqs.push({ id: doc.id, ...doc.data() }));
-                        setActiveTrips(reqs);
-                    });
-                return () => unsubscribe();
-            }, []);
-
-            const finishTrip = async (id) => {
-                await db.collection("solicitudes").doc(id).update({ status: 'completed' });
-            };
-
-            return (
-                <div className="flex flex-col h-full bg-gray-100 w-full fade-in">
-                    <HeaderNav title="Panel Conductor" onBack={logout} />
-                    
-                    <div className="bg-amber-400 px-4 py-3 shadow-md z-10 sticky top-16">
-                        <p className="text-[11px] text-amber-900 font-black leading-tight text-center uppercase tracking-wide">
-                            <i className="fa-solid fa-triangle-exclamation text-base block mb-1"></i>
-                            Atención Chofer: <br/>Solo debes cobrar el costo del traslado indicado en verde. El pago de los productos es asunto del cliente y el local.
-                        </p>
-                    </div>
-
-                    <div className="flex-1 p-4 overflow-y-auto">
-                        <div className="flex items-center gap-3 mb-6 bg-white p-4 rounded-2xl shadow-sm">
-                            <div className="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-bold text-xl"><i className="fa-solid fa-helmet-safety"></i></div>
-                            <div>
-                                <h3 className="font-black text-lg leading-none">{user?.name}</h3>
-                                <p className="text-xs font-bold text-gray-500">{user?.motoPlate} • {user?.motoModel}</p>
-                            </div>
-                        </div>
-
-                        <h3 className="font-black text-center mb-4 text-gray-400 uppercase tracking-widest text-xs">Servicios Asignados en Ruta</h3>
-                        
-                        {activeTrips.length === 0 ? (
-                            <div className="text-center mt-10 opacity-50">
-                                <i className="fa-solid fa-mug-hot text-4xl mb-3 text-gray-400"></i>
-                                <p className="text-sm font-bold text-gray-500">No tienes servicios activos.</p>
-                                <p className="text-xs text-gray-400">Espera a que la central te asigne uno.</p>
-                            </div>
-                        ) : activeTrips.map(r => (
-                            <div key={r.id} className="bg-white p-5 rounded-2xl shadow-md mb-4 border-l-8 border-blue-600 relative overflow-hidden">
-                                <span className="absolute top-0 right-0 bg-blue-600 text-white text-[9px] font-black px-3 py-1 rounded-bl-lg uppercase">{r.type}</span>
-                                
-                                <p className="font-black text-gray-800 text-lg mb-1 mt-2">{r.clientName}</p>
-                                
-                                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 my-3">
-                                    <p className="text-xs text-gray-700 whitespace-pre-wrap font-medium font-mono leading-relaxed">{r.details}</p>
-                                </div>
-
-                                {/* BOTONES GPS PARA NAVEGAR - NUEVO */}
-                                {r.pickupCoords && r.dropoffCoords && (
-                                    <div className="flex gap-2 mb-4 mt-2">
-                                        <a href={`https://maps.google.com/?q=${r.pickupCoords[0]},${r.pickupCoords[1]}`} target="_blank" className="flex-1 bg-blue-50 text-blue-700 py-2 rounded-lg text-[10px] font-black uppercase text-center border border-blue-200 shadow-sm flex flex-col items-center">
-                                            <i className="fa-solid fa-location-dot text-lg mb-1"></i> Ir al Origen
-                                        </a>
-                                        <a href={`https://maps.google.com/?q=${r.dropoffCoords[0]},${r.dropoffCoords[1]}`} target="_blank" className="flex-1 bg-red-50 text-red-700 py-2 rounded-lg text-[10px] font-black uppercase text-center border border-red-200 shadow-sm flex flex-col items-center">
-                                            <i className="fa-solid fa-flag-checkered text-lg mb-1"></i> Ir al Destino
-                                        </a>
+                                    <div className="text-center bg-green-50 p-3 rounded-xl border border-green-200">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase">Cobrar</p>
+                                        <p className="text-2xl font-black text-green-700">{activeTrip.precio.toLocaleString()} COP</p>
                                     </div>
-                                )}
-                                
-                                <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
-                                    <div>
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Cobrar Traslado</p>
-                                        <span className="font-black text-2xl text-green-600">{r.price} COP</span>
+                                    
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button onClick={() => window.open(`https://www.google.com/maps?q=${activeTrip.coords.o[0]},${activeTrip.coords.o[1]}`, '_blank')} className="bg-gray-800 text-white py-3 rounded-xl font-bold text-xs"><i className="fa-solid fa-location-arrow"></i> Navegar Origen</button>
+                                        <button onClick={() => window.open(`https://www.google.com/maps?q=${activeTrip.coords.d[0]},${activeTrip.coords.d[1]}`, '_blank')} className="bg-blue-600 text-white py-3 rounded-xl font-bold text-xs"><i className="fa-solid fa-flag-checkered"></i> Navegar Destino</button>
                                     </div>
-                                    <button onClick={() => finishTrip(r.id)} className="bg-green-500 text-white px-5 py-3 rounded-xl text-xs font-black shadow-[0_5px_15px_rgba(34,197,94,0.4)] active:scale-95 transition flex items-center gap-2">
-                                        Finalizar <i className="fa-solid fa-check-double"></i>
-                                    </button>
+                                    <button onClick={finishTrip} className="w-full bg-green-500 text-white py-4 rounded-xl font-black mt-2">✅ Finalizar y Guardar Viaje</button>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
-
-        const AdminDash = ({ logout }) => {
-            const [requests, setRequests] = useState([]);
-            const [pendingCount, setPendingCount] = useState(0);
-            const stopAudioRef = useRef(false);
-
-            useEffect(() => {
-                const unsubscribe = db.collection("solicitudes")
-                    .orderBy("timestamp", "desc")
-                    .onSnapshot((snapshot) => {
-                        const reqs = [];
-                        let newPending = 0;
-                        snapshot.forEach((doc) => {
-                            const data = doc.data();
-                            reqs.push({ id: doc.id, ...data });
-                            if(data.status === 'pending') newPending++;
-                        });
-                        
-                        setRequests(reqs);
-                        
-                        if(newPending > 0 && newPending > pendingCount) {
-                            stopAudioRef.current = false;
-                            playContinuousAlert(stopAudioRef);
-                        } else if (newPending === 0) {
-                            stopAudioRef.current = true;
-                        }
-                        
-                        setPendingCount(newPending);
-                    });
-
-                return () => {
-                    unsubscribe();
-                    stopAudioRef.current = true;
-                };
-            }, [pendingCount]);
-
-            const markAsActive = async (reqId) => {
-                try {
-                    await db.collection("solicitudes").doc(reqId).update({ status: 'active' });
-                } catch(e) {}
-            };
-
-            const BellIcon = (
-                <div className="relative">
-                    <i className={`fa-solid fa-bell text-xl ${pendingCount > 0 ? 'text-amber-400 animate-pulse' : 'text-white'}`}></i>
-                    {pendingCount > 0 && <span className="absolute -top-1 -right-2 bg-red-600 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full shadow-sm">{pendingCount}</span>}
-                </div>
-            );
-
-            return (
-                <div className="flex flex-col h-full bg-gray-100 relative w-full overflow-y-auto fade-in">
-                    <HeaderNav title="Admin Central" onBack={logout} rightIcon={BellIcon} />
-                    
-                    {pendingCount > 0 && (
-                        <div className="bg-red-600 text-white p-2 text-center text-xs font-bold flex items-center justify-center gap-2 animate-pulse">
-                            <i className="fa-solid fa-triangle-exclamation"></i> Tienes {pendingCount} solicitudes nuevas!
-                            <button onClick={() => {stopAudioRef.current = true;}} className="ml-2 bg-white/20 px-2 py-1 rounded text-[10px]">Silenciar Alarma</button>
-                        </div>
-                    )}
-
-                    <div className="p-4 space-y-4">
-                        {requests.length === 0 ? <p className="text-center text-sm font-bold text-gray-400 mt-10">Consola Vacía</p> : requests.map(r => (
-                            <div key={r.id} className={`bg-white p-4 rounded-2xl shadow-sm border-l-4 ${r.status === 'pending' ? 'border-red-500 shadow-red-100' : r.status==='active' ? 'border-blue-500' : 'border-green-500 opacity-60'}`}>
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-xs font-black text-gray-700 uppercase">{r.type}</span>
-                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${r.status==='pending'?'bg-red-100 text-red-700':r.status==='active'?'bg-blue-100 text-blue-700':'bg-green-100 text-green-700'}`}>
-                                        {r.status === 'pending' ? 'NUEVO' : r.status === 'active' ? 'EN RUTA' : 'COMPLETADO'}
-                                    </span>
+                        ) : pendingTrip ? (
+                            <div className="bg-yellow-400 rounded-3xl shadow-xl p-6 text-center animate-pulse border-4 border-white">
+                                <h3 className="font-black text-xl mb-4 text-black">NUEVO VIAJE</h3>
+                                <div className="bg-white p-4 rounded-xl text-left text-xs mb-4 font-medium">
+                                    <p><strong>De:</strong> {pendingTrip.origen}</p>
+                                    <p><strong>Para:</strong> {pendingTrip.destino}</p>
+                                    <p className="font-black text-green-600 text-lg mt-2 text-center border-t pt-2">{pendingTrip.precio.toLocaleString()} COP</p>
                                 </div>
-                                <p className="text-sm font-bold mb-2">Cliente/Local: {r.clientName}</p>
-                                <p className="text-xs text-gray-600 whitespace-pre-wrap mb-3 bg-gray-50 p-2 rounded border font-mono">{r.details}</p>
-                                
-                                {r.status === 'pending' && (
-                                    <button onClick={() => markAsActive(r.id)} className="w-full bg-black text-white font-black py-3 rounded-xl text-xs">Asignar a Conductor (En Ruta)</button>
-                                )}
+                                <button onClick={acceptTrip} className="w-full bg-black text-white py-4 rounded-xl font-black text-lg shadow-lg">Aceptar (60s)</button>
                             </div>
-                        ))}
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-64 opacity-50">
+                                <i className="fa-solid fa-satellite-dish text-5xl mb-4"></i>
+                                <p className="font-bold text-gray-500 text-center">Buscando viajes...<br/>Mantén la app abierta.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
         };
 
-        const App = () => {
+        function App() {
             const [view, setView] = useState('splash');
             const [user, setUser] = useState(null);
-            const [alertMsg, setAlertMsg] = useState(null);
-            
+            const [authRole, setAuthRole] = useState(''); 
+            const [formData, setFormData] = useState({});
+            const [toast, setToast] = useState(null);
+
             useEffect(() => {
-                setTimeout(() => setView('landing'), 3500); // Duración del Splash
-                const savedUser = localStorage.getItem('ubgrit_user');
+                const savedUser = localStorage.getItem('motoubgrit_user');
                 if (savedUser) setUser(JSON.parse(savedUser));
+                setTimeout(() => { if (view === 'splash') setView('menu'); }, 3000);
             }, []);
 
-            const showAlert = (msg, type = 'error') => {
-                setAlertMsg({ msg, type });
-                setTimeout(() => setAlertMsg(null), 4000);
-            };
+            // Corrección al error de registro (handleInputChange)
+            const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
             
-            const logout = () => { localStorage.removeItem('ubgrit_user'); setUser(null); setView('landing'); };
+            const triggerToast = (message, type = 'info') => {
+                setToast({ message, type }); setTimeout(() => setToast(null), 3500);
+            };
 
-            return (
-                <div id="root-container">
-                    {alertMsg && <AlertBox msg={alertMsg.msg} type={alertMsg.type} />}
-                    
-                    {view === 'splash' && <AnimatedSplashScreen />}
-                    {view === 'landing' && <Landing setView={setView} showAlert={showAlert} />}
-                    {view === 'adminLogin' && <AdminLoginView setView={setView} setUser={setUser} showAlert={showAlert} />}
-                    
-                    {view === 'auth_client' && <AuthHub role="client" title="Cliente" targetView="clientDash" setUser={setUser} setView={setView} showAlert={showAlert} />}
-                    {view === 'auth_store' && <AuthHub role="store" title="Empresa" targetView="storeDash" setUser={setUser} setView={setView} showAlert={showAlert} />}
-                    {view === 'auth_driver' && <AuthHub role="driver" title="Conductor" targetView="driverDash" setUser={setUser} setView={setView} showAlert={showAlert} />}
-                    {view === 'auth_mercado' && <AuthHub role="mercado" title="Mercado" targetView="mercadoDash" setUser={setUser} setView={setView} showAlert={showAlert} />}
-                    
-                    {view === 'clientDash' && <ClientDashboard role="client" user={user} setView={setView} showAlert={showAlert} logout={logout} />}
-                    {view === 'storeDash' && <ClientDashboard role="store" user={user} setView={setView} showAlert={showAlert} logout={logout} />}
-                    {view === 'driverDash' && <DriverDashboard user={user} logout={logout} />}
-                    {view === 'mercadoDash' && <div className="bg-white h-full flex flex-col items-center justify-center"><HeaderNav title="Mercado" onBack={()=>setView('landing')}/><p className="p-10 text-center font-bold">Módulo de mercado en construcción</p></div>}
-                    
-                    {view === 'adminDash' && <AdminDash logout={logout} />}
-                </div>
-            );
+            const handleRegister = (e) => {
+                e.preventDefault();
+                const finalUser = { ...formData, role: authRole, createdAt: new Date().getTime(), email: formData.email || `user_${Date.now()}` };
+                setUser(finalUser); localStorage.setItem('motoubgrit_user', JSON.stringify(finalUser));
+                
+                if (authRole === 'driver') setView('driver_rules');
+                else if (authRole === 'market') setView('market_view');
+                else if (authRole === 'store') setView('encomienda_view');
+                else setView('client_view');
+            };
+
+            const ToastComponent = () => {
+                if (!toast) return null;
+                const bg = toast.type === 'error' ? 'bg-red-600' : toast.type === 'success' ? 'bg-green-600' : 'bg-gray-800';
+                return (
+                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[999] w-11/12 max-w-sm fade-in pointer-events-none">
+                        <div className={`${bg} text-white px-4 py-3 rounded-xl shadow-2xl font-bold text-xs text-center border-2 border-white/20`}>{toast.message}</div>
+                    </div>
+                );
+            };
+
+            if (view === 'splash') {
+                return (
+                    <div className="flex flex-col items-center justify-center h-full bg-[#0b0f19] fade-in w-full relative overflow-hidden">
+                        {/* Efecto de luz de fondo */}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                            <div className="w-96 h-96 bg-grita-red rounded-full blur-3xl animate-pulse"></div>
+                        </div>
+                        
+                        <div className="z-10 flex flex-col items-center">
+                            <div className="w-28 h-28 bg-grita-red rounded-full flex items-center justify-center mb-6 animate-logo shadow-[0_0_30px_rgba(220,38,38,0.5)] border-4 border-white/10">
+                                <i className="fa-solid fa-motorcycle text-5xl text-white"></i>
+                            </div>
+                            <h1 className="text-4xl font-black mb-4 text-white tracking-tight drop-shadow-lg">Moto UBGrit</h1>
+                            
+                            <div className="bg-black/50 backdrop-blur-md p-5 rounded-2xl border border-white/10 mx-6 shadow-2xl">
+                                <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.15em] text-center leading-relaxed">
+                                    Tu traslado / Encomienda /<br/>Mercado / Medicamento
+                                    <span className="text-grita-red mt-2 block text-xs tracking-widest font-black drop-shadow-md">RÁPIDO Y SEGURO</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'menu') {
+                return (
+                    <div className="flex flex-col h-full bg-[#0b0f19] fade-in w-full relative">
+                        <ToastComponent />
+                        <div className="flex-grow flex flex-col items-center justify-center p-6 text-center">
+                            <div className="w-20 h-20 bg-grita-red rounded-full flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(220,38,38,0.5)] border-2 border-white/20 animate-logo"><i className="fa-solid fa-motorcycle text-3xl text-white"></i></div>
+                            <h1 className="text-3xl font-black mb-1 text-white tracking-tight">Moto UBGrit</h1>
+                            <p className="text-[10px] text-gray-300 font-bold mb-6 tracking-widest uppercase leading-relaxed text-center">
+                                Tu Traslado / Encomienda / Mercado / Medicamento<br/>
+                                <span className="text-grita-red text-xs mt-1 block drop-shadow-md">Rápido y Seguro</span>
+                            </p>
+                            
+                            <div className="space-y-3 w-full">
+                                <button onClick={() => { setAuthRole('client'); setView(user?.role==='client'?'client_view':'auth'); }} className="w-full bg-white text-black font-black py-4 rounded-2xl shadow-md text-xs hover:scale-[1.02] transition flex justify-center items-center gap-2"><i className="fa-solid fa-user"></i> Soy Cliente</button>
+                                <button onClick={() => { setAuthRole('store'); setView(user?.role==='store'?'encomienda_view':'auth'); }} className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-md text-xs hover:scale-[1.02] transition flex justify-center items-center gap-2"><i className="fa-solid fa-box"></i> Local (Encomiendas)</button>
+                                <button onClick={() => { setAuthRole('market'); setView(user?.role==='market'?'market_view':'auth'); }} className="w-full bg-green-600 text-white font-bold py-4 rounded-2xl shadow-md text-xs hover:scale-[1.02] transition flex justify-center items-center gap-2"><i className="fa-solid fa-basket-shopping"></i> Mercado en Casa</button>
+                                
+                                <button onClick={() => { triggerToast('Módulo de Farmacia en desarrollo.', 'info'); }} className="w-full bg-purple-600 text-white font-bold py-4 rounded-2xl shadow-md text-xs hover:bg-purple-500 transition flex justify-center items-center gap-2"><i className="fa-solid fa-notes-medical"></i> Farmacia (Próximamente)</button>
+                                
+                                <button onClick={() => { setAuthRole('driver'); setView(user?.role==='driver'?'driver_dashboard':'auth'); }} className="w-full bg-[#1a1a1a] border border-gray-800 text-gray-300 py-4 rounded-2xl font-bold mt-6 text-xs transition flex justify-center items-center gap-2"><i className="fa-solid fa-motorcycle"></i> Panel Conductor</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'auth') {
+                return (
+                    <div className="flex flex-col h-full bg-[#0b0f19] fade-in w-full">
+                        <HeaderNav title="Registro" onBack={() => setView('menu')} />
+                        <div className="flex-1 p-6 flex flex-col justify-center overflow-y-auto">
+                            <form onSubmit={handleRegister} className="bg-white p-6 rounded-3xl shadow-xl space-y-4">
+                                <h3 className="font-black text-center text-xl text-black mb-4">{authRole === 'store' ? 'Datos del Local' : 'Tus Datos'}</h3>
+                                <input required name="email" type="email" placeholder="Correo electrónico" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none" />
+                                <input required name="password" type="password" placeholder="Contraseña" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none" />
+                                <input required name="nombre" placeholder={authRole === 'store' ? "Nombre del Local" : "Nombre completo"} onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none" />
+                                <input required name="telefono" type="tel" placeholder="WhatsApp" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none" />
+                                
+                                {authRole === 'driver' && (
+                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
+                                        <p className="text-[10px] font-black text-gray-500 uppercase text-center">Vehículo</p>
+                                        <input required name="placa" placeholder="Placa de la Moto" onChange={handleInputChange} className="w-full p-3 border-b border-gray-300 bg-transparent text-sm outline-none" />
+                                        <input required name="modelo" placeholder="Modelo y Año" onChange={handleInputChange} className="w-full p-3 border-b border-gray-300 bg-transparent text-sm outline-none" />
+                                    </div>
+                                )}
+                                <textarea required name="direccion" placeholder="Dirección exacta" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none h-24" />
+                                
+                                <button type="submit" className="w-full bg-grita-red text-white py-4 rounded-2xl font-black shadow-lg text-lg mt-4">Completar Registro</button>
+                                
+                                <button type="button" onClick={() => setView('menu')} className="w-full text-center text-gray-500 font-bold text-sm mt-3 py-2 underline">
+                                    ← Cancelar y Volver
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'driver_rules') {
+                return (
+                    <div className="flex flex-col h-full bg-[#0b0f19] fade-in w-full items-center justify-center p-6">
+                        <div className="bg-white p-6 rounded-3xl shadow-2xl w-full border-t-8 border-yellow-400 overflow-y-auto text-center">
+                            <i className="fa-solid fa-triangle-exclamation text-5xl text-yellow-500 mb-3"></i>
+                            <h2 className="text-xl font-black text-black mb-4">REGLAS DEL CONDUCTOR</h2>
+                            <div className="text-left font-bold text-gray-700 space-y-3 mb-6 bg-gray-50 p-5 rounded-2xl text-[11px] border border-gray-200 shadow-inner">
+                                <p><span className="text-red-500">1.</span> <strong>Cobro:</strong> SOLO cobras la tarifa del traslado.</p>
+                                <p><span className="text-red-500">2.</span> <strong>Seguridad:</strong> Uso obligatorio de CASCO y CESTA.</p>
+                                <p><span className="text-red-500">3.</span> <strong>Tiempos:</strong> 60s para aceptar viaje asignado.</p>
+                                <p><span className="text-red-500">4.</span> <strong>Pagos:</strong> Comisión del 10% mensual a la central.</p>
+                            </div>
+                            <button onClick={() => { window.open(`https://wa.me/${ADMIN_PHONE}?text=Me%20registré%20como%20chofer.`, '_blank'); setView('driver_dashboard'); }} className="w-full bg-green-500 text-white py-4 rounded-2xl font-black shadow-lg">
+                                Unirme al Grupo y Entrar
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'client_view' || view === 'encomienda_view') {
+                return <TripPlanner user={user} type={view === 'client_view' ? 'client' : 'encomienda'} onBack={() => setView('menu')} triggerToast={triggerToast} />;
+            }
+
+            if (view === 'market_view') {
+                return <MercadoDashboard user={user} goBack={() => setView('menu')} triggerToast={triggerToast} />;
+            }
+
+            if (view === 'driver_dashboard') {
+                return <DriverDashboard user={user} goBack={() => setView('menu')} triggerToast={triggerToast} />;
+            }
+
+            return null;
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
