@@ -1,0 +1,13 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Moto UBGrit",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "MotoUBGrit",
+  "start_url": "/",
+  "theme_color": "#dc2626",
+  "description": "Servicio de Delivery",
+  "id": "motoubgrit"
+}
