@@ -9,5 +9,12 @@
   "start_url": "/",
   "theme_color": "#dc2626",
   "description": "Servicio de Delivery",
-  "id": "motoubgrit"
+  "id": "motoubgrit",
+  "icons": [
+    {
+      "src": "logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
 }
