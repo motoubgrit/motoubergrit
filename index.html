@@ -5,36 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Moto UBGrit</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = { 
-            theme: { extend: { colors: { grita: { red: '#dc2626', black: '#000000', dark: '#111111' } } } } 
-        }
-    </script>
-    
-    <!-- Leaflet CSS & JS for Maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-    
-    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body { font-family: 'Inter', system-ui, sans-serif; background-color: #0b0f19; margin: 0; padding: 0; touch-action: manipulation; display: flex; justify-content: center; align-items: center; height: 100dvh; overflow: hidden; }
-        ::-webkit-scrollbar { display: none; } 
+        body { font-family: 'Inter', sans-serif; background-color: #0b0f19; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100dvh; overflow: hidden; touch-action: manipulation; }
+        ::-webkit-scrollbar { display: none; }
         #mobile-container { width: 100%; max-width: 430px; height: 100%; max-height: 100dvh; background-color: #f9fafb; position: relative; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
-        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes pulseLogo { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220,38,38, 0.7); } 70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(220,38,38, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220,38,38, 0); } }
+        @keyframes pulseLogo { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
         .animate-logo { animation: pulseLogo 2s infinite; }
-        .leaflet-container { z-index: 10; font-family: 'Inter', sans-serif; }
         .custom-pin { filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.5)); font-size: 30px; line-height: 30px; text-align: center; }
+        @keyframes ringBell { 0%, 50%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(15deg); } 20%, 40% { transform: rotate(-15deg); } }
+        .animate-ring { animation: ringBell 1s infinite; }
     </style>
 </head>
 <body>
@@ -45,893 +34,773 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        const TASA_USD_COP = 3000; 
-        const TASA_VES_COP = 3.0;  
+        // --- CONSTANTES Y TASAS EXACTAS ---
+        const TASA_USD_COP = 3000;
+        const TASA_VES_COP = 3.0;
         const ADMIN_PHONE = "584140792843";
+        const ADMIN_EMAIL = "motoubgrit@gmail.com";
+        const ADMIN_PASS = "Universal11!!";
 
-        // MERCADO INVENTORY & CATEGORIES
+        // --- INVENTARIO COMPRIMIDO (Para evitar errores de corte por límite de texto) ---
         const inventory = [
-            { category: "Hortalizas y Verduras", name: "Tomate", price: 4000, icon: "🍅" },
-            { category: "Hortalizas y Verduras", name: "Cebolla", price: 3500, icon: "🧅" },
-            { category: "Hortalizas y Verduras", name: "Ajo", price: 12000, icon: "🧄" },
-            { category: "Hortalizas y Verduras", name: "Zanahoria", price: 3000, icon: "🥕" },
-            { category: "Hortalizas y Verduras", name: "Pimentón", price: 5000, icon: "🫑" },
-            { category: "Tubérculos y Vituallas", name: "Papa", price: 3500, icon: "🥔" },
-            { category: "Tubérculos y Vituallas", name: "Yuca", price: 2000, icon: "🍠" },
-            { category: "Tubérculos y Vituallas", name: "Plátano Maduro", price: 3000, icon: "🍌" },
-            { category: "Frutas", name: "Lechoza", price: 2500, icon: "🍈" },
-            { category: "Frutas", name: "Manzana", price: 8000, icon: "🍎" },
-            { category: "Frutas", name: "Fresa", price: 8000, icon: "🍓" },
-            { category: "Ramas, Hierbas y Especias", name: "Cilantro", price: 2000, icon: "🌿" },
-            { category: "Ramas, Hierbas y Especias", name: "Cebollín", price: 2000, icon: "🌱" },
-            { category: "Proteínas y Huevos", name: "Cartón de Huevos", price: 16000, icon: "🥚" }
+            {c:"Hortalizas y Verduras", n:"Tomate", p:4000, i:"🍅"}, {c:"Hortalizas y Verduras", n:"Cebolla", p:3500, i:"🧅"}, {c:"Hortalizas y Verduras", n:"Ajo", p:12000, i:"🧄"}, {c:"Hortalizas y Verduras", n:"Zanahoria", p:3000, i:"🥕"}, {c:"Hortalizas y Verduras", n:"Remolacha", p:3000, i:"🍠"}, {c:"Hortalizas y Verduras", n:"Repollo", p:2500, i:"🥬"}, {c:"Hortalizas y Verduras", n:"Coliflor", p:4000, i:"🥦"}, {c:"Hortalizas y Verduras", n:"Acelga", p:2000, i:"🥬"}, {c:"Hortalizas y Verduras", n:"Pepino", p:2500, i:"🥒"}, {c:"Hortalizas y Verduras", n:"Brócoli", p:4500, i:"🥦"}, {c:"Hortalizas y Verduras", n:"Calabacín", p:2500, i:"🥒"}, {c:"Hortalizas y Verduras", n:"Pimentón", p:5000, i:"🫑"}, {c:"Hortalizas y Verduras", n:"Espinaca", p:3000, i:"🥬"}, {c:"Hortalizas y Verduras", n:"Ají dulce", p:4000, i:"🌶️"}, {c:"Hortalizas y Verduras", n:"Ají picante", p:5000, i:"🔥"}, {c:"Hortalizas y Verduras", n:"Apio España", p:3000, i:"🥬"},
+            {c:"Tubérculos y Vituallas", n:"Auyama", p:1500, i:"🎃"}, {c:"Tubérculos y Vituallas", n:"Papa", p:3500, i:"🥔"}, {c:"Tubérculos y Vituallas", n:"Yuca", p:2000, i:"🍠"}, {c:"Tubérculos y Vituallas", n:"Plátano Verde", p:3000, i:"🍌"}, {c:"Tubérculos y Vituallas", n:"Plátano Maduro", p:3000, i:"🍌"}, {c:"Tubérculos y Vituallas", n:"Apio", p:4000, i:"🌿"},
+            {c:"Frutas", n:"Lechoza", p:2500, i:"🍈"}, {c:"Frutas", n:"Melón", p:3000, i:"🍈"}, {c:"Frutas", n:"Guanábana", p:4500, i:"🍐"}, {c:"Frutas", n:"Guayaba", p:3000, i:"🍏"}, {c:"Frutas", n:"Parchita", p:4000, i:"🟡"}, {c:"Frutas", n:"Manzana", p:8000, i:"🍎"}, {c:"Frutas", n:"Cambur", p:2000, i:"🍌"}, {c:"Frutas", n:"Naranja", p:2500, i:"🍊"}, {c:"Frutas", n:"Fresa", p:8000, i:"🍓"}, {c:"Frutas", n:"Uva", p:10000, i:"🍇"}, {c:"Frutas", n:"Piña", p:3500, i:"🍍"}, {c:"Frutas", n:"Patilla", p:2000, i:"🍉"}, {c:"Frutas", n:"Limón", p:3000, i:"🍋"}, {c:"Frutas", n:"Mango", p:2500, i:"🥭"}, {c:"Frutas", n:"Pera", p:8000, i:"🍐"},
+            {c:"Ramas, Hierbas y Especias", n:"Cilantro", p:2000, i:"🌿"}, {c:"Ramas, Hierbas y Especias", n:"Perejil", p:2000, i:"🌿"}, {c:"Ramas, Hierbas y Especias", n:"Ajoporro", p:2500, i:"🌱"}, {c:"Ramas, Hierbas y Especias", n:"Matadera", p:2000, i:"☘️"}, {c:"Ramas, Hierbas y Especias", n:"Albahaca", p:2000, i:"🌱"}, {c:"Ramas, Hierbas y Especias", n:"Romero", p:2500, i:"🌿"}, {c:"Ramas, Hierbas y Especias", n:"Tomillo", p:2500, i:"🌿"}, {c:"Ramas, Hierbas y Especias", n:"Menta", p:2000, i:"🍃"}, {c:"Ramas, Hierbas y Especias", n:"Orégano", p:2000, i:"🌿"}, {c:"Ramas, Hierbas y Especias", n:"Cebollín", p:2000, i:"🌱"}, {c:"Ramas, Hierbas y Especias", n:"Comino", p:2000, i:"🧂"}, {c:"Ramas, Hierbas y Especias", n:"Paprica", p:2500, i:"🌶️"}, {c:"Ramas, Hierbas y Especias", n:"Ajo en polvo", p:3000, i:"🧄"}, {c:"Ramas, Hierbas y Especias", n:"Clavito", p:2000, i:"🟤"}, {c:"Ramas, Hierbas y Especias", n:"Guayabita", p:2500, i:"🫒"}, {c:"Ramas, Hierbas y Especias", n:"Canela", p:3000, i:"🪵"}, {c:"Ramas, Hierbas y Especias", n:"Canela en polvo", p:3000, i:"🫙"}, {c:"Ramas, Hierbas y Especias", n:"Pimienta", p:3000, i:"🧂"}, {c:"Ramas, Hierbas y Especias", n:"Anís estrellado", p:3000, i:"🌟"}, {c:"Ramas, Hierbas y Especias", n:"Hoja de laurel", p:2000, i:"🍃"},
+            {c:"Proteínas y Huevos", n:"Cartón de Huevos", p:16000, i:"🥚"}
         ];
-        
-        const categoriesList = ["Hortalizas y Verduras", "Tubérculos y Vituallas", "Frutas", "Ramas, Hierbas y Especias", "Proteínas y Huevos"];
-        
-        const categoryStyles = {
-            "Hortalizas y Verduras": { bg: "bg-green-600", text: "text-green-700", lightBg: "bg-green-50", border: "border-green-500" },
-            "Tubérculos y Vituallas": { bg: "bg-amber-600", text: "text-amber-700", lightBg: "bg-amber-50", border: "border-amber-500" },
-            "Frutas": { bg: "bg-orange-500", text: "text-orange-700", lightBg: "bg-orange-50", border: "border-orange-500" },
-            "Ramas, Hierbas y Especias": { bg: "bg-teal-600", text: "text-teal-700", lightBg: "bg-teal-50", border: "border-teal-500" },
-            "Proteínas y Huevos": { bg: "bg-red-500", text: "text-red-700", lightBg: "bg-red-50", border: "border-red-500" }
-        };
 
-        const formatQuantity = (qty, itemName = "") => {
-            const isEgg = itemName.toLowerCase().includes("huevo");
-            if (qty === 0.25) return isEgg ? "1/4 Cartón" : "250g";
-            if (qty === 0.5) return isEgg ? "Medio Cartón" : "Medio Kg";
-            if (qty === 0.75) return isEgg ? "3/4 Cartón" : "750g";
-            if (qty === 1) return isEgg ? "1 Cartón" : "1 Kg";
-            return `${qty} ${isEgg ? 'Cartones' : 'Kg'}`;
+        const catStyles = {
+            "Hortalizas y Verduras": { bg: "bg-green-600", text: "text-green-700", border: "border-green-500", light: "bg-green-50" },
+            "Tubérculos y Vituallas": { bg: "bg-amber-600", text: "text-amber-700", border: "border-amber-500", light: "bg-amber-50" },
+            "Frutas": { bg: "bg-orange-500", text: "text-orange-700", border: "border-orange-500", light: "bg-orange-50" },
+            "Ramas, Hierbas y Especias": { bg: "bg-teal-600", text: "text-teal-700", border: "border-teal-500", light: "bg-teal-50" },
+            "Proteínas y Huevos": { bg: "bg-red-500", text: "text-red-700", border: "border-red-500", light: "bg-red-50" }
         };
+        const catList = Object.keys(catStyles);
 
-        // --- AUDIO BEEP NOTIFICATION ---
-        const playBeep = () => {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, ctx.currentTime);
-                gain.gain.setValueAtTime(0.2, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.5);
-            } catch(e) {}
-        };
+        // --- BASE DE DATOS LOCAL ---
+        const getDB = (key) => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { return []; } };
+        const setDB = (key, data) => localStorage.setItem(key, JSON.stringify(data));
 
-        const HeaderNav = ({ title, onBack, rightContent, bgClass = "bg-black" }) => (
-            <div className={`${bgClass} text-white p-4 sticky top-0 z-20 flex items-center justify-between shadow-md shrink-0 w-full h-16`}>
-                {onBack ? (
-                    <button onClick={onBack} className="text-xs font-bold bg-white/20 px-3 py-2 rounded-lg hover:bg-white/30 transition">
-                        <i className="fa-solid fa-arrow-left"></i> Volver
-                    </button>
-                ) : <div className="w-16"></div>}
+        // --- COMPONENTES DE DISEÑO ---
+        const HeaderNav = ({ title, onBack, right }) => (
+            <div className="bg-black text-white p-4 sticky top-0 z-50 flex items-center justify-between shadow-md h-16 shrink-0 w-full">
+                {onBack ? ( <button onClick={onBack} className="text-xs font-bold bg-white/20 px-3 py-2 rounded hover:bg-white/30"><i className="fa-solid fa-arrow-left"></i> Volver</button> ) : <div className="w-16"></div>}
                 <h2 className="text-sm font-black truncate flex-1 text-center">{title}</h2>
-                <div className="w-16 flex justify-end">{rightContent}</div>
+                <div className="w-16 flex justify-end">{right}</div>
             </div>
         );
 
-        // --- MERCADO COMPONENT ---
-        const MercadoDashboard = ({ user, goBack, triggerToast }) => {
+        const Toast = ({ msg, isError }) => (
+            <div className={`absolute top-20 left-1/2 transform -translate-x-1/2 z-[999] w-11/12 max-w-xs fade-in ${isError ? 'bg-red-600' : 'bg-green-600'} text-white px-4 py-3 rounded-xl shadow-2xl font-bold text-xs text-center pointer-events-none`}>
+                {msg}
+            </div>
+        );
+
+        const MercadoDashboard = ({ user, goBack, showToast }) => {
             const [view, setView] = useState('shop');
+            const [catIdx, setCatIdx] = useState(0);
             const [cart, setCart] = useState({});
-            const [currentCatIdx, setCurrentCatIdx] = useState(0);
-            const [paymentCurrency, setPaymentCurrency] = useState('COP');
-            const [deliveryFee, setDeliveryFee] = useState(5000);
+            const [currency, setCurrency] = useState('COP');
 
-            const updateCart = (name, qty, price) => {
-                const cleanQty = Math.max(0, Math.round(qty * 100) / 100);
-                setCart(prev => { const n = { ...prev }; if (cleanQty <= 0) delete n[name]; else n[name] = { quantity: cleanQty, price }; return n; });
+            const currentCat = catList[catIdx];
+            const products = inventory.filter(p => p.c === currentCat);
+
+            const formatQty = (q, name) => {
+                const isEgg = name.toLowerCase().includes("huevo");
+                if (q === 0.25) return isEgg ? "1/4 Cartón" : "250g";
+                if (q === 0.5) return isEgg ? "Medio Cartón" : "Medio Kg";
+                if (q === 0.75) return isEgg ? "3/4 Cartón" : "750g";
+                if (q === 1) return isEgg ? "1 Cartón" : "1 Kg";
+                return `${q} ${isEgg ? 'Cartones' : 'Kg/Und'}`;
             };
 
-            const cartSubtotal = Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const updateCart = (name, q, price) => {
+                const cleanQ = Math.max(0, Math.round(q * 100) / 100);
+                let finalPrice = price;
+                
+                // REGLA MATEMÁTICA: Si es huevo, calcula el precio automáticamente por 1/4 y Medio
+                if (name.toLowerCase().includes("huevo")) {
+                    if (cleanQ === 0.25) finalPrice = 4000;
+                    else if (cleanQ === 0.5) finalPrice = 8000;
+                    else if (cleanQ === 0.75) finalPrice = 12000;
+                    else finalPrice = 16000;
+                }
+                
+                setCart(prev => {
+                    const newCart = { ...prev };
+                    if (cleanQ <= 0) delete newCart[name];
+                    else newCart[name] = { q: cleanQ, p: finalPrice };
+                    return newCart;
+                });
+            };
+
+            const cartSubtotal = Object.values(cart).reduce((sum, item) => sum + (item.p * item.q), 0);
+            const deliveryFee = 5000; 
             const totalCOP = cartSubtotal > 0 ? cartSubtotal + deliveryFee : 0;
+            const totalVES = (totalCOP / TASA_VES_COP).toFixed(2);
             const totalUSD = (totalCOP / TASA_USD_COP).toFixed(2);
-            const totalVES = (totalCOP * TASA_VES_COP).toFixed(2);
-            
-            const currentCatName = categoriesList[currentCatIdx];
-            const products = inventory.filter(p => p.category === currentCatName);
 
-            const syncToExcel = (orderSummary) => {
-                const sheetUrl = "https://docs.google.com/forms/d/e/1FAIpQLSc88ZEOvIRyzvW19ezARvvuw_LlWgEz-_68mP-rZ5EdeJ5FEA/formResponse";
-                const fd = new URLSearchParams();
-                fd.append("entry.1573015066", user?.nombre || 'Cliente');
-                fd.append("entry.884395681", user?.telefono || '');
-                fd.append("entry.592674770", orderSummary);
-                fetch(sheetUrl, { method: 'POST', mode: 'no-cors', body: fd }).catch(e => {});
+            const submitOrder = async () => {
+                if(totalCOP === 0) return;
+                
+                let itemsStr = Object.keys(cart).map(n => `${formatQty(cart[n].q, n)} ${n}`).join(", ");
+                let payDetails = currency === 'COP' ? `${totalCOP.toLocaleString()} COP (Efectivo)` : currency === 'VES' ? `${totalVES} VES` : `$${totalUSD} USD`;
+                
+                // Agregar a pendientes para Choferes/Admin
+                let pending = getDB('motoubgrit_pending');
+                pending.push({
+                    id: Date.now(), cliente: user.nombre, telefono: user.telefono,
+                    origen: "Mercado VicRos", destino: user.direccion, precio: totalCOP,
+                    tipo: 'Mercado', status: 'pending', time: Date.now()
+                });
+                setDB('motoubgrit_pending', pending);
+
+                let wsMsg = `*🛒 MERCADO EN CASA*%0A*Cliente:* ${user.nombre}%0A*Tel:* ${user.telefono}%0A*Dir:* ${user.direccion}%0A%0A*PEDIDO:*%0A`;
+                Object.keys(cart).forEach(n => {
+                    wsMsg += `▪ ${formatQty(cart[n].q, n)} de ${n} - ${(cart[n].p * cart[n].q).toLocaleString()} COP%0A`;
+                });
+                wsMsg += `🛵 *Delivery:* ${deliveryFee.toLocaleString()} COP%0A`;
+                wsMsg += `💵 *TOTAL A PAGAR:* ${payDetails}`;
+                
+                window.open(`https://wa.me/${ADMIN_PHONE}?text=${wsMsg}`, '_blank');
+                setCart({});
+                setView('success');
             };
 
-            const handleWhatsAppCheckout = () => {
-                let msg = `*🛒 MERCADO EN CASA 🛒*%0A%0A*Cliente:* ${user?.nombre}%0A*Tel:* ${user?.telefono}%0A*Dir:* ${user?.direccion}%0A%0A*PEDIDO:*%0A`;
-                Object.keys(cart).forEach(name => { msg += `▪ ${formatQuantity(cart[name].quantity, name)} de ${name} - ${(cart[name].price * cart[name].quantity).toLocaleString()} COP%0A`; });
-                msg += `🛵 *Delivery:* ${deliveryFee.toLocaleString()} COP%0A💵 *TOTAL:* ${totalCOP.toLocaleString()} COP%0A`;
-                
-                msg += `%0A*MÉTODO DE PAGO:*%0A`;
-                if (paymentCurrency === 'COP') msg += `🇨🇴 Pesos: ${totalCOP.toLocaleString()} COP`;
-                if (paymentCurrency === 'VES') msg += `🇻🇪 Bolívares: ${totalVES} VES`;
-                if (paymentCurrency === 'USD') msg += `💵 Dólares: $${totalUSD} USD`;
-                
-                syncToExcel(`MERCADO: ${Object.keys(cart).join(', ')} - Total: ${totalCOP} COP`);
-                window.open(`https://wa.me/${ADMIN_PHONE}?text=${msg}`, '_blank');
-                setCart({}); setView('success');
-            };
+            if (view === 'shop') return (
+                <div className="flex flex-col h-full bg-gray-50 fade-in w-full">
+                    <HeaderNav title="Mercado en Casa" onBack={goBack} right={<button onClick={()=>setView('cart')} className="bg-white text-green-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm border border-green-200">🛒 {Object.keys(cart).length}</button>} />
+                    
+                    <div className={`p-3 flex items-center justify-between shadow-sm shrink-0 ${catStyles[currentCat].light} border-b-4 ${catStyles[currentCat].border}`}>
+                        <button onClick={()=>setCatIdx(Math.max(0, catIdx-1))} disabled={catIdx===0} className="p-2 text-xl opacity-70 disabled:opacity-30">⬅️</button>
+                        <h2 className={`text-sm font-black text-center ${catStyles[currentCat].text}`}>{currentCat}</h2>
+                        <button onClick={()=>setCatIdx(Math.min(catList.length-1, catIdx+1))} disabled={catIdx===catList.length-1} className="p-2 text-xl opacity-70 disabled:opacity-30">➡️</button>
+                    </div>
 
-            if (view === 'shop') {
-                return (
-                    <div className="flex flex-col h-full bg-gray-100 fade-in w-full relative">
-                        <HeaderNav title="Mercado en Casa" onBack={goBack} bgClass="bg-green-700" rightContent={<button onClick={() => setView('cart')} className="bg-white text-green-700 px-3 py-1.5 rounded-full font-bold text-xs shadow">🛒 {Object.keys(cart).length}</button>} />
-                        
-                        <div className={`p-3 border-b-4 flex items-center justify-between shadow-sm shrink-0 ${categoryStyles[currentCatName].lightBg} ${categoryStyles[currentCatName].border}`}>
-                            <button onClick={() => setCurrentCatIdx(Math.max(0, currentCatIdx - 1))} disabled={currentCatIdx === 0} className="text-xs font-bold text-gray-600 bg-white px-3 py-2 rounded shadow disabled:opacity-50">← Ant</button>
-                            <h2 className={`text-sm font-black ${categoryStyles[currentCatName].text}`}>{currentCatName}</h2>
-                            <button onClick={() => setCurrentCatIdx(Math.min(categoriesList.length - 1, currentCatIdx + 1))} disabled={currentCatIdx === categoriesList.length - 1} className="text-xs font-bold text-gray-600 bg-white px-3 py-2 rounded shadow disabled:opacity-50">Sig →</button>
+                    <div className="flex-1 overflow-y-auto p-4 pb-20">
+                        <div className="grid grid-cols-2 gap-3">
+                            {products.map(p => {
+                                const q = cart[p.n]?.q || 0;
+                                const isEgg = p.n.toLowerCase().includes("huevo");
+                                const displayPrice = isEgg ? 16000 : p.p;
+                                const style = catStyles[currentCat];
+                                return (
+                                    <div key={p.n} className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 flex flex-col items-center justify-between">
+                                        <div className="text-4xl mb-2">{p.i}</div>
+                                        <h3 className="font-bold text-xs text-center h-8 flex items-center">{p.n}</h3>
+                                        <p className={`${style.text} font-black text-[11px] my-2`}>{displayPrice.toLocaleString()} COP {isEgg?'/Cartón':'/Kg'}</p>
+                                        
+                                        {q === 0 ? (
+                                            <button onClick={()=>{updateCart(p.n, 0.25, displayPrice); showToast(`${p.n} agregado`, false)}} className={`w-full ${style.light} ${style.text} border ${style.border} py-1.5 rounded-lg text-xs font-bold`}>➕ Agregar</button>
+                                        ) : (
+                                            <div className="flex justify-between items-center w-full bg-gray-50 rounded-lg p-1 border">
+                                                <button onClick={()=>updateCart(p.n, q-0.25, displayPrice)} className="px-2 text-red-500 font-bold">-</button>
+                                                <span className="font-bold text-[10px]">{formatQty(q, p.n)}</span>
+                                                <button onClick={()=>updateCart(p.n, q+0.25, displayPrice)} className={`px-2 ${style.text} font-bold`}>+</button>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
-                        
-                        <div className="flex-1 overflow-y-auto p-4 pb-24">
-                            <div className="grid grid-cols-2 gap-3">
-                                {products.map(p => {
-                                    const qty = cart[p.name]?.quantity || 0;
-                                    const style = categoryStyles[currentCatName];
-                                    return (
-                                        <div key={p.name} className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 flex flex-col items-center">
-                                            <div className="text-4xl mb-2">{p.icon}</div>
-                                            <h3 className="font-bold text-xs text-center text-gray-800">{p.name}</h3>
-                                            <p className={`${style.text} font-black text-xs my-2`}>{p.price.toLocaleString()} COP</p>
-                                            {qty === 0 ? (
-                                                <button onClick={() => { updateCart(p.name, 0.25, p.price); triggerToast(`${p.name} agregado`, 'success'); }} className={`w-full ${style.lightBg} ${style.text} py-2 rounded-lg text-xs font-bold`}>➕ Agregar</button>
-                                            ) : (
-                                                <div className="flex justify-between items-center w-full bg-gray-50 rounded-lg p-1 border">
-                                                    <button onClick={() => updateCart(p.name, qty - 0.25, p.price)} className="px-2 py-1 bg-white text-red-500 rounded font-bold shadow-sm">-</button>
-                                                    <span className="font-bold text-[10px]">{formatQuantity(qty, p.name)}</span>
-                                                    <button onClick={() => updateCart(p.name, qty + 0.25, p.price)} className={`px-2 py-1 bg-white ${style.text} rounded font-bold shadow-sm`}>+</button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+
+                        {catIdx < catList.length - 1 ? (
+                            <button onClick={()=>{document.querySelector('.overflow-y-auto').scrollTo(0,0); setCatIdx(catIdx+1)}} className={`w-full mt-6 py-4 rounded-xl font-bold shadow-sm border-2 ${catStyles[catList[catIdx+1]].text} ${catStyles[catList[catIdx+1]].border}`}>
+                                Avanzar a {catList[catIdx+1]} ↓
+                            </button>
+                        ) : (
+                            <button onClick={()=>setView('cart')} className="w-full mt-6 bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg">
+                                Ir al Carrito 🛒
+                            </button>
+                        )}
+                    </div>
+                </div>
+            );
+
+            if (view === 'cart') return (
+                <div className="flex flex-col h-full bg-gray-100 fade-in w-full relative">
+                    <HeaderNav title="Carrito de Compras" onBack={()=>setView('shop')} />
+                    
+                    <div className="flex-1 overflow-y-auto p-4 pb-32">
+                        <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
+                            {Object.keys(cart).length === 0 ? <p className="text-center text-gray-500 text-sm">Carrito vacío</p> : null}
+                            {Object.keys(cart).map(n => (
+                                <div key={n} className="flex justify-between items-center py-2 border-b text-xs">
+                                    <span>{formatQty(cart[n].q, n)} {n}</span>
+                                    <span className="font-bold">{(cart[n].p * cart[n].q).toLocaleString()} COP</span>
+                                </div>
+                            ))}
+                            <div className="flex justify-between items-center py-3 text-xs text-orange-600 font-bold border-b">
+                                <span>Delivery (La Grita)</span>
+                                <span>+{deliveryFee.toLocaleString()} COP</span>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-xl shadow-sm mb-6">
+                            <h3 className="font-bold text-xs text-center mb-3">Moneda de Pago</h3>
+                            <div className="grid grid-cols-3 gap-2 mb-4">
+                                {['COP', 'VES', 'USD'].map(c => (
+                                    <button key={c} onClick={()=>setCurrency(c)} className={`py-2 rounded-lg font-bold text-xs border-2 transition-colors ${currency === c ? 'bg-green-100 border-green-500 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
+                                        {c}
+                                    </button>
+                                ))}
                             </div>
                             
-                            {currentCatIdx < categoriesList.length - 1 ? (
-                                <button onClick={() => { document.querySelector('.overflow-y-auto').scrollTo(0,0); setCurrentCatIdx(currentCatIdx + 1); }} className="w-full mt-6 bg-white border-2 border-green-500 text-green-700 py-3 rounded-xl font-bold shadow-sm">
-                                    Siguiente: {categoriesList[currentCatIdx + 1]} ↓
-                                </button>
-                            ) : (
-                                <button onClick={() => setView('cart')} className="w-full mt-6 bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg">Ir al Carrito 🛒</button>
-                            )}
-                        </div>
-                    </div>
-                );
-            }
-
-            if (view === 'cart') {
-                return (
-                    <div className="flex flex-col h-full bg-gray-100 fade-in w-full">
-                        <HeaderNav title="Tu Carrito" onBack={() => setView('shop')} bgClass="bg-green-700" />
-                        <div className="flex-1 overflow-y-auto p-4 pb-20">
-                            <div className="bg-white rounded-2xl shadow-sm p-4 mb-4">
-                                {Object.keys(cart).length === 0 ? <p className="text-center text-gray-500 text-sm py-4">El carrito está vacío</p> : null}
-                                {Object.keys(cart).map(name => (
-                                    <div key={name} className="flex justify-between items-center py-2 border-b border-gray-100 text-xs">
-                                        <span>{formatQuantity(cart[name].quantity, name)} {name}</span>
-                                        <span className="font-bold">{(cart[name].price * cart[name].quantity).toLocaleString()} COP</span>
-                                    </div>
-                                ))}
-                                <div className="flex justify-between items-center py-3 text-xs text-orange-600 font-bold border-b border-gray-100">
-                                    <span>Delivery (La Grita)</span>
-                                    <span>+{deliveryFee.toLocaleString()} COP</span>
-                                </div>
-                                <div className="flex justify-between py-3 text-lg text-green-700 font-black"><span>TOTAL COP</span><span>{totalCOP.toLocaleString()} COP</span></div>
-                            </div>
-
-                            <div className="bg-white p-4 rounded-2xl shadow-sm mb-6">
-                                <h3 className="font-bold text-xs text-center text-gray-500 mb-3">Moneda de Pago</h3>
-                                <div className="grid grid-cols-3 gap-2 mb-4">
-                                    <button onClick={() => setPaymentCurrency('COP')} className={`py-3 rounded-lg font-bold text-xs border-2 ${paymentCurrency === 'COP' ? 'bg-green-100 border-green-500 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>COP</button>
-                                    <button onClick={() => setPaymentCurrency('VES')} className={`py-3 rounded-lg font-bold text-xs border-2 ${paymentCurrency === 'VES' ? 'bg-blue-100 border-blue-500 text-blue-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>VES (×3.0)</button>
-                                    <button onClick={() => setPaymentCurrency('USD')} className={`py-3 rounded-lg font-bold text-xs border-2 ${paymentCurrency === 'USD' ? 'bg-emerald-100 border-emerald-500 text-emerald-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>USD (/3000)</button>
-                                </div>
-                                
-                                <div className="p-4 bg-gray-50 rounded-xl text-center border border-gray-200">
-                                    <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Monto a Pagar</p>
-                                    {paymentCurrency === 'COP' && <p className="font-black text-green-700 text-2xl">{totalCOP.toLocaleString()} COP</p>}
-                                    {paymentCurrency === 'VES' && <p className="font-black text-blue-700 text-2xl">{totalVES} VES</p>}
-                                    {paymentCurrency === 'USD' && <p className="font-black text-emerald-700 text-2xl">${totalUSD} USD</p>}
-                                </div>
-                            </div>
-
-                            <button onClick={handleWhatsAppCheckout} disabled={totalCOP === 0} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg flex justify-center items-center gap-2 disabled:opacity-50">
-                                <i className="fa-brands fa-whatsapp text-xl"></i> Enviar Pedido y Facturar
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
-
-            if (view === 'success') {
-                return (
-                    <div className="flex flex-col h-full bg-green-50 fade-in w-full items-center justify-center p-6 text-center">
-                        <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm border-t-8 border-green-600">
-                            <div className="text-6xl mb-4">✅</div>
-                            <h2 className="text-2xl font-black text-green-800 mb-2">¡Pedido Enviado!</h2>
-                            <p className="text-gray-600 mb-8 text-sm font-medium">El cajero ha recibido tu orden y se coordinará el envío.</p>
-                            <div className="space-y-3">
-                                <button onClick={() => setView('shop')} className="w-full bg-green-600 text-white py-3.5 rounded-xl font-bold shadow-md">🛒 Hacer otro pedido</button>
-                                <button onClick={goBack} className="w-full border-2 border-gray-200 text-gray-700 py-3.5 rounded-xl font-bold bg-gray-50">🏠 Volver al Menú Principal</button>
+                            <div className="p-4 bg-gray-50 rounded-xl text-center border border-gray-200">
+                                <p className="text-[10px] font-bold text-gray-500 mb-1">TOTAL A PAGAR</p>
+                                {currency === 'COP' && <p className="font-black text-green-700 text-2xl">{totalCOP.toLocaleString()} COP</p>}
+                                {currency === 'VES' && <p className="font-black text-blue-700 text-2xl">{totalVES} VES</p>}
+                                {currency === 'USD' && <p className="font-black text-emerald-700 text-2xl">${totalUSD} USD</p>}
                             </div>
                         </div>
                     </div>
-                );
-            }
+                    
+                    <div className="absolute bottom-0 left-0 w-full p-4 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50">
+                        <button onClick={submitOrder} disabled={totalCOP===0} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg flex justify-center gap-2 text-sm disabled:opacity-50">
+                            📲 Enviar Pedido por WhatsApp
+                        </button>
+                    </div>
+                </div>
+            );
+
+            if (view === 'success') return (
+                <div className="flex flex-col h-full bg-green-50 fade-in w-full items-center justify-center p-6 text-center">
+                    <div className="bg-white p-8 rounded-3xl shadow-xl w-full border-t-8 border-green-600">
+                        <div className="text-5xl mb-4">✅</div>
+                        <h2 className="text-xl font-black text-green-800 mb-2">¡Pedido Enviado!</h2>
+                        <p className="text-xs text-gray-600 mb-6">Tu pedido ha sido procesado con éxito y enviado por WhatsApp.</p>
+                        <div className="space-y-3">
+                            <button onClick={()=>{setCart({}); setView('shop');}} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow">🛒 Hacer otro pedido</button>
+                            <button onClick={goBack} className="w-full border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-bold bg-gray-50">🏠 Volver al Menú</button>
+                        </div>
+                    </div>
+                </div>
+            );
         };
 
-        // --- TRIP PLANNER & MAPS COMPONENT ---
-        const TripPlanner = ({ user, type, onBack, triggerToast }) => {
+        const TripPlanner = ({ user, type, goBack, showToast }) => {
             const mapRef = useRef(null);
             const mapInst = useRef(null);
             const routeLayer = useRef(null);
             const markers = useRef([]);
 
-            const [view, setView] = useState('planner'); 
-            const [originText, setOriginText] = useState('');
-            const [destText, setDestText] = useState('');
-            const [originCoords, setOriginCoords] = useState(null);
-            const [destCoords, setDestCoords] = useState(null);
+            const [view, setView] = useState('planner');
+            const [oText, setOText] = useState('');
+            const [dText, setDText] = useState('');
+            const [oCoords, setOCoords] = useState(null);
+            const [dCoords, setDCoords] = useState(null);
             const [priceCOP, setPriceCOP] = useState(0);
-            const [paymentCurrency, setPaymentCurrency] = useState('COP');
-            const [isSearching, setIsSearching] = useState(false);
+            const [currency, setCurrency] = useState('COP');
             const [encDetails, setEncDetails] = useState({ queLleva: '', recibe: '', telRecibe: '' });
+            const [loading, setLoading] = useState(false);
 
             useEffect(() => {
                 if (mapRef.current && !mapInst.current && view === 'planner') {
                     mapInst.current = L.map(mapRef.current, { zoomControl: false }).setView([8.1333, -71.9833], 15);
-                    L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                        maxZoom: 19, attribution: '© Google Maps'
+                    // Servidor Esri (Estable, sin error 403)
+                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
+                        maxZoom: 19, attribution: 'Tiles &copy; Esri' 
                     }).addTo(mapInst.current);
                 }
             }, [view]);
 
-            const geocodeAddress = async (text, isOrigin) => {
-                if (!text) return triggerToast("Escribe una referencia primero", "error");
-                setIsSearching(true);
+            const geocode = async (text, isOrigin) => {
+                if(!text) return showToast("Escribe una referencia", true);
+                setLoading(true);
                 try {
                     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text + ', La Grita, Táchira')}`);
                     const data = await res.json();
-                    if (data && data.length > 0) {
-                        const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-                        if (isOrigin) { setOriginCoords(coords); triggerToast("Origen fijado 📍", "success"); }
-                        else { setDestCoords(coords); triggerToast("Destino fijado 🏁", "success"); }
+                    if(data && data.length > 0) {
+                        const c = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                        if(isOrigin) { setOCoords(c); showToast("Origen fijado📍", false); } 
+                        else { setDCoords(c); showToast("Destino fijado🏁", false); }
                         
-                        mapInst.current.setView(coords, 16);
-                        const iconHtml = isOrigin ? '🟢' : '🔴';
-                        const marker = L.marker(coords, {
-                            icon: L.divIcon({ className: 'custom-pin', html: iconHtml, iconSize: [30,30], iconAnchor: [15,30] })
+                        mapInst.current.setView(c, 16);
+                        const m = L.marker(c, { 
+                            icon: L.divIcon({ className: 'custom-pin', html: isOrigin?'🟢':'🔴', iconSize:[30,30], iconAnchor:[15,30] }) 
                         }).addTo(mapInst.current);
-                        markers.current.push(marker);
-
-                        if (isOrigin && destCoords) calculateRoute(coords, destCoords);
-                        else if (!isOrigin && originCoords) calculateRoute(originCoords, coords);
-                    } else {
-                        triggerToast("Lugar no encontrado.", "error");
-                    }
-                } catch (e) { triggerToast("Error de red", "error"); }
-                setIsSearching(false);
+                        markers.current.push(m);
+                        
+                        if (isOrigin && dCoords) calcRoute(c, dCoords);
+                        else if (!isOrigin && oCoords) calcRoute(oCoords, c);
+                    } else showToast("Lugar no encontrado", true);
+                } catch(e) { showToast("Error de red", true); }
+                setLoading(false);
             };
 
-            const calculateRoute = async (c1, c2) => {
+            const calcRoute = async (c1, c2) => {
                 try {
                     const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${c1[1]},${c1[0]};${c2[1]},${c2[0]}?overview=full&geometries=geojson`);
                     const data = await res.json();
-                    if (data.routes && data.routes.length > 0) {
-                        if (routeLayer.current) mapInst.current.removeLayer(routeLayer.current);
-                        const geojson = data.routes[0].geometry;
-                        routeLayer.current = L.geoJSON(geojson, { style: { color: '#2563eb', weight: 5, opacity: 0.9 } }).addTo(mapInst.current);
+                    if(data.routes && data.routes.length > 0) {
+                        if(routeLayer.current) mapInst.current.removeLayer(routeLayer.current);
+                        routeLayer.current = L.geoJSON(data.routes[0].geometry, { style: { color: '#2563eb', weight: 5, opacity: 0.9 } }).addTo(mapInst.current);
                         mapInst.current.fitBounds(routeLayer.current.getBounds(), { padding: [40, 40] });
-
-                        const dist = data.routes[0].distance;
-                        let p = 5000;
-                        if (dist > 2000) {
-                            const extraKm = Math.ceil((dist - 2000) / 1000);
-                            p += (extraKm * 1500);
-                        }
+                        
+                        const distMeters = data.routes[0].distance;
+                        let p = 5000; 
+                        if(distMeters > 2000) p += Math.ceil((distMeters - 2000) / 1000) * 1500; 
                         setPriceCOP(p);
                     }
-                } catch(e) {}
+                } catch(e){}
             };
 
-            const confirmRide = () => {
-                if (!originCoords || !destCoords) return triggerToast("Busca Origen y Destino en el mapa", "error");
-                if (type === 'encomienda') setView('details'); 
-                else submitTripToSystem(); 
-            };
-
-            const submitTripToSystem = () => {
-                const isEnc = type === 'encomienda';
-                const totalVES = (priceCOP * TASA_VES_COP).toFixed(2);
-                const totalUSD = (priceCOP / TASA_USD_COP).toFixed(2);
+            const submitTrip = () => {
+                if(!oCoords || !dCoords) return showToast("Fija Origen y Destino", true);
+                if(type === 'encomienda' && view === 'planner') return setView('details');
                 
-                const tripData = {
-                    id: Date.now(),
-                    cliente: user.nombre,
-                    telefono: user.telefono,
-                    origen: originText,
-                    destino: destText,
-                    precio: priceCOP,
-                    tipo: isEnc ? 'Encomienda' : 'Pasajero',
-                    detalles: isEnc ? encDetails : null,
-                    coords: { o: originCoords, d: destCoords },
-                    fecha: new Date().toLocaleString(),
-                    status: 'pending',
-                    assignedDriver: null,
-                    timer: 60
+                const isEnc = type === 'encomienda';
+                const tripData = { 
+                    id: Date.now(), cliente: user.nombre, telefono: user.telefono, 
+                    origen: oText, destino: dText, precio: priceCOP, 
+                    tipo: isEnc ? 'Encomienda' : 'Pasajero', detalles: isEnc ? encDetails : null, 
+                    coords: {o: oCoords, d: dCoords}, status: 'pending', time: Date.now() 
                 };
-
-                let pending = JSON.parse(localStorage.getItem('ubgrit_pending_trips') || '[]');
+                
+                let pending = getDB('motoubgrit_pending');
                 pending.push(tripData);
-                localStorage.setItem('ubgrit_pending_trips', JSON.stringify(pending));
+                setDB('motoubgrit_pending', pending);
 
-                // Registrar en Google Sheets / Excel
-                const sheetUrl = "https://docs.google.com/forms/d/e/1FAIpQLSc88ZEOvIRyzvW19ezARvvuw_LlWgEz-_68mP-rZ5EdeJ5FEA/formResponse";
-                const fd = new URLSearchParams();
-                fd.append("entry.1573015066", user.nombre);
-                fd.append("entry.884395681", user.telefono);
-                fd.append("entry.592674770", `CARRERA: De ${originText} a ${destText} - Precio: ${priceCOP} COP`);
-                fetch(sheetUrl, { method: 'POST', mode: 'no-cors', body: fd }).catch(e => {});
-
-                let msg = `*🚀 NUEVO SERVICIO DE ${isEnc ? 'ENCOMIENDA' : 'MOTO'} 🚀*%0A%0A*Cliente:* ${user.nombre}%0A*Tel:* ${user.telefono}%0A📍 *De:* ${originText}%0A🏁 *Para:* ${destText}%0A`;
-                if (isEnc) msg += `📦 *Lleva:* ${encDetails.queLleva}%0A👤 *Recibe:* ${encDetails.recibe} (${encDetails.telRecibe})%0A`;
-                msg += `💵 *Costo:* ${priceCOP.toLocaleString()} COP (${paymentCurrency})`;
-
+                let pVES = (priceCOP / TASA_VES_COP).toFixed(2);
+                let pUSD = (priceCOP / TASA_USD_COP).toFixed(2);
+                
+                let msg = `*🚀 SOLICITUD MOTO UBGRIT*%0A*Cliente:* ${user.nombre}%0A📍 *De:* ${oText}%0A🏁 *Para:* ${dText}%0A💵 *Costo:* ${priceCOP} COP | ${pVES} VES | $${pUSD} USD`;
+                if(isEnc) msg += `%0A📦 *Lleva:* ${encDetails.queLleva}%0A👤 *Recibe:* ${encDetails.recibe} (${encDetails.telRecibe})`;
+                
                 window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
                 setView('success');
             };
 
-            if (view === 'planner') {
-                return (
-                    <div className="flex flex-col h-full bg-gray-100 fade-in w-full relative">
-                        <HeaderNav title={type === 'encomienda' ? 'Ruta Encomienda' : 'Pedir Moto'} onBack={onBack} bgClass="bg-blue-600" />
-                        
-                        <div className="absolute top-20 left-4 right-4 z-[400] space-y-3">
-                            <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden">
-                                <span className="p-3 bg-gray-50 text-green-500 font-black"><i className="fa-solid fa-circle-dot"></i></span>
-                                <input placeholder="¿Dónde estás? Ej: Plaza Bolívar" value={originText} onChange={e => setOriginText(e.target.value)} className="flex-1 p-3 text-sm outline-none font-medium text-gray-800" />
-                                <button onClick={() => geocodeAddress(originText, true)} disabled={isSearching} className="bg-blue-600 text-white px-4 font-bold text-xs">Buscar</button>
-                            </div>
-                            
-                            <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden">
-                                <span className="p-3 bg-gray-50 text-red-500 font-black"><i className="fa-solid fa-location-dot"></i></span>
-                                <input placeholder="¿A dónde vas?" value={destText} onChange={e => setDestText(e.target.value)} className="flex-1 p-3 text-sm outline-none font-medium text-gray-800" />
-                                <button onClick={() => geocodeAddress(destText, false)} disabled={isSearching} className="bg-blue-600 text-white px-4 font-bold text-xs">Buscar</button>
-                            </div>
+            if(view === 'planner') return (
+                <div className="flex flex-col h-full bg-gray-100 fade-in relative w-full">
+                    <HeaderNav title={type === 'encomienda' ? 'Ruta Encomienda' : 'Pedir Moto'} onBack={goBack} />
+                    
+                    <div className="absolute top-20 left-4 right-4 z-[400] space-y-2">
+                        <div className="flex bg-white rounded-lg shadow-md border overflow-hidden">
+                            <span className="p-3 bg-gray-50 text-green-500 text-xs">🟢</span>
+                            <input placeholder="Origen (Ej: Plaza Bolívar)" value={oText} onChange={e=>setOText(e.target.value)} className="flex-1 p-2 text-xs outline-none" />
+                            <button onClick={()=>geocode(oText, true)} disabled={loading} className="bg-blue-600 text-white px-3 text-xs font-bold">Buscar</button>
                         </div>
-
-                        <div className="flex-1 relative z-0 bg-gray-200">
-                            <div ref={mapRef} className="absolute inset-0 w-full h-full"></div>
+                        <div className="flex bg-white rounded-lg shadow-md border overflow-hidden">
+                            <span className="p-3 bg-gray-50 text-red-500 text-xs">🔴</span>
+                            <input placeholder="Destino (Ej: Hospital)" value={dText} onChange={e=>setDText(e.target.value)} className="flex-1 p-2 text-xs outline-none" />
+                            <button onClick={()=>geocode(dText, false)} disabled={loading} className="bg-blue-600 text-white px-3 text-xs font-bold">Buscar</button>
                         </div>
-
-                        <div className="bg-white p-6 shadow-2xl z-[400] shrink-0 rounded-t-3xl pb-24">
-                            {priceCOP > 0 ? (
-                                <div className="mb-4 text-center">
-                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Costo Estimado</p>
-                                    <div className="flex justify-center gap-2 mb-3">
-                                        <button onClick={()=>setPaymentCurrency('COP')} className={`px-3 py-1 rounded text-xs font-bold ${paymentCurrency==='COP'?'bg-blue-600 text-white':'bg-gray-100'}`}>COP</button>
-                                        <button onClick={()=>setPaymentCurrency('VES')} className={`px-3 py-1 rounded text-xs font-bold ${paymentCurrency==='VES'?'bg-blue-600 text-white':'bg-gray-100'}`}>VES (×3.0)</button>
-                                        <button onClick={()=>setPaymentCurrency('USD')} className={`px-3 py-1 rounded text-xs font-bold ${paymentCurrency==='USD'?'bg-blue-600 text-white':'bg-gray-100'}`}>USD (/3000)</button>
-                                    </div>
-                                    <h3 className="text-3xl font-black text-blue-600">
-                                        {paymentCurrency==='COP' && `${priceCOP.toLocaleString()} COP`}
-                                        {paymentCurrency==='VES' && `${(priceCOP * TASA_VES_COP).toFixed(2)} VES`}
-                                        {paymentCurrency==='USD' && `$${(priceCOP / TASA_USD_COP).toFixed(2)} USD`}
-                                    </h3>
+                    </div>
+                    
+                    <div className="flex-1 relative z-0">
+                        <div ref={mapRef} className="absolute inset-0 w-full h-full"></div>
+                    </div>
+                    
+                    <div className="bg-white p-5 shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-[400] shrink-0 rounded-t-3xl pb-8 text-center relative">
+                        {priceCOP > 0 ? (
+                            <div className="mb-4 fade-in">
+                                <div className="flex justify-center gap-2 mb-2">
+                                    {['COP','VES','USD'].map(c => <button key={c} onClick={()=>setCurrency(c)} className={`px-3 py-1 rounded-full text-[10px] font-bold transition-colors ${currency===c?'bg-blue-600 text-white shadow':'bg-gray-100 text-gray-500'}`}>{c}</button>)}
                                 </div>
-                            ) : (
-                                <p className="text-center text-xs font-bold text-gray-500 mb-4 bg-gray-50 p-3 rounded-lg border">Busca origen y destino para calcular tarifa.</p>
-                            )}
-                            <button onClick={confirmRide} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg">
-                                {type === 'encomienda' ? 'Continuar con Encomienda →' : 'Pedir Moto Ahora'}
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
-
-            if (view === 'details') {
-                return (
-                    <div className="flex flex-col h-full bg-gray-50 fade-in w-full">
-                        <HeaderNav title="Datos de Encomienda" onBack={() => setView('planner')} bgClass="bg-blue-600" />
-                        <div className="flex-1 p-5 overflow-y-auto">
-                            <div className="bg-white p-5 rounded-2xl shadow-sm border space-y-4">
-                                <div><label className="block text-xs font-black text-gray-500 uppercase mb-1">¿Qué se envía?</label>
-                                <input placeholder="Ej: Documentos, Paquete" value={encDetails.queLleva} onChange={e=>setEncDetails({...encDetails, queLleva: e.target.value})} className="w-full p-3 rounded-xl bg-gray-50 border outline-none" /></div>
-                                
-                                <div><label className="block text-xs font-black text-gray-500 uppercase mb-1">Quién Recibe</label>
-                                <input placeholder="Nombre y Apellido" value={encDetails.recibe} onChange={e=>setEncDetails({...encDetails, recibe: e.target.value})} className="w-full p-3 rounded-xl bg-gray-50 border outline-none" /></div>
-                                
-                                <div><label className="block text-xs font-black text-gray-500 uppercase mb-1">Teléfono Destino</label>
-                                <input placeholder="Ej: 04141234567" type="tel" value={encDetails.telRecibe} onChange={e=>setEncDetails({...encDetails, telRecibe: e.target.value})} className="w-full p-3 rounded-xl bg-gray-50 border outline-none" /></div>
-                                
-                                <button onClick={submitTripToSystem} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg mt-6">Confirmar Envío</button>
+                                <h3 className="text-3xl font-black text-blue-600">
+                                    {currency==='COP' ? `${priceCOP.toLocaleString()} COP` : currency==='VES' ? `${(priceCOP/TASA_VES_COP).toFixed(2)} VES` : `$${(priceCOP/TASA_USD_COP).toFixed(2)} USD`}
+                                </h3>
                             </div>
-                        </div>
+                        ) : (
+                            <p className="text-xs font-bold text-gray-500 mb-4 bg-gray-50 p-3 rounded-xl border">Escribe origen y destino y presiona Buscar.</p>
+                        )}
+                        <button onClick={submitTrip} className={`w-full text-white py-4 rounded-xl font-bold shadow-lg transition-colors ${priceCOP>0 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 pointer-events-none'}`}>
+                            {type === 'encomienda' ? 'Continuar Encomienda 📦' : 'Pedir Moto Ahora 🏍️'}
+                        </button>
                     </div>
-                );
-            }
+                </div>
+            );
 
-            if (view === 'success') {
-                return (
-                    <div className="flex flex-col h-full bg-blue-50 fade-in w-full items-center justify-center p-6 text-center">
-                        <div className="bg-white p-8 rounded-3xl shadow-xl w-full border-t-8 border-blue-600">
-                            <div className="text-6xl mb-4">🚀</div>
-                            <h2 className="text-2xl font-black text-blue-800 mb-2">¡Solicitud Enviada!</h2>
-                            <p className="text-gray-600 mb-8 text-sm font-medium">Un chofer verificado en línea ha sido asignado por la central.</p>
-                            <div className="space-y-3">
-                                <button onClick={() => { setView('planner'); setPriceCOP(0); setOriginCoords(null); setDestCoords(null); }} className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold shadow-md">📍 Pedir otro viaje</button>
-                                <button onClick={onBack} className="w-full border-2 border-gray-200 text-gray-700 py-3.5 rounded-xl font-bold bg-gray-50">🏠 Volver al Menú</button>
-                            </div>
-                        </div>
+            if (view === 'details') return (
+                <div className="flex flex-col h-full bg-gray-50 fade-in w-full">
+                    <HeaderNav title="Datos Encomienda" onBack={()=>setView('planner')} />
+                    <div className="p-5 space-y-4">
+                        <input placeholder="¿Qué llevas? (Ej: 2 Pizzas, Documentos)" value={encDetails.queLleva} onChange={e=>setEncDetails({...encDetails, queLleva:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <input placeholder="Nombre de quien recibe" value={encDetails.recibe} onChange={e=>setEncDetails({...encDetails, recibe:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <input placeholder="Teléfono destino" type="tel" value={encDetails.telRecibe} onChange={e=>setEncDetails({...encDetails, telRecibe:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                        
+                        <div className="bg-blue-50 p-4 rounded-xl text-blue-800 text-xs font-bold mt-2">Costo calculado: {priceCOP.toLocaleString()} COP</div>
+                        <button onClick={submitTrip} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg">Confirmar Envío por WhatsApp</button>
                     </div>
-                );
-            }
+                </div>
+            );
+
+            if (view === 'success') return (
+                <div className="flex flex-col h-full bg-blue-50 fade-in items-center justify-center p-6 text-center w-full">
+                    <div className="bg-white p-8 rounded-3xl shadow-xl w-full border-t-8 border-blue-600">
+                        <div className="text-5xl mb-4">🚀</div>
+                        <h2 className="text-xl font-black text-blue-800 mb-2">¡Solicitud Enviada!</h2>
+                        <p className="text-xs text-gray-600 mb-6">Un conductor será notificado pronto.</p>
+                        <button onClick={()=>{setView('planner');setPriceCOP(0);setOCoords(null);setDCoords(null);}} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow">📍 Pedir otro viaje</button>
+                        <button onClick={goBack} className="w-full border-2 border-gray-200 py-3 rounded-xl font-bold text-gray-700 bg-gray-50">🏠 Volver al Menú</button>
+                    </div>
+                </div>
+            );
         };
 
-        // --- DRIVER DASHBOARD WITH 60s TIMEOUT REALLOCATION ---
-        const DriverDashboard = ({ user, goBack, triggerToast }) => {
-            const [activeTrip, setActiveTrip] = useState(null);
-            const [history, setHistory] = useState([]);
-            const [pendingTrip, setPendingTrip] = useState(null);
+        const DriverDashboard = ({ user, goBack, showToast }) => {
             const [view, setView] = useState('dash');
+            const [activeTrip, setActiveTrip] = useState(null);
+            const [pendingTrip, setPendingTrip] = useState(null);
+            const [history, setHistory] = useState([]);
             const [timeLeft, setTimeLeft] = useState(60);
 
             useEffect(() => {
-                const storedHistory = JSON.parse(localStorage.getItem(`ubgrit_history_${user.nombre}`) || '[]');
-                const storedActive = JSON.parse(localStorage.getItem(`ubgrit_active_${user.nombre}`) || 'null');
-                setHistory(storedHistory);
-                setActiveTrip(storedActive);
+                setHistory(getDB(`hist_${user.email}`));
+                setActiveTrip(getDB(`act_${user.email}`)[0] || null);
 
-                const pollTimer = setInterval(() => {
-                    const pendings = JSON.parse(localStorage.getItem('ubgrit_pending_trips') || '[]');
-                    if (pendings.length > 0 && !storedActive && !activeTrip) {
-                        setPendingTrip(pendings[0]);
+                const timer = setInterval(() => {
+                    if(activeTrip) return;
+                    const p = getDB('motoubgrit_pending');
+                    if(p.length > 0 && p[0].status === 'pending') {
+                        setPendingTrip(p[0]);
+                    } else {
+                        setPendingTrip(null);
                     }
-                }, 2000);
-                return () => clearInterval(pollTimer);
+                }, 3000);
+                return () => clearInterval(timer);
             }, [activeTrip]);
 
-            // 60s timer countdown for driver
             useEffect(() => {
-                let timer;
-                if (pendingTrip) {
+                let t;
+                if(pendingTrip) {
                     setTimeLeft(60);
-                    timer = setInterval(() => {
+                    t = setInterval(() => {
                         setTimeLeft(prev => {
-                            if (prev <= 1) {
-                                clearInterval(timer);
-                                setPendingTrip(null);
-                                triggerToast("Tiempo agotado (60s). Asignando a otro chofer...", "error");
-                                return 0;
+                            if(prev <= 1) { 
+                                clearInterval(t); 
+                                let p = getDB('motoubgrit_pending'); 
+                                p.shift(); 
+                                setDB('motoubgrit_pending', p); 
+                                setPendingTrip(null); 
+                                showToast("Tiempo agotado. Viaje reasignado.", true); 
+                                return 0; 
                             }
                             return prev - 1;
                         });
                     }, 1000);
                 }
-                return () => clearInterval(timer);
+                return () => clearInterval(t);
             }, [pendingTrip]);
 
             const acceptTrip = () => {
-                if (!pendingTrip) return;
-                let pendings = JSON.parse(localStorage.getItem('ubgrit_pending_trips') || '[]');
-                pendings = pendings.filter(t => t.id !== pendingTrip.id);
-                localStorage.setItem('ubgrit_pending_trips', JSON.stringify(pendings));
-
-                setActiveTrip(pendingTrip);
-                localStorage.setItem(`ubgrit_active_${user.nombre}`, JSON.stringify(pendingTrip));
+                if(!pendingTrip) return;
+                let p = getDB('motoubgrit_pending'); 
+                p = p.filter(t => t.id !== pendingTrip.id);
+                setDB('motoubgrit_pending', p);
+                
+                setActiveTrip(pendingTrip); 
+                setDB(`act_${user.email}`, [pendingTrip]);
                 setPendingTrip(null);
-                triggerToast("¡Viaje Aceptado!", "success");
             };
 
             const finishTrip = () => {
-                if (!activeTrip) return;
-                const updatedHistory = [activeTrip, ...history];
-                setHistory(updatedHistory);
-                localStorage.setItem(`ubgrit_history_${user.nombre}`, JSON.stringify(updatedHistory));
+                if(!activeTrip) return;
+                const h = [activeTrip, ...history]; 
+                setHistory(h); 
+                setDB(`hist_${user.email}`, h); 
                 
-                setActiveTrip(null);
-                localStorage.removeItem(`ubgrit_active_${user.nombre}`);
-                triggerToast("Viaje completado y registrado.", "success");
+                setActiveTrip(null); 
+                setDB(`act_${user.email}`, []); 
+                showToast("✅ Viaje completado. Ingreso guardado.", false);
             };
 
-            const totalGenerado = history.reduce((sum, t) => sum + t.precio, 0);
-            const totalDeuda = totalGenerado * 0.10;
+            const totalGen = history.reduce((s, t) => s + t.precio, 0);
 
-            if (view === 'history') {
-                return (
-                    <div className="flex flex-col h-full bg-gray-100 w-full fade-in">
-                        <HeaderNav title="Mi Billetera & Historial" onBack={() => setView('dash')} bgClass="bg-black" />
-                        <div className="p-5 flex-1 overflow-y-auto pb-20">
-                            <div className="bg-black p-5 rounded-2xl text-white shadow-lg mb-6">
-                                <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">Total Generado</p>
-                                <h3 className="text-3xl font-black text-green-400 mb-4">{totalGenerado.toLocaleString()} COP</h3>
-                                <div className="bg-red-500/20 border border-red-500/50 p-3 rounded-xl">
-                                    <p className="text-[10px] uppercase font-bold text-red-300">Comisión Admin (10% Mensual)</p>
-                                    <p className="text-xl font-black text-red-400">{totalDeuda.toLocaleString()} COP</p>
-                                </div>
-                            </div>
-                            <h3 className="font-bold text-gray-800 mb-3 text-sm">Historial de Servicios</h3>
-                            <div className="space-y-3">
-                                {history.map(t => (
-                                    <div key={t.id} className="bg-white p-4 rounded-xl shadow-sm border">
-                                        <div className="flex justify-between border-b pb-2 mb-2">
-                                            <span className="font-bold text-xs">{t.tipo}</span>
-                                            <span className="font-black text-green-700 text-xs">{t.precio.toLocaleString()} COP</span>
-                                        </div>
-                                        <p className="text-[10px] text-gray-500">De: {t.origen}</p>
-                                        <p className="text-[10px] text-gray-500">A: {t.destino}</p>
-                                    </div>
-                                ))}
+            if(view === 'wallet') return (
+                <div className="flex flex-col h-full bg-gray-100 fade-in w-full">
+                    <HeaderNav title="Billetera e Historial" onBack={()=>setView('dash')} />
+                    <div className="p-5 flex-1 overflow-y-auto">
+                        <div className="bg-black p-5 rounded-2xl text-white text-center shadow-lg mb-6 border-t-4 border-yellow-400">
+                            <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">Total Generado (Mes)</p>
+                            <h3 className="text-3xl font-black text-green-400 mb-4">{totalGen.toLocaleString()} COP</h3>
+                            <div className="bg-red-500/20 border border-red-500/50 p-3 rounded-xl">
+                                <p className="text-[10px] font-bold text-red-300">A PAGAR ADMIN (10%)</p>
+                                <p className="text-2xl font-black text-red-400">{(totalGen * 0.1).toLocaleString()} COP</p>
                             </div>
                         </div>
+                        <h3 className="font-bold text-sm mb-3 px-1 text-gray-700">Historial Permanente</h3>
+                        {history.length === 0 ? <p className="text-xs text-center text-gray-400">No hay carreras aún.</p> : null}
+                        {history.map((t,i) => (
+                            <div key={i} className="bg-white p-3 rounded-xl shadow-sm border mb-2 text-xs">
+                                <div className="flex justify-between font-bold border-b pb-1 mb-1">
+                                    <span>{t.tipo}</span>
+                                    <span className="text-green-700">+{t.precio.toLocaleString()} COP</span>
+                                </div>
+                                <p className="text-[10px] text-gray-500">De: {t.origen}</p>
+                                <p className="text-[10px] text-gray-500">A: {t.destino}</p>
+                            </div>
+                        ))}
                     </div>
-                );
-            }
+                </div>
+            );
 
             return (
-                <div className="flex flex-col h-full bg-gray-100 w-full fade-in relative">
+                <div className="flex flex-col h-full bg-gray-100 fade-in w-full">
                     <div className="bg-black text-white p-4 sticky top-0 z-20 flex justify-between items-center shadow-md">
-                        <div><h1 className="font-black text-lg leading-none">Panel Chofer</h1><p className="text-[9px] text-gray-400 font-bold uppercase">{user.nombre}</p></div>
-                        <div className="flex items-center gap-3">
-                            <button onClick={() => setView('history')} className="text-xs bg-gray-800 px-3 py-1.5 rounded-lg font-bold border border-gray-700">💰 Billetera</button>
-                            <button onClick={goBack} className="text-red-400 text-xl"><i className="fa-solid fa-power-off"></i></button>
+                        <div>
+                            <h1 className="font-black text-sm">Panel Chofer</h1>
+                            <p className="text-[9px] text-green-400 font-bold flex items-center gap-1"><span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> En Línea</p>
                         </div>
+                        <button onClick={()=>setView('wallet')} className="text-xs bg-gray-800 px-3 py-1.5 rounded-lg font-bold border border-gray-700 hover:bg-gray-700">💰 Billetera</button>
                     </div>
-
-                    <div className="p-4 flex-1 overflow-y-auto pb-20">
+                    
+                    <div className="p-4 flex-1 overflow-y-auto">
                         {activeTrip ? (
-                            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border-2 border-blue-500 mb-6">
-                                <div className="bg-blue-600 p-3 text-white text-center font-black text-sm uppercase">Viaje Activo (No se borrará hasta finalizar)</div>
-                                <div className="p-4 space-y-3 text-sm">
-                                    <p className="font-bold text-gray-800">👤 {activeTrip.cliente} <a href={`tel:${activeTrip.telefono}`} className="text-blue-500 ml-2 underline">Llamar</a></p>
-                                    <div className="bg-gray-50 p-3 rounded-xl border">
-                                        <p className="font-bold text-gray-700 text-xs mb-2">📍 Origen: {activeTrip.origen}</p>
-                                        <p className="font-bold text-gray-700 text-xs">🏁 Destino: {activeTrip.destino}</p>
+                            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-blue-500 mb-6">
+                                <div className="bg-blue-600 p-2 text-white text-center font-black text-xs">VIAJE EN CURSO</div>
+                                <div className="p-4 space-y-3 text-xs">
+                                    <p className="font-bold text-sm">👤 {activeTrip.cliente} <a href={`tel:${activeTrip.telefono}`} className="text-blue-500 ml-2 underline">Llamar</a></p>
+                                    <div className="bg-gray-50 p-3 rounded-lg border">
+                                        <p className="font-bold mb-1">📍 De: {activeTrip.origen}</p>
+                                        <p className="font-bold">🏁 Para: {activeTrip.destino}</p>
+                                        {activeTrip.detalles && <p className="font-bold mt-2 text-purple-700 bg-purple-50 p-1 rounded">📦 Lleva: {activeTrip.detalles.queLleva}</p>}
                                     </div>
-                                    <div className="text-center bg-green-50 p-3 rounded-xl border border-green-200">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase">Cobrar</p>
+                                    <div className="text-center bg-green-50 p-3 rounded-lg border border-green-200">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Cobrar al cliente</p>
                                         <p className="text-2xl font-black text-green-700">{activeTrip.precio.toLocaleString()} COP</p>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button onClick={() => window.open(`https://www.google.com/maps?q=${activeTrip.coords.o[0]},${activeTrip.coords.o[1]}`, '_blank')} className="bg-gray-800 text-white py-3 rounded-xl font-bold text-xs">Navegar Origen</button>
-                                        <button onClick={() => window.open(`https://www.google.com/maps?q=${activeTrip.coords.d[0]},${activeTrip.coords.d[1]}`, '_blank')} className="bg-blue-600 text-white py-3 rounded-xl font-bold text-xs">Navegar Destino</button>
+                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                        {activeTrip.coords?.o ? (
+                                            <button onClick={()=>window.open(`https://www.google.com/maps?q=${activeTrip.coords.o[0]},${activeTrip.coords.o[1]}`, '_blank')} className="bg-gray-800 text-white py-3 rounded-xl font-bold text-xs shadow">Nav Origen</button>
+                                        ) : <button disabled className="bg-gray-300 text-gray-500 py-3 rounded-xl font-bold text-xs">Sin GPS</button>}
+                                        
+                                        {activeTrip.coords?.d ? (
+                                            <button onClick={()=>window.open(`https://www.google.com/maps?q=${activeTrip.coords.d[0]},${activeTrip.coords.d[1]}`, '_blank')} className="bg-blue-600 text-white py-3 rounded-xl font-bold text-xs shadow">Nav Destino</button>
+                                        ) : <button disabled className="bg-gray-300 text-gray-500 py-3 rounded-xl font-bold text-xs">Sin GPS</button>}
                                     </div>
-                                    <button onClick={finishTrip} className="w-full bg-green-500 text-white py-4 rounded-xl font-black mt-2">✅ Finalizar y Guardar Viaje</button>
+                                    <button onClick={finishTrip} className="w-full bg-green-500 text-white py-4 rounded-xl font-black mt-3 shadow-lg hover:bg-green-600 text-sm">✅ Finalizar Viaje</button>
                                 </div>
                             </div>
                         ) : pendingTrip ? (
-                            <div className="bg-yellow-400 rounded-3xl shadow-xl p-6 text-center border-4 border-white animate-pulse">
-                                <h3 className="font-black text-xl mb-2 text-black">NUEVO VIAJE ASIGNADO</h3>
-                                <p className="text-sm font-bold text-red-700 mb-4">Tiempo para responder: {timeLeft}s</p>
-                                <div className="bg-white p-4 rounded-xl text-left text-xs mb-4">
-                                    <p><strong>De:</strong> {pendingTrip.origen}</p>
-                                    <p><strong>Para:</strong> {pendingTrip.destino}</p>
-                                    <p className="font-black text-green-600 text-lg mt-2 text-center">{pendingTrip.precio.toLocaleString()} COP</p>
+                            <div className="bg-yellow-400 rounded-2xl shadow-xl p-5 text-center border-4 border-white animate-pulse">
+                                <h3 className="font-black text-lg mb-1">¡NUEVO VIAJE!</h3>
+                                <p className="text-xs font-bold text-red-700 mb-3 bg-red-100 rounded-full inline-block px-3 py-1">Aceptar en: {timeLeft}s</p>
+                                <div className="bg-white p-3 rounded-lg text-left text-xs mb-4 shadow-inner">
+                                    <p className="mb-1"><strong className="text-gray-500">De:</strong> {pendingTrip.origen}</p>
+                                    <p><strong className="text-gray-500">Para:</strong> {pendingTrip.destino}</p>
+                                    <p className="font-black text-green-600 text-xl mt-3 text-center border-t pt-2">{pendingTrip.precio.toLocaleString()} COP</p>
                                 </div>
-                                <button onClick={acceptTrip} className="w-full bg-black text-white py-4 rounded-xl font-black text-lg shadow-lg">Aceptar Viaje</button>
+                                <button onClick={acceptTrip} className="w-full bg-black text-white py-4 rounded-xl font-black shadow-lg text-lg">Aceptar Viaje</button>
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-64 opacity-50">
-                                <i className="fa-solid fa-satellite-dish text-5xl mb-4"></i>
-                                <p className="font-bold text-gray-500 text-center">Buscando viajes asignados...<br/>Estás En Línea.</p>
+                                <i className="fa-solid fa-satellite-dish text-6xl mb-4 text-blue-500 animate-pulse"></i>
+                                <p className="font-bold text-sm text-center text-gray-600">Buscando viajes cercanos...<br/>Estás En Línea.</p>
                             </div>
                         )}
+                        <button onClick={goBack} className="w-full border-2 border-gray-300 text-gray-600 py-4 rounded-xl font-bold mt-4 text-xs bg-white">Salir al Menú Principal</button>
                     </div>
                 </div>
             );
         };
 
-        // --- ADMIN PANEL WITH 20s REPEATING ALARM & BELL NOTIFICATIONS ---
-        const AdminPanel = ({ onBack }) => {
+        const AdminPanel = ({ goBack, showToast }) => {
+            const [pendings, setPendings] = useState([]);
             const [drivers, setDrivers] = useState([]);
-            const [pendingTrips, setPendingTrips] = useState([]);
 
             useEffect(() => {
-                const loadAdminData = () => {
-                    const allUsers = JSON.parse(localStorage.getItem('ubgrit_registered_users') || '[]');
-                    setDrivers(allUsers.filter(u => u.role === 'driver'));
-                    const pendings = JSON.parse(localStorage.getItem('ubgrit_pending_trips') || '[]');
-                    setPendingTrips(pendings);
+                const load = () => {
+                    setPendings(getDB('motoubgrit_pending'));
+                    setDrivers(getDB('motoubgrit_users').filter(x => x.role === 'driver'));
                 };
-                loadAdminData();
-                const timer = setInterval(loadAdminData, 3000);
-                return () => clearInterval(timer);
+                load();
+                const t = setInterval(load, 3000);
+                return () => clearInterval(t);
             }, []);
 
-            // Repeating alarm bell every 20 seconds if there are pending trips
-            useEffect(() => {
-                const alarmTimer = setInterval(() => {
-                    const pendings = JSON.parse(localStorage.getItem('ubgrit_pending_trips') || '[]');
-                    if (pendings.length > 0) {
-                        playBeep();
-                    }
-                }, 20000);
-                return () => clearInterval(alarmTimer);
-            }, []);
-
-            const toggleDriverVerification = (email) => {
-                let allUsers = JSON.parse(localStorage.getItem('ubgrit_registered_users') || '[]');
-                allUsers = allUsers.map(u => {
-                    if (u.email === email) u.verified = !u.verified;
-                    return u;
-                });
-                localStorage.setItem('ubgrit_registered_users', JSON.stringify(allUsers));
-                setDrivers(allUsers.filter(u => u.role === 'driver'));
+            const toggleVerify = (email) => {
+                let u = getDB('motoubgrit_users').map(x => { if(x.email === email) x.verified = !x.verified; return x; });
+                setDB('motoubgrit_users', u); 
+                setDrivers(u.filter(x => x.role === 'driver'));
+                showToast("Estado de chofer actualizado", false);
             };
 
             return (
-                <div className="flex flex-col h-full bg-gray-100 w-full fade-in">
-                    <HeaderNav title="Panel Administrador" onBack={onBack} bgClass="bg-red-600" />
-                    <div className="p-4 flex-1 overflow-y-auto pb-20 space-y-6">
-                        <div className="bg-white p-4 rounded-2xl shadow-sm border">
-                            <h3 className="font-black text-sm text-red-600 mb-3 flex items-center justify-between">
-                                <span>🔔 Solicitudes Activas</span>
-                                <span className="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded-full">{pendingTrips.length}</span>
-                            </h3>
-                            {pendingTrips.length === 0 ? <p className="text-xs text-gray-400">No hay solicitudes pendientes.</p> : (
-                                pendingTrips.map(t => (
-                                    <div key={t.id} className="p-3 bg-red-50 rounded-xl mb-2 text-xs font-bold border border-red-200">
-                                        <p>{t.tipo}: {t.origen} → {t.destino}</p>
-                                        <p className="text-green-700 mt-1">{t.precio.toLocaleString()} COP</p>
+                <div className="flex flex-col h-full bg-gray-100 fade-in w-full">
+                    <HeaderNav 
+                        title="Central Admin" 
+                        onBack={goBack} 
+                        right={
+                            <div className="relative">
+                                <i className={`fa-solid fa-bell text-xl ${pendings.length>0?'animate-ring text-red-500':'text-gray-400'}`}></i>
+                                {pendings.length>0 && <span className="absolute -top-1 -right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 rounded-full">{pendings.length}</span>}
+                            </div>
+                        } 
+                    />
+                    <div className="p-4 flex-1 overflow-y-auto space-y-4">
+                        <div className={`p-4 rounded-xl shadow border ${pendings.length>0?'bg-red-50 border-red-200':'bg-white'}`}>
+                            <h3 className="font-black text-xs mb-3 text-gray-800">📡 Cola de Solicitudes</h3>
+                            {pendings.length === 0 ? (
+                                <p className="text-xs opacity-60 text-center py-2">Sin pedidos en este momento.</p>
+                            ) : pendings.map(t => (
+                                <div key={t.id} className="p-3 bg-white rounded-lg border mb-2 text-xs shadow-sm flex justify-between items-center">
+                                    <div>
+                                        <p className="font-bold text-blue-700">{t.tipo}</p>
+                                        <p className="text-[10px] text-gray-600 truncate max-w-[200px]">{t.origen} → {t.destino}</p>
                                     </div>
-                                ))
-                            )}
+                                    <p className="font-black text-green-600">{t.precio} COP</p>
+                                </div>
+                            ))}
                         </div>
 
-                        <div className="bg-white p-4 rounded-2xl shadow-sm border">
-                            <h3 className="font-black text-sm text-gray-800 mb-3">Gestión de Choferes (Verificación)</h3>
-                            {drivers.length === 0 ? <p className="text-xs text-gray-400">No hay choferes registrados.</p> : (
-                                drivers.map(d => {
-                                    const history = JSON.parse(localStorage.getItem(`ubgrit_history_${d.nombre}`) || '[]');
-                                    const totalGen = history.reduce((s, x) => s + x.precio, 0);
-                                    const comision = totalGen * 0.10;
-                                    return (
-                                        <div key={d.email} className="p-3 bg-gray-50 rounded-xl mb-3 border">
-                                            <p className="font-bold text-xs">{d.nombre} ({d.telefono})</p>
-                                            <p className="text-[10px] text-gray-500">Moto: {d.modelo} - Placa: {d.placa}</p>
-                                            <p className="text-[10px] text-green-700 font-bold mt-1">Generado: {totalGen.toLocaleString()} COP | Comisión (10%): {comision.toLocaleString()} COP</p>
-                                            <div className="mt-2 flex justify-between items-center">
-                                                <span className={`text-[10px] font-bold px-2 py-1 rounded ${d.verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                                    {d.verified ? 'Verificado & Habilitado' : 'Pendiente de Aprobación'}
-                                                </span>
-                                                <button onClick={() => toggleDriverVerification(d.email)} className={`text-xs px-3 py-1.5 rounded font-bold text-white ${d.verified ? 'bg-red-600' : 'bg-green-600'}`}>
-                                                    {d.verified ? 'Revocar' : 'Aprobar Chofer'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            )}
+                        <div className="bg-white p-4 rounded-xl shadow border">
+                            <h3 className="font-black text-xs mb-3 text-gray-800">Choferes Registrados</h3>
+                            {drivers.length === 0 && <p className="text-xs text-gray-400 text-center">No hay choferes.</p>}
+                            {drivers.map(d => (
+                                <div key={d.email} className="p-3 bg-gray-50 rounded-lg border mb-2 text-xs flex justify-between items-center">
+                                    <div>
+                                        <p className="font-bold text-gray-800">{d.nombre}</p>
+                                        <p className="text-[10px] text-gray-500">Placa: {d.placa}</p>
+                                    </div>
+                                    <button onClick={()=>toggleVerify(d.email)} className={`px-3 py-1.5 rounded-lg text-white font-bold shadow-sm transition-colors ${d.verified?'bg-red-500':'bg-green-500'}`}>
+                                        {d.verified ? 'Bloquear' : 'Aprobar'}
+                                    </button>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // --- MAIN APP CONTROLLER ---
         function App() {
             const [view, setView] = useState('splash');
             const [user, setUser] = useState(null);
-            const [authRole, setAuthRole] = useState('');
-            const [isLoginMode, setIsLoginMode] = useState(false);
-            const [formData, setFormData] = useState({});
+            const [role, setRole] = useState('');
+            const [form, setForm] = useState({});
             const [toast, setToast] = useState(null);
 
             useEffect(() => {
-                const savedUser = localStorage.getItem('motoubgrit_current_user');
-                if (savedUser) {
-                    setUser(JSON.parse(savedUser));
-                }
-                setTimeout(() => { if (view === 'splash') setView('menu'); }, 3000);
+                const u = localStorage.getItem('motoubgrit_current'); 
+                if(u) setUser(JSON.parse(u));
+                setTimeout(() => { if(view === 'splash') setView('menu'); }, 3000);
             }, []);
 
-            const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-            
-            const triggerToast = (message, type = 'info') => {
-                setToast({ message, type }); setTimeout(() => setToast(null), 3500);
+            const showToast = (msg, isError) => { 
+                setToast({msg, isError}); 
+                setTimeout(()=>setToast(null), 3500); 
             };
 
-            const handleAuthSubmit = (e) => {
-                e.preventDefault();
-                let registeredUsers = JSON.parse(localStorage.getItem('ubgrit_registered_users') || '[]');
-
-                if (isLoginMode) {
-                    const found = registeredUsers.find(u => u.email === formData.email && u.password === formData.password && u.role === authRole);
-                    if (found) {
-                        if (authRole === 'driver' && !found.verified) {
-                            return triggerToast("Tu cuenta de chofer aún no ha sido verificada por el administrador.", "error");
-                        }
-                        setUser(found);
-                        localStorage.setItem('motoubgrit_current_user', JSON.stringify(found));
-                        navigateUser(found.role);
-                    } else {
-                        triggerToast("Correo, contraseña o rol incorrectos.", "error");
-                    }
-                } else {
-                    const exists = registeredUsers.find(u => u.email === formData.email);
-                    if (exists) return triggerToast("Este correo ya está registrado. Inicia sesión.", "error");
-
-                    const newUser = { 
-                        ...formData, 
-                        role: authRole, 
-                        verified: authRole === 'driver' ? false : true, 
-                        createdAt: Date.now() 
-                    };
-                    registeredUsers.push(newUser);
-                    localStorage.setItem('ubgrit_registered_users', JSON.stringify(registeredUsers));
-                    
-                    setUser(newUser);
-                    localStorage.setItem('motoubgrit_current_user', JSON.stringify(newUser));
-                    
-                    if (authRole === 'driver') setView('driver_rules');
-                    else navigateUser(authRole);
-                }
-            };
-
-            const navigateUser = (role) => {
-                if (role === 'driver') setView('driver_dashboard');
-                else if (role === 'market') setView('market_view');
-                else if (role === 'store') setView('encomienda_view');
-                else setView('client_view');
-            };
-
-            const logout = () => {
-                localStorage.removeItem('motoubgrit_current_user');
+            const handleLogout = () => {
+                localStorage.removeItem('motoubgrit_current');
                 setUser(null);
+                showToast("Sesión cerrada", false);
                 setView('menu');
             };
 
-            const ToastComponent = () => {
-                if (!toast) return null;
-                const bg = toast.type === 'error' ? 'bg-red-600' : toast.type === 'success' ? 'bg-green-600' : 'bg-gray-800';
-                return (
-                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[999] w-11/12 max-w-sm fade-in pointer-events-none">
-                        <div className={`${bg} text-white px-4 py-3 rounded-xl shadow-2xl font-bold text-xs text-center border-2 border-white/20`}>{toast.message}</div>
-                    </div>
-                );
+            const nav = (u) => { 
+                if(u.role==='driver') { 
+                    if(!u.verified) showToast("Aún esperando aprobación del Admin", true); 
+                    else setView('driver_dash'); 
+                } 
+                else if(u.role==='market') setView('market'); 
+                else if(u.role==='store') setView('enco'); 
+                else setView('client'); 
             };
 
-            if (view === 'splash') {
-                return (
-                    <div className="flex flex-col items-center justify-center h-full bg-[#0b0f19] fade-in w-full relative overflow-hidden">
-                        <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                            <div className="w-96 h-96 bg-grita-red rounded-full blur-3xl animate-pulse"></div>
-                        </div>
-                        <div className="z-10 flex flex-col items-center">
-                            <div className="w-28 h-28 bg-grita-red rounded-full flex items-center justify-center mb-6 animate-logo shadow-[0_0_30px_rgba(220,38,38,0.5)] border-4 border-white/10">
-                                <i className="fa-solid fa-motorcycle text-5xl text-white"></i>
-                            </div>
-                            <h1 className="text-4xl font-black mb-2 text-white tracking-tight">Moto UBGrit</h1>
-                            <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest text-center px-4 leading-relaxed">
-                                Tu Traslado / Encomienda / Mercado / Medicamento<br/>
-                                <span className="text-grita-red text-xs mt-1 block">Rápido y Seguro</span>
-                            </p>
+            const handleAuth = (e) => {
+                e.preventDefault();
+                if(role === 'admin') { 
+                    if(form.email === ADMIN_EMAIL && form.password === ADMIN_PASS) {
+                        setView('admin'); showToast("Acceso Admin Concedido", false);
+                    } else showToast("Credenciales inválidas", true); 
+                    return; 
+                }
+                
+                let users = getDB('motoubgrit_users');
+                const exist = users.find(x => x.email === form.email && x.password === form.password);
+                if(exist) { 
+                    setUser(exist); localStorage.setItem('motoubgrit_current', JSON.stringify(exist)); 
+                    nav(exist); showToast("Bienvenido", false); 
+                } else if(form.nombre) { 
+                    const nu = { ...form, role: role, verified: false }; 
+                    users.push(nu); setDB('motoubgrit_users', users);
+                    setUser(nu); localStorage.setItem('motoubgrit_current', JSON.stringify(nu));
+                    if(role === 'driver') setView('driver_rules'); else nav(nu);
+                } else showToast("Datos incompletos para registro", true);
+            };
+
+            if(view === 'splash') return (
+                <div className="fixed inset-0 bg-[#0b0f19] flex flex-col items-center justify-center z-50">
+                    <div className="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center mb-4 animate-logo shadow-[0_0_40px_rgba(220,38,38,0.6)]">
+                        <i className="fa-solid fa-motorcycle text-4xl text-white"></i>
+                    </div>
+                    <h1 className="text-4xl font-black text-white mb-2 tracking-tighter">Moto UBGrit</h1>
+                    <div className="bg-white/10 px-4 py-2 rounded-xl mt-2">
+                        <p className="text-[10px] text-gray-200 font-bold uppercase tracking-widest text-center">Tu Traslado / Encomienda<br/>Mercado / Medicamento</p>
+                        <p className="text-red-500 font-black text-center mt-1 text-xs tracking-widest">RÁPIDO Y SEGURO</p>
+                    </div>
+                </div>
+            );
+            
+            if(view === 'menu') return (
+                <div className="flex flex-col h-full bg-[#0b0f19] w-full p-6 text-center relative overflow-y-auto">
+                    {toast && <Toast msg={toast.msg} isError={toast.isError} />}
+                    
+                    <div className="absolute top-4 right-4 flex gap-2 z-20">
+                        <button onClick={()=>{setRole('admin');setView('auth');}} className="bg-white/10 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-white/20 transition-colors">⚙️ Admin</button>
+                        {user && <button onClick={handleLogout} className="bg-red-600 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-red-700 shadow-lg">Salir</button>}
+                    </div>
+
+                    <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4 mt-10 shadow-[0_0_30px_rgba(220,38,38,0.4)]">
+                        <i className="fa-solid fa-motorcycle text-3xl text-white"></i>
+                    </div>
+                    <h1 className="text-3xl font-black text-white mb-2">Moto UBGrit</h1>
+                    
+                    <div className="mb-8">
+                        <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest">Tu Traslado / Encomienda / Mercado / Medicamento</p>
+                        <p className="text-red-500 font-black tracking-widest mt-1 text-xs">RÁPIDO Y SEGURO</p>
+                    </div>
+
+                    <div className="space-y-3 w-full max-w-sm mx-auto mt-2">
+                        <button onClick={()=>{setRole('client'); user?.role==='client'?nav(user):setView('auth');}} className="w-full bg-white text-black font-black py-4 rounded-xl text-sm shadow-lg">🏍️ Pedir Moto (Pasajero)</button>
+                        <button onClick={()=>{setRole('store'); user?.role==='store'?nav(user):setView('auth');}} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl text-sm shadow-lg">📦 Local / Encomiendas</button>
+                        <button onClick={()=>{setRole('market'); user?.role==='market'?nav(user):setView('auth');}} className="w-full bg-green-600 text-white font-bold py-4 rounded-xl text-sm shadow-lg">🛒 Mercado en Casa</button>
+                        <button onClick={()=>showToast('Módulo de Farmacia en desarrollo.', false)} className="w-full bg-purple-600 text-white font-bold py-4 rounded-xl text-sm shadow">💊 Farmacia (Próximamente)</button>
+                        
+                        <div className="pt-4 mt-4 border-t border-gray-800">
+                            <button onClick={()=>{setRole('driver'); user?.role==='driver'?nav(user):setView('auth');}} className="w-full bg-[#1a1a1a] text-gray-400 border border-gray-700 py-4 rounded-xl font-bold text-xs">Panel Conductor</button>
                         </div>
                     </div>
-                );
-            }
+                </div>
+            );
 
-            if (view === 'menu') {
-                return (
-                    <div className="flex flex-col h-full bg-[#0b0f19] fade-in w-full relative">
-                        <ToastComponent />
-                        <div className="absolute top-4 right-4 z-20">
-                            <button onClick={() => setView('admin_panel')} className="bg-white/10 text-white p-2.5 rounded-full hover:bg-white/20 border border-white/20 text-xs font-bold">
-                                ⚙️ Admin
-                            </button>
-                        </div>
-                        <div className="flex-grow flex flex-col items-center justify-center p-6 text-center">
-                            <div className="w-20 h-20 bg-grita-red rounded-full flex items-center justify-center mb-4 shadow-xl border-2 border-white/20 animate-logo"><i className="fa-solid fa-motorcycle text-3xl text-white"></i></div>
-                            <h1 className="text-3xl font-black mb-1 text-white">Moto UBGrit</h1>
-                            <p className="text-[10px] text-gray-300 font-bold mb-6 uppercase tracking-widest leading-relaxed">
-                                Tu Traslado / Encomienda / Mercado / Medicamento<br/>
-                                <span className="text-grita-red text-xs mt-1 block">Rápido y Seguro</span>
-                            </p>
+            if(view === 'auth') return (
+                <div className="flex flex-col h-full bg-[#0b0f19] w-full overflow-y-auto">
+                    <HeaderNav title={role==='admin'?"Acceso Admin": "Ingreso / Registro"} onBack={()=>setView('menu')} />
+                    <div className="p-6">
+                        <form onSubmit={handleAuth} className="bg-white p-6 rounded-3xl space-y-4 shadow-2xl">
+                            <p className="text-xs text-center text-gray-500 font-bold mb-4">{role === 'admin' ? 'Ingresa credenciales exclusivas' : 'Si ya tienes cuenta, solo pon correo y clave.'}</p>
                             
-                            <div className="space-y-3 w-full">
-                                <button onClick={() => { setAuthRole('client'); setView(user && user.role==='client' ? 'client_view' : 'auth'); setIsLoginMode(false); }} className="w-full bg-white text-black font-black py-4 rounded-2xl shadow-md text-xs hover:scale-[1.02] transition flex justify-center items-center gap-2"><i className="fa-solid fa-user"></i> Soy Cliente</button>
-                                <button onClick={() => { setAuthRole('store'); setView(user && user.role==='store' ? 'encomienda_view' : 'auth'); setIsLoginMode(false); }} className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-md text-xs hover:scale-[1.02] transition flex justify-center items-center gap-2"><i className="fa-solid fa-box"></i> Local (Encomiendas)</button>
-                                <button onClick={() => { setAuthRole('market'); setView(user && user.role==='market' ? 'market_view' : 'auth'); setIsLoginMode(false); }} className="w-full bg-green-600 text-white font-bold py-4 rounded-2xl shadow-md text-xs hover:scale-[1.02] transition flex justify-center items-center gap-2"><i className="fa-solid fa-basket-shopping"></i> Mercado en Casa</button>
-                                <button onClick={() => triggerToast('Módulo de Farmacia en desarrollo.', 'info')} className="w-full bg-purple-600 text-white font-bold py-4 rounded-2xl shadow-md text-xs hover:bg-purple-500 transition flex justify-center items-center gap-2"><i className="fa-solid fa-notes-medical"></i> Farmacia (Próximamente)</button>
-                                <button onClick={() => { setAuthRole('driver'); setView(user && user.role==='driver' ? 'driver_dashboard' : 'auth'); setIsLoginMode(false); }} className="w-full bg-[#1a1a1a] border border-gray-800 text-gray-300 py-4 rounded-2xl font-bold mt-2 text-xs transition flex justify-center items-center gap-2"><i className="fa-solid fa-motorcycle"></i> Panel Conductor</button>
-                            </div>
+                            <input required name="email" type="email" placeholder="Correo electrónico" onChange={e=>setForm({...form, email:e.target.value})} className="w-full p-4 border rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-red-500 outline-none" />
+                            <input required name="password" type="password" placeholder="Contraseña" onChange={e=>setForm({...form, password:e.target.value})} className="w-full p-4 border rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-red-500 outline-none" />
                             
-                            {user && (
-                                <button onClick={logout} className="mt-4 text-red-400 text-xs font-bold underline">
-                                    Cerrar Sesión ({user.nombre})
-                                </button>
+                            {role !== 'admin' && !user && (
+                                <>
+                                    <div className="border-t pt-4 mt-2">
+                                        <p className="text-[10px] text-gray-400 font-bold mb-3 uppercase tracking-wider text-center">Datos para nuevos usuarios</p>
+                                        <div className="space-y-4">
+                                            <input name="nombre" placeholder="Nombre completo o Local" onChange={e=>setForm({...form, nombre:e.target.value})} className="w-full p-4 border rounded-xl bg-gray-50 text-sm outline-none" />
+                                            <input name="telefono" type="tel" placeholder="WhatsApp" onChange={e=>setForm({...form, telefono:e.target.value})} className="w-full p-4 border rounded-xl bg-gray-50 text-sm outline-none" />
+                                            {role === 'driver' && <input name="placa" placeholder="Placa de la Moto" onChange={e=>setForm({...form, placa:e.target.value})} className="w-full p-4 border rounded-xl bg-gray-50 text-sm outline-none" />}
+                                            <textarea name="direccion" placeholder="Dirección exacta" onChange={e=>setForm({...form, direccion:e.target.value})} className="w-full p-4 border rounded-xl bg-gray-50 text-sm h-20 outline-none" />
+                                        </div>
+                                    </div>
+                                </>
                             )}
-                        </div>
+                            
+                            <button type="submit" className="w-full bg-red-600 text-white py-4 rounded-xl font-black text-lg shadow-lg mt-4">Acceder</button>
+                            <button type="button" onClick={()=>setView('menu')} className="w-full bg-gray-100 text-gray-600 py-3 rounded-xl text-xs font-bold mt-2">← Cancelar y Volver</button>
+                        </form>
                     </div>
-                );
-            }
+                </div>
+            );
 
-            if (view === 'auth') {
-                return (
-                    <div className="flex flex-col h-full bg-[#0b0f19] fade-in w-full">
-                        <HeaderNav title={isLoginMode ? "Iniciar Sesión" : "Registro"} onBack={() => setView('menu')} />
-                        <div className="flex-1 p-6 flex flex-col justify-center overflow-y-auto">
-                            <form onSubmit={handleAuthSubmit} className="bg-white p-6 rounded-3xl shadow-xl space-y-4">
-                                <h3 className="font-black text-center text-xl text-black mb-2">{isLoginMode ? "Bienvenido de nuevo" : "Crea tu Cuenta"}</h3>
-                                
-                                <input required name="email" type="email" placeholder="Correo electrónico" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none" />
-                                <input required name="password" type="password" placeholder="Contraseña" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none" />
-                                
-                                {!isLoginMode && (
-                                    <>
-                                        <input required name="nombre" placeholder={authRole === 'store' ? "Nombre del Local" : "Nombre completo"} onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none" />
-                                        <input required name="telefono" type="tel" placeholder="WhatsApp" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none" />
-                                        {authRole === 'driver' && (
-                                            <div className="p-4 bg-gray-50 rounded-2xl border space-y-3">
-                                                <p className="text-[10px] font-black text-gray-500 uppercase text-center">Datos del Vehículo</p>
-                                                <input required name="placa" placeholder="Placa de la Moto" onChange={handleInputChange} className="w-full p-3 border-b bg-transparent text-sm outline-none" />
-                                                <input required name="modelo" placeholder="Modelo y Año" onChange={handleInputChange} className="w-full p-3 border-b bg-transparent text-sm outline-none" />
-                                            </div>
-                                        )}
-                                        <textarea required name="direccion" placeholder="Dirección exacta" onChange={handleInputChange} className="w-full p-4 border rounded-2xl bg-gray-50 text-sm outline-none h-20" />
-                                    </>
-                                )}
-                                
-                                <button type="submit" className="w-full bg-grita-red text-white py-4 rounded-2xl font-black shadow-lg text-lg mt-2">
-                                    {isLoginMode ? "Entrar" : "Completar Registro"}
-                                </button>
-                                
-                                <div className="text-center mt-3">
-                                    <button type="button" onClick={() => setIsLoginMode(!isLoginMode)} className="text-blue-600 text-xs font-bold underline">
-                                        {isLoginMode ? "¿No tienes cuenta? Regístrate aquí" : "¿Ya estás registrado? Inicia sesión"}
-                                    </button>
-                                </div>
-                            </form>
+            if(view === 'driver_rules') return (
+                <div className="flex flex-col h-full bg-[#0b0f19] p-6 text-center justify-center">
+                    <div className="bg-white p-6 rounded-3xl border-4 border-yellow-400 shadow-2xl">
+                        <span className="text-5xl block mb-2">⚠️</span>
+                        <h2 className="text-2xl font-black mb-4">REGLAS CHOFER</h2>
+                        <div className="text-left text-xs font-bold space-y-3 mb-6 bg-gray-50 p-4 rounded-xl border">
+                            <p>🟢 1. Cobrar estrictamente la tarifa de TRASLADO.</p>
+                            <p>🟢 2. Casco (chofer y pasajero) y cesta son obligatorios.</p>
+                            <p>🟢 3. Tienes 60s para aceptar un viaje antes de que pase a otro.</p>
+                            <p className="text-red-600 bg-red-50 p-2 rounded">🔴 4. El pago del 10% es mensual. La app se bloqueará si hay impagos.</p>
                         </div>
+                        <button onClick={()=>{window.open(`https://wa.me/${ADMIN_PHONE}?text=Registrado%20como%20chofer.%20Espero%20aprobacion.`, '_blank'); setView('menu');}} className="w-full bg-green-500 text-white py-4 rounded-xl font-black shadow-lg">Notificar Admin y Salir</button>
                     </div>
-                );
-            }
+                </div>
+            );
 
-            if (view === 'driver_rules') {
-                return (
-                    <div className="flex flex-col h-full bg-[#0b0f19] fade-in w-full items-center justify-center p-6">
-                        <div className="bg-white p-6 rounded-3xl shadow-2xl w-full border-t-8 border-yellow-400 overflow-y-auto text-center">
-                            <i className="fa-solid fa-triangle-exclamation text-5xl text-yellow-500 mb-3"></i>
-                            <h2 className="text-xl font-black text-black mb-4">REGLAS DEL CONDUCTOR</h2>
-                            <div className="text-left font-bold text-gray-700 space-y-3 mb-6 bg-gray-50 p-5 rounded-2xl text-[11px] border shadow-inner">
-                                <p><span className="text-red-500">1.</span> <strong>Cobro:</strong> Solo cobras el traslado.</p>
-                                <p><span className="text-red-500">2.</span> <strong>Seguridad:</strong> Casco obligatorio (chofer y pasajero) + cesta para encomiendas.</p>
-                                <p><span className="text-red-500">3.</span> <strong>Tiempos:</strong> 60s para aceptar carrera asignada.</p>
-                                <p><span className="text-red-500">4.</span> <strong>Comisión:</strong> 10% mensual al administrador.</p>
-                            </div>
-                            <button onClick={() => { window.open(`https://wa.me/${ADMIN_PHONE}?text=Hola,%20me%20registré%20como%20chofer%20y%20espero%20aprobación.`, '_blank'); setView('menu'); }} className="w-full bg-green-500 text-white py-4 rounded-2xl font-black shadow-lg">
-                                Notificar al Admin por WhatsApp y Volver
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
-
-            if (view === 'client_view' || view === 'encomienda_view') {
-                return <TripPlanner user={user} type={view === 'client_view' ? 'client' : 'encomienda'} onBack={() => setView('menu')} triggerToast={triggerToast} />;
-            }
-
-            if (view === 'market_view') {
-                return <MercadoDashboard user={user} goBack={() => setView('menu')} triggerToast={triggerToast} />;
-            }
-
-            if (view === 'driver_dashboard') {
-                return <DriverDashboard user={user} goBack={() => setView('menu')} triggerToast={triggerToast} />;
-            }
-
-            if (view === 'admin_panel') {
-                return <AdminPanel onBack={() => setView('menu')} />;
-            }
-
+            if(view === 'client') return <TripPlanner user={user} type="client" goBack={()=>setView('menu')} showToast={showToast} />;
+            if(view === 'enco') return <TripPlanner user={user} type="encomienda" goBack={()=>setView('menu')} showToast={showToast} />;
+            if(view === 'market') return <MercadoDashboard user={user} goBack={()=>setView('menu')} showToast={showToast} />;
+            if(view === 'driver_dash') return <DriverDashboard user={user} goBack={()=>setView('menu')} showToast={showToast} />;
+            if(view === 'admin') return <AdminPanel goBack={()=>setView('menu')} showToast={showToast} />;
             return null;
         }
 
