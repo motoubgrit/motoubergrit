@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <link rel="manifest" href="/manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Moto UBGrit</title>
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { 
@@ -13,11 +13,11 @@
         }
     </script>
     
-    <!-- Leaflet CSS y JS para mapas -->
+    <!-- Leaflet CSS & JS for Maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     
-    <!-- React -->
+    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -49,7 +49,7 @@
         const TASA_VES_COP = 3.0;  
         const ADMIN_PHONE = "584140792843";
 
-        // INVENTARIO COMPLETO MERCADO
+        // MERCADO INVENTORY & CATEGORIES
         const inventory = [
             { category: "Hortalizas y Verduras", name: "Tomate", price: 4000, icon: "🍅" },
             { category: "Hortalizas y Verduras", name: "Cebolla", price: 3500, icon: "🧅" },
@@ -86,7 +86,23 @@
             return `${qty} ${isEgg ? 'Cartones' : 'Kg'}`;
         };
 
-        // --- COMPONENTES BASE ---
+        // --- AUDIO BEEP NOTIFICATION ---
+        const playBeep = () => {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.5);
+            } catch(e) {}
+        };
+
         const HeaderNav = ({ title, onBack, rightContent, bgClass = "bg-black" }) => (
             <div className={`${bgClass} text-white p-4 sticky top-0 z-20 flex items-center justify-between shadow-md shrink-0 w-full h-16`}>
                 {onBack ? (
@@ -99,12 +115,13 @@
             </div>
         );
 
+        // --- MERCADO COMPONENT ---
         const MercadoDashboard = ({ user, goBack, triggerToast }) => {
             const [view, setView] = useState('shop');
             const [cart, setCart] = useState({});
             const [currentCatIdx, setCurrentCatIdx] = useState(0);
             const [paymentCurrency, setPaymentCurrency] = useState('COP');
-            const [deliveryFee, setDeliveryFee] = useState(5000); // Fijo en La Grita por defecto
+            const [deliveryFee, setDeliveryFee] = useState(5000);
 
             const updateCart = (name, qty, price) => {
                 const cleanQty = Math.max(0, Math.round(qty * 100) / 100);
@@ -114,21 +131,31 @@
             const cartSubtotal = Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const totalCOP = cartSubtotal > 0 ? cartSubtotal + deliveryFee : 0;
             const totalUSD = (totalCOP / TASA_USD_COP).toFixed(2);
-            const totalVES = (totalCOP / TASA_VES_COP).toFixed(2);
+            const totalVES = (totalCOP * TASA_VES_COP).toFixed(2);
             
             const currentCatName = categoriesList[currentCatIdx];
             const products = inventory.filter(p => p.category === currentCatName);
+
+            const syncToExcel = (orderSummary) => {
+                const sheetUrl = "https://docs.google.com/forms/d/e/1FAIpQLSc88ZEOvIRyzvW19ezARvvuw_LlWgEz-_68mP-rZ5EdeJ5FEA/formResponse";
+                const fd = new URLSearchParams();
+                fd.append("entry.1573015066", user?.nombre || 'Cliente');
+                fd.append("entry.884395681", user?.telefono || '');
+                fd.append("entry.592674770", orderSummary);
+                fetch(sheetUrl, { method: 'POST', mode: 'no-cors', body: fd }).catch(e => {});
+            };
 
             const handleWhatsAppCheckout = () => {
                 let msg = `*🛒 MERCADO EN CASA 🛒*%0A%0A*Cliente:* ${user?.nombre}%0A*Tel:* ${user?.telefono}%0A*Dir:* ${user?.direccion}%0A%0A*PEDIDO:*%0A`;
                 Object.keys(cart).forEach(name => { msg += `▪ ${formatQuantity(cart[name].quantity, name)} de ${name} - ${(cart[name].price * cart[name].quantity).toLocaleString()} COP%0A`; });
                 msg += `🛵 *Delivery:* ${deliveryFee.toLocaleString()} COP%0A💵 *TOTAL:* ${totalCOP.toLocaleString()} COP%0A`;
                 
-                msg += `%0A*MÉTODO DE PAGO SELECCIONADO:*%0A`;
-                if (paymentCurrency === 'COP') msg += `🇨🇴 Pesos (Efectivo): ${totalCOP.toLocaleString()} COP`;
-                if (paymentCurrency === 'USD') msg += `💵 Dólares (Efectivo): $${totalUSD} USD`;
-                if (paymentCurrency === 'VES') msg += `🇻🇪 Bolívares (Transferencia): ${totalVES} VES`;
+                msg += `%0A*MÉTODO DE PAGO:*%0A`;
+                if (paymentCurrency === 'COP') msg += `🇨🇴 Pesos: ${totalCOP.toLocaleString()} COP`;
+                if (paymentCurrency === 'VES') msg += `🇻🇪 Bolívares: ${totalVES} VES`;
+                if (paymentCurrency === 'USD') msg += `💵 Dólares: $${totalUSD} USD`;
                 
+                syncToExcel(`MERCADO: ${Object.keys(cart).join(', ')} - Total: ${totalCOP} COP`);
                 window.open(`https://wa.me/${ADMIN_PHONE}?text=${msg}`, '_blank');
                 setCart({}); setView('success');
             };
@@ -184,7 +211,7 @@
                 return (
                     <div className="flex flex-col h-full bg-gray-100 fade-in w-full">
                         <HeaderNav title="Tu Carrito" onBack={() => setView('shop')} bgClass="bg-green-700" />
-                        <div className="flex-1 overflow-y-auto p-4 pb-6">
+                        <div className="flex-1 overflow-y-auto p-4 pb-20">
                             <div className="bg-white rounded-2xl shadow-sm p-4 mb-4">
                                 {Object.keys(cart).length === 0 ? <p className="text-center text-gray-500 text-sm py-4">El carrito está vacío</p> : null}
                                 {Object.keys(cart).map(name => (
@@ -194,7 +221,7 @@
                                     </div>
                                 ))}
                                 <div className="flex justify-between items-center py-3 text-xs text-orange-600 font-bold border-b border-gray-100">
-                                    <span>Delivery Básico (Casco Central)</span>
+                                    <span>Delivery (La Grita)</span>
                                     <span>+{deliveryFee.toLocaleString()} COP</span>
                                 </div>
                                 <div className="flex justify-between py-3 text-lg text-green-700 font-black"><span>TOTAL COP</span><span>{totalCOP.toLocaleString()} COP</span></div>
@@ -204,15 +231,15 @@
                                 <h3 className="font-bold text-xs text-center text-gray-500 mb-3">Moneda de Pago</h3>
                                 <div className="grid grid-cols-3 gap-2 mb-4">
                                     <button onClick={() => setPaymentCurrency('COP')} className={`py-3 rounded-lg font-bold text-xs border-2 ${paymentCurrency === 'COP' ? 'bg-green-100 border-green-500 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>COP</button>
-                                    <button onClick={() => setPaymentCurrency('VES')} className={`py-3 rounded-lg font-bold text-xs border-2 ${paymentCurrency === 'VES' ? 'bg-blue-100 border-blue-500 text-blue-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>VES</button>
-                                    <button onClick={() => setPaymentCurrency('USD')} className={`py-3 rounded-lg font-bold text-xs border-2 ${paymentCurrency === 'USD' ? 'bg-emerald-100 border-emerald-500 text-emerald-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>USD</button>
+                                    <button onClick={() => setPaymentCurrency('VES')} className={`py-3 rounded-lg font-bold text-xs border-2 ${paymentCurrency === 'VES' ? 'bg-blue-100 border-blue-500 text-blue-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>VES (×3.0)</button>
+                                    <button onClick={() => setPaymentCurrency('USD')} className={`py-3 rounded-lg font-bold text-xs border-2 ${paymentCurrency === 'USD' ? 'bg-emerald-100 border-emerald-500 text-emerald-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>USD (/3000)</button>
                                 </div>
                                 
                                 <div className="p-4 bg-gray-50 rounded-xl text-center border border-gray-200">
-                                    <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Monto Exacto a Pagar</p>
+                                    <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Monto a Pagar</p>
                                     {paymentCurrency === 'COP' && <p className="font-black text-green-700 text-2xl">{totalCOP.toLocaleString()} COP</p>}
-                                    {paymentCurrency === 'VES' && <p className="font-black text-blue-700 text-2xl">{totalVES} VES <span className="text-[10px] block font-normal text-gray-500 mt-1">(Tasa: {TASA_VES_COP})</span></p>}
-                                    {paymentCurrency === 'USD' && <p className="font-black text-emerald-700 text-2xl">${totalUSD} USD <span className="text-[10px] block font-normal text-gray-500 mt-1">(Tasa: {TASA_USD_COP})</span></p>}
+                                    {paymentCurrency === 'VES' && <p className="font-black text-blue-700 text-2xl">{totalVES} VES</p>}
+                                    {paymentCurrency === 'USD' && <p className="font-black text-emerald-700 text-2xl">${totalUSD} USD</p>}
                                 </div>
                             </div>
 
@@ -230,7 +257,7 @@
                         <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm border-t-8 border-green-600">
                             <div className="text-6xl mb-4">✅</div>
                             <h2 className="text-2xl font-black text-green-800 mb-2">¡Pedido Enviado!</h2>
-                            <p className="text-gray-600 mb-8 text-sm font-medium">El cajero ha recibido tu orden y se coordinará el envío a tu dirección de inmediato.</p>
+                            <p className="text-gray-600 mb-8 text-sm font-medium">El cajero ha recibido tu orden y se coordinará el envío.</p>
                             <div className="space-y-3">
                                 <button onClick={() => setView('shop')} className="w-full bg-green-600 text-white py-3.5 rounded-xl font-bold shadow-md">🛒 Hacer otro pedido</button>
                                 <button onClick={goBack} className="w-full border-2 border-gray-200 text-gray-700 py-3.5 rounded-xl font-bold bg-gray-50">🏠 Volver al Menú Principal</button>
@@ -241,6 +268,7 @@
             }
         };
 
+        // --- TRIP PLANNER & MAPS COMPONENT ---
         const TripPlanner = ({ user, type, onBack, triggerToast }) => {
             const mapRef = useRef(null);
             const mapInst = useRef(null);
@@ -252,19 +280,14 @@
             const [destText, setDestText] = useState('');
             const [originCoords, setOriginCoords] = useState(null);
             const [destCoords, setDestCoords] = useState(null);
-            
             const [priceCOP, setPriceCOP] = useState(0);
+            const [paymentCurrency, setPaymentCurrency] = useState('COP');
             const [isSearching, setIsSearching] = useState(false);
-            
-            // Campos de encomienda
             const [encDetails, setEncDetails] = useState({ queLleva: '', recibe: '', telRecibe: '' });
 
-            // Inicializar Mapa CON GOOGLE MAPS (Solución definitiva al error 403)
             useEffect(() => {
                 if (mapRef.current && !mapInst.current && view === 'planner') {
                     mapInst.current = L.map(mapRef.current, { zoomControl: false }).setView([8.1333, -71.9833], 15);
-                    
-                    // AQUI ESTA LA MAGIA: Mapas de Google directamente para evitar bloqueos
                     L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
                         maxZoom: 19, attribution: '© Google Maps'
                     }).addTo(mapInst.current);
@@ -283,7 +306,6 @@
                         else { setDestCoords(coords); triggerToast("Destino fijado 🏁", "success"); }
                         
                         mapInst.current.setView(coords, 16);
-                        
                         const iconHtml = isOrigin ? '🟢' : '🔴';
                         const marker = L.marker(coords, {
                             icon: L.divIcon({ className: 'custom-pin', html: iconHtml, iconSize: [30,30], iconAnchor: [15,30] })
@@ -293,7 +315,7 @@
                         if (isOrigin && destCoords) calculateRoute(coords, destCoords);
                         else if (!isOrigin && originCoords) calculateRoute(originCoords, coords);
                     } else {
-                        triggerToast("Lugar no encontrado. Sé más específico.", "error");
+                        triggerToast("Lugar no encontrado.", "error");
                     }
                 } catch (e) { triggerToast("Error de red", "error"); }
                 setIsSearching(false);
@@ -303,16 +325,13 @@
                 try {
                     const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${c1[1]},${c1[0]};${c2[1]},${c2[0]}?overview=full&geometries=geojson`);
                     const data = await res.json();
-                    
                     if (data.routes && data.routes.length > 0) {
                         if (routeLayer.current) mapInst.current.removeLayer(routeLayer.current);
-                        
                         const geojson = data.routes[0].geometry;
                         routeLayer.current = L.geoJSON(geojson, { style: { color: '#2563eb', weight: 5, opacity: 0.9 } }).addTo(mapInst.current);
                         mapInst.current.fitBounds(routeLayer.current.getBounds(), { padding: [40, 40] });
 
                         const dist = data.routes[0].distance;
-                        
                         let p = 5000;
                         if (dist > 2000) {
                             const extraKm = Math.ceil((dist - 2000) / 1000);
@@ -320,24 +339,20 @@
                         }
                         setPriceCOP(p);
                     }
-                } catch(e) { console.log(e); }
+                } catch(e) {}
             };
 
             const confirmRide = () => {
-                if (!originCoords || !destCoords) return triggerToast("Busca Origen y Destino en el mapa para calcular", "error");
+                if (!originCoords || !destCoords) return triggerToast("Busca Origen y Destino en el mapa", "error");
                 if (type === 'encomienda') setView('details'); 
-                else submitToSystem(); 
+                else submitTripToSystem(); 
             };
 
-            const submitToSystem = () => {
+            const submitTripToSystem = () => {
                 const isEnc = type === 'encomienda';
-                const totalVES = (priceCOP / TASA_VES_COP).toFixed(2);
+                const totalVES = (priceCOP * TASA_VES_COP).toFixed(2);
                 const totalUSD = (priceCOP / TASA_USD_COP).toFixed(2);
                 
-                const gMapsOrg = `https://www.google.com/maps?q=${originCoords[0]},${originCoords[1]}`;
-                const gMapsDst = `https://www.google.com/maps?q=${destCoords[0]},${destCoords[1]}`;
-
-                // Simular envío a Firebase para el Chofer
                 const tripData = {
                     id: Date.now(),
                     cliente: user.nombre,
@@ -348,21 +363,27 @@
                     tipo: isEnc ? 'Encomienda' : 'Pasajero',
                     detalles: isEnc ? encDetails : null,
                     coords: { o: originCoords, d: destCoords },
-                    fecha: new Date().toLocaleString()
+                    fecha: new Date().toLocaleString(),
+                    status: 'pending',
+                    assignedDriver: null,
+                    timer: 60
                 };
 
                 let pending = JSON.parse(localStorage.getItem('ubgrit_pending_trips') || '[]');
                 pending.push(tripData);
                 localStorage.setItem('ubgrit_pending_trips', JSON.stringify(pending));
 
-                let msg = `*🚀 NUEVA SOLICITUD DE ${isEnc ? 'ENCOMIENDA' : 'MOTO'} 🚀*%0A%0A`;
-                msg += `*Cliente/Local:* ${user.nombre}%0A*Teléfono:* ${user.telefono}%0A%0A`;
-                msg += `📍 *De:* ${originText}%0A🏁 *Para:* ${destText}%0A`;
-                if (isEnc) {
-                    msg += `%0A📦 *Lleva:* ${encDetails.queLleva}%0A👤 *Recibe:* ${encDetails.recibe} (${encDetails.telRecibe})%0A`;
-                }
-                msg += `%0A💵 *Costo Traslado:*%0A▪ ${priceCOP.toLocaleString()} COP%0A▪ ${totalVES} VES%0A▪ $${totalUSD} USD%0A`;
-                msg += `%0A🗺️ *GPS Origen:* ${gMapsOrg}%0A🗺️ *GPS Destino:* ${gMapsDst}`;
+                // Registrar en Google Sheets / Excel
+                const sheetUrl = "https://docs.google.com/forms/d/e/1FAIpQLSc88ZEOvIRyzvW19ezARvvuw_LlWgEz-_68mP-rZ5EdeJ5FEA/formResponse";
+                const fd = new URLSearchParams();
+                fd.append("entry.1573015066", user.nombre);
+                fd.append("entry.884395681", user.telefono);
+                fd.append("entry.592674770", `CARRERA: De ${originText} a ${destText} - Precio: ${priceCOP} COP`);
+                fetch(sheetUrl, { method: 'POST', mode: 'no-cors', body: fd }).catch(e => {});
+
+                let msg = `*🚀 NUEVO SERVICIO DE ${isEnc ? 'ENCOMIENDA' : 'MOTO'} 🚀*%0A%0A*Cliente:* ${user.nombre}%0A*Tel:* ${user.telefono}%0A📍 *De:* ${originText}%0A🏁 *Para:* ${destText}%0A`;
+                if (isEnc) msg += `📦 *Lleva:* ${encDetails.queLleva}%0A👤 *Recibe:* ${encDetails.recibe} (${encDetails.telRecibe})%0A`;
+                msg += `💵 *Costo:* ${priceCOP.toLocaleString()} COP (${paymentCurrency})`;
 
                 window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
                 setView('success');
@@ -377,13 +398,13 @@
                             <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden">
                                 <span className="p-3 bg-gray-50 text-green-500 font-black"><i className="fa-solid fa-circle-dot"></i></span>
                                 <input placeholder="¿Dónde estás? Ej: Plaza Bolívar" value={originText} onChange={e => setOriginText(e.target.value)} className="flex-1 p-3 text-sm outline-none font-medium text-gray-800" />
-                                <button onClick={() => geocodeAddress(originText, true)} disabled={isSearching} className="bg-blue-600 text-white px-4 font-bold text-xs hover:bg-blue-700">Buscar</button>
+                                <button onClick={() => geocodeAddress(originText, true)} disabled={isSearching} className="bg-blue-600 text-white px-4 font-bold text-xs">Buscar</button>
                             </div>
                             
                             <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden">
                                 <span className="p-3 bg-gray-50 text-red-500 font-black"><i className="fa-solid fa-location-dot"></i></span>
                                 <input placeholder="¿A dónde vas?" value={destText} onChange={e => setDestText(e.target.value)} className="flex-1 p-3 text-sm outline-none font-medium text-gray-800" />
-                                <button onClick={() => geocodeAddress(destText, false)} disabled={isSearching} className="bg-blue-600 text-white px-4 font-bold text-xs hover:bg-blue-700">Buscar</button>
+                                <button onClick={() => geocodeAddress(destText, false)} disabled={isSearching} className="bg-blue-600 text-white px-4 font-bold text-xs">Buscar</button>
                             </div>
                         </div>
 
@@ -391,22 +412,26 @@
                             <div ref={mapRef} className="absolute inset-0 w-full h-full"></div>
                         </div>
 
-                        <div className="bg-white p-6 shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-[400] shrink-0 rounded-t-3xl">
+                        <div className="bg-white p-6 shadow-2xl z-[400] shrink-0 rounded-t-3xl pb-24">
                             {priceCOP > 0 ? (
                                 <div className="mb-4 text-center">
-                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Costo Estimado Traslado</p>
-                                    <h3 className="text-3xl font-black text-green-600">{priceCOP.toLocaleString()} COP</h3>
-                                    <div className="flex justify-center gap-4 mt-2 text-xs font-bold text-gray-600">
-                                        <span>{(priceCOP / TASA_VES_COP).toFixed(2)} VES</span>
-                                        <span>|</span>
-                                        <span>${(priceCOP / TASA_USD_COP).toFixed(2)} USD</span>
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Costo Estimado</p>
+                                    <div className="flex justify-center gap-2 mb-3">
+                                        <button onClick={()=>setPaymentCurrency('COP')} className={`px-3 py-1 rounded text-xs font-bold ${paymentCurrency==='COP'?'bg-blue-600 text-white':'bg-gray-100'}`}>COP</button>
+                                        <button onClick={()=>setPaymentCurrency('VES')} className={`px-3 py-1 rounded text-xs font-bold ${paymentCurrency==='VES'?'bg-blue-600 text-white':'bg-gray-100'}`}>VES (×3.0)</button>
+                                        <button onClick={()=>setPaymentCurrency('USD')} className={`px-3 py-1 rounded text-xs font-bold ${paymentCurrency==='USD'?'bg-blue-600 text-white':'bg-gray-100'}`}>USD (/3000)</button>
                                     </div>
+                                    <h3 className="text-3xl font-black text-blue-600">
+                                        {paymentCurrency==='COP' && `${priceCOP.toLocaleString()} COP`}
+                                        {paymentCurrency==='VES' && `${(priceCOP * TASA_VES_COP).toFixed(2)} VES`}
+                                        {paymentCurrency==='USD' && `$${(priceCOP / TASA_USD_COP).toFixed(2)} USD`}
+                                    </h3>
                                 </div>
                             ) : (
-                                <p className="text-center text-xs font-bold text-gray-500 mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">Busca origen y destino para ver el precio.</p>
+                                <p className="text-center text-xs font-bold text-gray-500 mb-4 bg-gray-50 p-3 rounded-lg border">Busca origen y destino para calcular tarifa.</p>
                             )}
                             <button onClick={confirmRide} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg">
-                                {type === 'encomienda' ? 'Datos de Encomienda →' : 'Pedir Moto Ahora'}
+                                {type === 'encomienda' ? 'Continuar con Encomienda →' : 'Pedir Moto Ahora'}
                             </button>
                         </div>
                     </div>
@@ -418,19 +443,17 @@
                     <div className="flex flex-col h-full bg-gray-50 fade-in w-full">
                         <HeaderNav title="Datos de Encomienda" onBack={() => setView('planner')} bgClass="bg-blue-600" />
                         <div className="flex-1 p-5 overflow-y-auto">
-                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 space-y-4">
-                                <div className="bg-blue-50 p-3 rounded-lg text-xs font-bold text-blue-800 text-center mb-2">Tarifa Traslado: {priceCOP.toLocaleString()} COP.<br/>(El producto se cobra aparte)</div>
-                                
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border space-y-4">
                                 <div><label className="block text-xs font-black text-gray-500 uppercase mb-1">¿Qué se envía?</label>
-                                <input placeholder="Ej: Zapatos, Comida" value={encDetails.queLleva} onChange={e=>setEncDetails({...encDetails, queLleva: e.target.value})} className="w-full p-3 rounded-xl bg-gray-50 border-2 border-gray-200 outline-none" /></div>
+                                <input placeholder="Ej: Documentos, Paquete" value={encDetails.queLleva} onChange={e=>setEncDetails({...encDetails, queLleva: e.target.value})} className="w-full p-3 rounded-xl bg-gray-50 border outline-none" /></div>
                                 
-                                <div><label className="block text-xs font-black text-gray-500 uppercase mb-1 mt-2">Quién Recibe</label>
-                                <input placeholder="Nombre y Apellido" value={encDetails.recibe} onChange={e=>setEncDetails({...encDetails, recibe: e.target.value})} className="w-full p-3 rounded-xl bg-gray-50 border-2 border-gray-200 outline-none" /></div>
+                                <div><label className="block text-xs font-black text-gray-500 uppercase mb-1">Quién Recibe</label>
+                                <input placeholder="Nombre y Apellido" value={encDetails.recibe} onChange={e=>setEncDetails({...encDetails, recibe: e.target.value})} className="w-full p-3 rounded-xl bg-gray-50 border outline-none" /></div>
                                 
-                                <div><label className="block text-xs font-black text-gray-500 uppercase mb-1 mt-2">Teléfono destino</label>
-                                <input placeholder="Ej: 04141234567" type="tel" value={encDetails.telRecibe} onChange={e=>setEncDetails({...encDetails, telRecibe: e.target.value})} className="w-full p-3 rounded-xl bg-gray-50 border-2 border-gray-200 outline-none" /></div>
+                                <div><label className="block text-xs font-black text-gray-500 uppercase mb-1">Teléfono Destino</label>
+                                <input placeholder="Ej: 04141234567" type="tel" value={encDetails.telRecibe} onChange={e=>setEncDetails({...encDetails, telRecibe: e.target.value})} className="w-full p-3 rounded-xl bg-gray-50 border outline-none" /></div>
                                 
-                                <button onClick={submitToSystem} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg mt-6">Confirmar Envío</button>
+                                <button onClick={submitTripToSystem} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg mt-6">Confirmar Envío</button>
                             </div>
                         </div>
                     </div>
@@ -441,11 +464,11 @@
                 return (
                     <div className="flex flex-col h-full bg-blue-50 fade-in w-full items-center justify-center p-6 text-center">
                         <div className="bg-white p-8 rounded-3xl shadow-xl w-full border-t-8 border-blue-600">
-                            <div className="text-6xl mb-4">🏍️</div>
+                            <div className="text-6xl mb-4">🚀</div>
                             <h2 className="text-2xl font-black text-blue-800 mb-2">¡Solicitud Enviada!</h2>
-                            <p className="text-gray-600 mb-8 text-sm font-medium">Un chofer recibirá la alerta en su pantalla y pasará por ti.</p>
+                            <p className="text-gray-600 mb-8 text-sm font-medium">Un chofer verificado en línea ha sido asignado por la central.</p>
                             <div className="space-y-3">
-                                <button onClick={() => { setView('planner'); setOriginText(''); setDestText(''); setPriceCOP(0); setOriginCoords(null); setDestCoords(null); }} className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold shadow-md">📍 Pedir otro viaje</button>
+                                <button onClick={() => { setView('planner'); setPriceCOP(0); setOriginCoords(null); setDestCoords(null); }} className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold shadow-md">📍 Pedir otro viaje</button>
                                 <button onClick={onBack} className="w-full border-2 border-gray-200 text-gray-700 py-3.5 rounded-xl font-bold bg-gray-50">🏠 Volver al Menú</button>
                             </div>
                         </div>
@@ -454,11 +477,13 @@
             }
         };
 
+        // --- DRIVER DASHBOARD WITH 60s TIMEOUT REALLOCATION ---
         const DriverDashboard = ({ user, goBack, triggerToast }) => {
             const [activeTrip, setActiveTrip] = useState(null);
             const [history, setHistory] = useState([]);
             const [pendingTrip, setPendingTrip] = useState(null);
-            const [view, setView] = useState('dash'); 
+            const [view, setView] = useState('dash');
+            const [timeLeft, setTimeLeft] = useState(60);
 
             useEffect(() => {
                 const storedHistory = JSON.parse(localStorage.getItem(`ubgrit_history_${user.nombre}`) || '[]');
@@ -469,13 +494,31 @@
                 const pollTimer = setInterval(() => {
                     const pendings = JSON.parse(localStorage.getItem('ubgrit_pending_trips') || '[]');
                     if (pendings.length > 0 && !storedActive && !activeTrip) {
-                        setPendingTrip(pendings[0]); 
-                    } else {
-                        setPendingTrip(null);
+                        setPendingTrip(pendings[0]);
                     }
-                }, 3000);
+                }, 2000);
                 return () => clearInterval(pollTimer);
             }, [activeTrip]);
+
+            // 60s timer countdown for driver
+            useEffect(() => {
+                let timer;
+                if (pendingTrip) {
+                    setTimeLeft(60);
+                    timer = setInterval(() => {
+                        setTimeLeft(prev => {
+                            if (prev <= 1) {
+                                clearInterval(timer);
+                                setPendingTrip(null);
+                                triggerToast("Tiempo agotado (60s). Asignando a otro chofer...", "error");
+                                return 0;
+                            }
+                            return prev - 1;
+                        });
+                    }, 1000);
+                }
+                return () => clearInterval(timer);
+            }, [pendingTrip]);
 
             const acceptTrip = () => {
                 if (!pendingTrip) return;
@@ -486,7 +529,7 @@
                 setActiveTrip(pendingTrip);
                 localStorage.setItem(`ubgrit_active_${user.nombre}`, JSON.stringify(pendingTrip));
                 setPendingTrip(null);
-                triggerToast("¡Viaje Aceptado! Se guardó en tu pantalla.", "success");
+                triggerToast("¡Viaje Aceptado!", "success");
             };
 
             const finishTrip = () => {
@@ -497,35 +540,35 @@
                 
                 setActiveTrip(null);
                 localStorage.removeItem(`ubgrit_active_${user.nombre}`);
-                triggerToast("Viaje completado y guardado en Billetera.", "success");
+                triggerToast("Viaje completado y registrado.", "success");
             };
 
             const totalGenerado = history.reduce((sum, t) => sum + t.precio, 0);
-            const totalDeuda = totalGenerado * 0.10; 
+            const totalDeuda = totalGenerado * 0.10;
 
             if (view === 'history') {
                 return (
                     <div className="flex flex-col h-full bg-gray-100 w-full fade-in">
-                        <HeaderNav title="Mi Billetera" onBack={() => setView('dash')} bgClass="bg-black" />
-                        <div className="p-5 flex-1 overflow-y-auto">
+                        <HeaderNav title="Mi Billetera & Historial" onBack={() => setView('dash')} bgClass="bg-black" />
+                        <div className="p-5 flex-1 overflow-y-auto pb-20">
                             <div className="bg-black p-5 rounded-2xl text-white shadow-lg mb-6">
-                                <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">Total Generado (Ventas)</p>
+                                <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">Total Generado</p>
                                 <h3 className="text-3xl font-black text-green-400 mb-4">{totalGenerado.toLocaleString()} COP</h3>
                                 <div className="bg-red-500/20 border border-red-500/50 p-3 rounded-xl">
-                                    <p className="text-[10px] uppercase font-bold text-red-300">Deuda Admin (10%)</p>
+                                    <p className="text-[10px] uppercase font-bold text-red-300">Comisión Admin (10% Mensual)</p>
                                     <p className="text-xl font-black text-red-400">{totalDeuda.toLocaleString()} COP</p>
                                 </div>
                             </div>
-                            <h3 className="font-bold text-gray-800 mb-3 text-sm">Viajes Completados</h3>
+                            <h3 className="font-bold text-gray-800 mb-3 text-sm">Historial de Servicios</h3>
                             <div className="space-y-3">
                                 {history.map(t => (
-                                    <div key={t.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                                    <div key={t.id} className="bg-white p-4 rounded-xl shadow-sm border">
                                         <div className="flex justify-between border-b pb-2 mb-2">
                                             <span className="font-bold text-xs">{t.tipo}</span>
                                             <span className="font-black text-green-700 text-xs">{t.precio.toLocaleString()} COP</span>
                                         </div>
-                                        <p className="text-[10px] text-gray-500 truncate">De: {t.origen}</p>
-                                        <p className="text-[10px] text-gray-500 truncate">A: {t.destino}</p>
+                                        <p className="text-[10px] text-gray-500">De: {t.origen}</p>
+                                        <p className="text-[10px] text-gray-500">A: {t.destino}</p>
                                     </div>
                                 ))}
                             </div>
@@ -537,56 +580,49 @@
             return (
                 <div className="flex flex-col h-full bg-gray-100 w-full fade-in relative">
                     <div className="bg-black text-white p-4 sticky top-0 z-20 flex justify-between items-center shadow-md">
-                        <div><h1 className="font-black text-lg leading-none">Chofer</h1><p className="text-[9px] text-gray-400 font-bold uppercase">{user.nombre}</p></div>
+                        <div><h1 className="font-black text-lg leading-none">Panel Chofer</h1><p className="text-[9px] text-gray-400 font-bold uppercase">{user.nombre}</p></div>
                         <div className="flex items-center gap-3">
                             <button onClick={() => setView('history')} className="text-xs bg-gray-800 px-3 py-1.5 rounded-lg font-bold border border-gray-700">💰 Billetera</button>
                             <button onClick={goBack} className="text-red-400 text-xl"><i className="fa-solid fa-power-off"></i></button>
                         </div>
                     </div>
 
-                    <div className="p-4 flex-1 overflow-y-auto">
+                    <div className="p-4 flex-1 overflow-y-auto pb-20">
                         {activeTrip ? (
                             <div className="bg-white rounded-3xl shadow-xl overflow-hidden border-2 border-blue-500 mb-6">
-                                <div className="bg-blue-600 p-3 text-white text-center font-black text-sm uppercase">Viaje Activo</div>
+                                <div className="bg-blue-600 p-3 text-white text-center font-black text-sm uppercase">Viaje Activo (No se borrará hasta finalizar)</div>
                                 <div className="p-4 space-y-3 text-sm">
                                     <p className="font-bold text-gray-800">👤 {activeTrip.cliente} <a href={`tel:${activeTrip.telefono}`} className="text-blue-500 ml-2 underline">Llamar</a></p>
-                                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                                    <div className="bg-gray-50 p-3 rounded-xl border">
                                         <p className="font-bold text-gray-700 text-xs mb-2">📍 Origen: {activeTrip.origen}</p>
                                         <p className="font-bold text-gray-700 text-xs">🏁 Destino: {activeTrip.destino}</p>
                                     </div>
-                                    {activeTrip.tipo === 'Encomienda' && (
-                                        <div className="bg-orange-50 border border-orange-200 p-3 rounded-xl">
-                                            <p className="font-black text-orange-800 text-xs mb-1">📦 Encomienda</p>
-                                            <p className="text-xs text-gray-700">Lleva: {activeTrip.detalles.queLleva}</p>
-                                            <p className="text-xs text-gray-700">Recibe: {activeTrip.detalles.recibe} ({activeTrip.detalles.telRecibe})</p>
-                                        </div>
-                                    )}
                                     <div className="text-center bg-green-50 p-3 rounded-xl border border-green-200">
                                         <p className="text-[10px] font-black text-gray-400 uppercase">Cobrar</p>
                                         <p className="text-2xl font-black text-green-700">{activeTrip.precio.toLocaleString()} COP</p>
                                     </div>
-                                    
                                     <div className="grid grid-cols-2 gap-2">
-                                        <button onClick={() => window.open(`https://www.google.com/maps?q=${activeTrip.coords.o[0]},${activeTrip.coords.o[1]}`, '_blank')} className="bg-gray-800 text-white py-3 rounded-xl font-bold text-xs"><i className="fa-solid fa-location-arrow"></i> Navegar Origen</button>
-                                        <button onClick={() => window.open(`https://www.google.com/maps?q=${activeTrip.coords.d[0]},${activeTrip.coords.d[1]}`, '_blank')} className="bg-blue-600 text-white py-3 rounded-xl font-bold text-xs"><i className="fa-solid fa-flag-checkered"></i> Navegar Destino</button>
+                                        <button onClick={() => window.open(`https://www.google.com/maps?q=${activeTrip.coords.o[0]},${activeTrip.coords.o[1]}`, '_blank')} className="bg-gray-800 text-white py-3 rounded-xl font-bold text-xs">Navegar Origen</button>
+                                        <button onClick={() => window.open(`https://www.google.com/maps?q=${activeTrip.coords.d[0]},${activeTrip.coords.d[1]}`, '_blank')} className="bg-blue-600 text-white py-3 rounded-xl font-bold text-xs">Navegar Destino</button>
                                     </div>
                                     <button onClick={finishTrip} className="w-full bg-green-500 text-white py-4 rounded-xl font-black mt-2">✅ Finalizar y Guardar Viaje</button>
                                 </div>
                             </div>
                         ) : pendingTrip ? (
-                            <div className="bg-yellow-400 rounded-3xl shadow-xl p-6 text-center animate-pulse border-4 border-white">
-                                <h3 className="font-black text-xl mb-4 text-black">NUEVO VIAJE</h3>
-                                <div className="bg-white p-4 rounded-xl text-left text-xs mb-4 font-medium">
+                            <div className="bg-yellow-400 rounded-3xl shadow-xl p-6 text-center border-4 border-white animate-pulse">
+                                <h3 className="font-black text-xl mb-2 text-black">NUEVO VIAJE ASIGNADO</h3>
+                                <p className="text-sm font-bold text-red-700 mb-4">Tiempo para responder: {timeLeft}s</p>
+                                <div className="bg-white p-4 rounded-xl text-left text-xs mb-4">
                                     <p><strong>De:</strong> {pendingTrip.origen}</p>
                                     <p><strong>Para:</strong> {pendingTrip.destino}</p>
-                                    <p className="font-black text-green-600 text-lg mt-2 text-center border-t pt-2">{pendingTrip.precio.toLocaleString()} COP</p>
+                                    <p className="font-black text-green-600 text-lg mt-2 text-center">{pendingTrip.precio.toLocaleString()} COP</p>
                                 </div>
-                                <button onClick={acceptTrip} className="w-full bg-black text-white py-4 rounded-xl font-black text-lg shadow-lg">Aceptar (60s)</button>
+                                <button onClick={acceptTrip} className="w-full bg-black text-white py-4 rounded-xl font-black text-lg shadow-lg">Aceptar Viaje</button>
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-64 opacity-50">
                                 <i className="fa-solid fa-satellite-dish text-5xl mb-4"></i>
-                                <p className="font-bold text-gray-500 text-center">Buscando viajes...<br/>Mantén la app abierta.</p>
+                                <p className="font-bold text-gray-500 text-center">Buscando viajes asignados...<br/>Estás En Línea.</p>
                             </div>
                         )}
                     </div>
@@ -594,35 +630,164 @@
             );
         };
 
+        // --- ADMIN PANEL WITH 20s REPEATING ALARM & BELL NOTIFICATIONS ---
+        const AdminPanel = ({ onBack }) => {
+            const [drivers, setDrivers] = useState([]);
+            const [pendingTrips, setPendingTrips] = useState([]);
+
+            useEffect(() => {
+                const loadAdminData = () => {
+                    const allUsers = JSON.parse(localStorage.getItem('ubgrit_registered_users') || '[]');
+                    setDrivers(allUsers.filter(u => u.role === 'driver'));
+                    const pendings = JSON.parse(localStorage.getItem('ubgrit_pending_trips') || '[]');
+                    setPendingTrips(pendings);
+                };
+                loadAdminData();
+                const timer = setInterval(loadAdminData, 3000);
+                return () => clearInterval(timer);
+            }, []);
+
+            // Repeating alarm bell every 20 seconds if there are pending trips
+            useEffect(() => {
+                const alarmTimer = setInterval(() => {
+                    const pendings = JSON.parse(localStorage.getItem('ubgrit_pending_trips') || '[]');
+                    if (pendings.length > 0) {
+                        playBeep();
+                    }
+                }, 20000);
+                return () => clearInterval(alarmTimer);
+            }, []);
+
+            const toggleDriverVerification = (email) => {
+                let allUsers = JSON.parse(localStorage.getItem('ubgrit_registered_users') || '[]');
+                allUsers = allUsers.map(u => {
+                    if (u.email === email) u.verified = !u.verified;
+                    return u;
+                });
+                localStorage.setItem('ubgrit_registered_users', JSON.stringify(allUsers));
+                setDrivers(allUsers.filter(u => u.role === 'driver'));
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-gray-100 w-full fade-in">
+                    <HeaderNav title="Panel Administrador" onBack={onBack} bgClass="bg-red-600" />
+                    <div className="p-4 flex-1 overflow-y-auto pb-20 space-y-6">
+                        <div className="bg-white p-4 rounded-2xl shadow-sm border">
+                            <h3 className="font-black text-sm text-red-600 mb-3 flex items-center justify-between">
+                                <span>🔔 Solicitudes Activas</span>
+                                <span className="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded-full">{pendingTrips.length}</span>
+                            </h3>
+                            {pendingTrips.length === 0 ? <p className="text-xs text-gray-400">No hay solicitudes pendientes.</p> : (
+                                pendingTrips.map(t => (
+                                    <div key={t.id} className="p-3 bg-red-50 rounded-xl mb-2 text-xs font-bold border border-red-200">
+                                        <p>{t.tipo}: {t.origen} → {t.destino}</p>
+                                        <p className="text-green-700 mt-1">{t.precio.toLocaleString()} COP</p>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div className="bg-white p-4 rounded-2xl shadow-sm border">
+                            <h3 className="font-black text-sm text-gray-800 mb-3">Gestión de Choferes (Verificación)</h3>
+                            {drivers.length === 0 ? <p className="text-xs text-gray-400">No hay choferes registrados.</p> : (
+                                drivers.map(d => {
+                                    const history = JSON.parse(localStorage.getItem(`ubgrit_history_${d.nombre}`) || '[]');
+                                    const totalGen = history.reduce((s, x) => s + x.precio, 0);
+                                    const comision = totalGen * 0.10;
+                                    return (
+                                        <div key={d.email} className="p-3 bg-gray-50 rounded-xl mb-3 border">
+                                            <p className="font-bold text-xs">{d.nombre} ({d.telefono})</p>
+                                            <p className="text-[10px] text-gray-500">Moto: {d.modelo} - Placa: {d.placa}</p>
+                                            <p className="text-[10px] text-green-700 font-bold mt-1">Generado: {totalGen.toLocaleString()} COP | Comisión (10%): {comision.toLocaleString()} COP</p>
+                                            <div className="mt-2 flex justify-between items-center">
+                                                <span className={`text-[10px] font-bold px-2 py-1 rounded ${d.verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                    {d.verified ? 'Verificado & Habilitado' : 'Pendiente de Aprobación'}
+                                                </span>
+                                                <button onClick={() => toggleDriverVerification(d.email)} className={`text-xs px-3 py-1.5 rounded font-bold text-white ${d.verified ? 'bg-red-600' : 'bg-green-600'}`}>
+                                                    {d.verified ? 'Revocar' : 'Aprobar Chofer'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP CONTROLLER ---
         function App() {
             const [view, setView] = useState('splash');
             const [user, setUser] = useState(null);
-            const [authRole, setAuthRole] = useState(''); 
+            const [authRole, setAuthRole] = useState('');
+            const [isLoginMode, setIsLoginMode] = useState(false);
             const [formData, setFormData] = useState({});
             const [toast, setToast] = useState(null);
 
             useEffect(() => {
-                const savedUser = localStorage.getItem('motoubgrit_user');
-                if (savedUser) setUser(JSON.parse(savedUser));
+                const savedUser = localStorage.getItem('motoubgrit_current_user');
+                if (savedUser) {
+                    setUser(JSON.parse(savedUser));
+                }
                 setTimeout(() => { if (view === 'splash') setView('menu'); }, 3000);
             }, []);
 
-            // Corrección al error de registro (handleInputChange)
             const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
             
             const triggerToast = (message, type = 'info') => {
                 setToast({ message, type }); setTimeout(() => setToast(null), 3500);
             };
 
-            const handleRegister = (e) => {
+            const handleAuthSubmit = (e) => {
                 e.preventDefault();
-                const finalUser = { ...formData, role: authRole, createdAt: new Date().getTime(), email: formData.email || `user_${Date.now()}` };
-                setUser(finalUser); localStorage.setItem('motoubgrit_user', JSON.stringify(finalUser));
-                
-                if (authRole === 'driver') setView('driver_rules');
-                else if (authRole === 'market') setView('market_view');
-                else if (authRole === 'store') setView('encomienda_view');
+                let registeredUsers = JSON.parse(localStorage.getItem('ubgrit_registered_users') || '[]');
+
+                if (isLoginMode) {
+                    const found = registeredUsers.find(u => u.email === formData.email && u.password === formData.password && u.role === authRole);
+                    if (found) {
+                        if (authRole === 'driver' && !found.verified) {
+                            return triggerToast("Tu cuenta de chofer aún no ha sido verificada por el administrador.", "error");
+                        }
+                        setUser(found);
+                        localStorage.setItem('motoubgrit_current_user', JSON.stringify(found));
+                        navigateUser(found.role);
+                    } else {
+                        triggerToast("Correo, contraseña o rol incorrectos.", "error");
+                    }
+                } else {
+                    const exists = registeredUsers.find(u => u.email === formData.email);
+                    if (exists) return triggerToast("Este correo ya está registrado. Inicia sesión.", "error");
+
+                    const newUser = { 
+                        ...formData, 
+                        role: authRole, 
+                        verified: authRole === 'driver' ? false : true, 
+                        createdAt: Date.now() 
+                    };
+                    registeredUsers.push(newUser);
+                    localStorage.setItem('ubgrit_registered_users', JSON.stringify(registeredUsers));
+                    
+                    setUser(newUser);
+                    localStorage.setItem('motoubgrit_current_user', JSON.stringify(newUser));
+                    
+                    if (authRole === 'driver') setView('driver_rules');
+                    else navigateUser(authRole);
+                }
+            };
+
+            const navigateUser = (role) => {
+                if (role === 'driver') setView('driver_dashboard');
+                else if (role === 'market') setView('market_view');
+                else if (role === 'store') setView('encomienda_view');
                 else setView('client_view');
+            };
+
+            const logout = () => {
+                localStorage.removeItem('motoubgrit_current_user');
+                setUser(null);
+                setView('menu');
             };
 
             const ToastComponent = () => {
@@ -638,23 +803,18 @@
             if (view === 'splash') {
                 return (
                     <div className="flex flex-col items-center justify-center h-full bg-[#0b0f19] fade-in w-full relative overflow-hidden">
-                        {/* Efecto de luz de fondo */}
                         <div className="absolute inset-0 flex items-center justify-center opacity-10">
                             <div className="w-96 h-96 bg-grita-red rounded-full blur-3xl animate-pulse"></div>
                         </div>
-                        
                         <div className="z-10 flex flex-col items-center">
                             <div className="w-28 h-28 bg-grita-red rounded-full flex items-center justify-center mb-6 animate-logo shadow-[0_0_30px_rgba(220,38,38,0.5)] border-4 border-white/10">
                                 <i className="fa-solid fa-motorcycle text-5xl text-white"></i>
                             </div>
-                            <h1 className="text-4xl font-black mb-4 text-white tracking-tight drop-shadow-lg">Moto UBGrit</h1>
-                            
-                            <div className="bg-black/50 backdrop-blur-md p-5 rounded-2xl border border-white/10 mx-6 shadow-2xl">
-                                <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.15em] text-center leading-relaxed">
-                                    Tu traslado / Encomienda /<br/>Mercado / Medicamento
-                                    <span className="text-grita-red mt-2 block text-xs tracking-widest font-black drop-shadow-md">RÁPIDO Y SEGURO</span>
-                                </p>
-                            </div>
+                            <h1 className="text-4xl font-black mb-2 text-white tracking-tight">Moto UBGrit</h1>
+                            <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest text-center px-4 leading-relaxed">
+                                Tu Traslado / Encomienda / Mercado / Medicamento<br/>
+                                <span className="text-grita-red text-xs mt-1 block">Rápido y Seguro</span>
+                            </p>
                         </div>
                     </div>
                 );
@@ -664,23 +824,32 @@
                 return (
                     <div className="flex flex-col h-full bg-[#0b0f19] fade-in w-full relative">
                         <ToastComponent />
+                        <div className="absolute top-4 right-4 z-20">
+                            <button onClick={() => setView('admin_panel')} className="bg-white/10 text-white p-2.5 rounded-full hover:bg-white/20 border border-white/20 text-xs font-bold">
+                                ⚙️ Admin
+                            </button>
+                        </div>
                         <div className="flex-grow flex flex-col items-center justify-center p-6 text-center">
-                            <div className="w-20 h-20 bg-grita-red rounded-full flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(220,38,38,0.5)] border-2 border-white/20 animate-logo"><i className="fa-solid fa-motorcycle text-3xl text-white"></i></div>
-                            <h1 className="text-3xl font-black mb-1 text-white tracking-tight">Moto UBGrit</h1>
-                            <p className="text-[10px] text-gray-300 font-bold mb-6 tracking-widest uppercase leading-relaxed text-center">
+                            <div className="w-20 h-20 bg-grita-red rounded-full flex items-center justify-center mb-4 shadow-xl border-2 border-white/20 animate-logo"><i className="fa-solid fa-motorcycle text-3xl text-white"></i></div>
+                            <h1 className="text-3xl font-black mb-1 text-white">Moto UBGrit</h1>
+                            <p className="text-[10px] text-gray-300 font-bold mb-6 uppercase tracking-widest leading-relaxed">
                                 Tu Traslado / Encomienda / Mercado / Medicamento<br/>
-                                <span className="text-grita-red text-xs mt-1 block drop-shadow-md">Rápido y Seguro</span>
+                                <span className="text-grita-red text-xs mt-1 block">Rápido y Seguro</span>
                             </p>
                             
                             <div className="space-y-3 w-full">
-                                <button onClick={() => { setAuthRole('client'); setView(user?.role==='client'?'client_view':'auth'); }} className="w-full bg-white text-black font-black py-4 rounded-2xl shadow-md text-xs hover:scale-[1.02] transition flex justify-center items-center gap-2"><i className="fa-solid fa-user"></i> Soy Cliente</button>
-                                <button onClick={() => { setAuthRole('store'); setView(user?.role==='store'?'encomienda_view':'auth'); }} className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-md text-xs hover:scale-[1.02] transition flex justify-center items-center gap-2"><i className="fa-solid fa-box"></i> Local (Encomiendas)</button>
-                                <button onClick={() => { setAuthRole('market'); setView(user?.role==='market'?'market_view':'auth'); }} className="w-full bg-green-600 text-white font-bold py-4 rounded-2xl shadow-md text-xs hover:scale-[1.02] transition flex justify-center items-center gap-2"><i className="fa-solid fa-basket-shopping"></i> Mercado en Casa</button>
-                                
-                                <button onClick={() => { triggerToast('Módulo de Farmacia en desarrollo.', 'info'); }} className="w-full bg-purple-600 text-white font-bold py-4 rounded-2xl shadow-md text-xs hover:bg-purple-500 transition flex justify-center items-center gap-2"><i className="fa-solid fa-notes-medical"></i> Farmacia (Próximamente)</button>
-                                
-                                <button onClick={() => { setAuthRole('driver'); setView(user?.role==='driver'?'driver_dashboard':'auth'); }} className="w-full bg-[#1a1a1a] border border-gray-800 text-gray-300 py-4 rounded-2xl font-bold mt-6 text-xs transition flex justify-center items-center gap-2"><i className="fa-solid fa-motorcycle"></i> Panel Conductor</button>
+                                <button onClick={() => { setAuthRole('client'); setView(user && user.role==='client' ? 'client_view' : 'auth'); setIsLoginMode(false); }} className="w-full bg-white text-black font-black py-4 rounded-2xl shadow-md text-xs hover:scale-[1.02] transition flex justify-center items-center gap-2"><i className="fa-solid fa-user"></i> Soy Cliente</button>
+                                <button onClick={() => { setAuthRole('store'); setView(user && user.role==='store' ? 'encomienda_view' : 'auth'); setIsLoginMode(false); }} className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-md text-xs hover:scale-[1.02] transition flex justify-center items-center gap-2"><i className="fa-solid fa-box"></i> Local (Encomiendas)</button>
+                                <button onClick={() => { setAuthRole('market'); setView(user && user.role==='market' ? 'market_view' : 'auth'); setIsLoginMode(false); }} className="w-full bg-green-600 text-white font-bold py-4 rounded-2xl shadow-md text-xs hover:scale-[1.02] transition flex justify-center items-center gap-2"><i className="fa-solid fa-basket-shopping"></i> Mercado en Casa</button>
+                                <button onClick={() => triggerToast('Módulo de Farmacia en desarrollo.', 'info')} className="w-full bg-purple-600 text-white font-bold py-4 rounded-2xl shadow-md text-xs hover:bg-purple-500 transition flex justify-center items-center gap-2"><i className="fa-solid fa-notes-medical"></i> Farmacia (Próximamente)</button>
+                                <button onClick={() => { setAuthRole('driver'); setView(user && user.role==='driver' ? 'driver_dashboard' : 'auth'); setIsLoginMode(false); }} className="w-full bg-[#1a1a1a] border border-gray-800 text-gray-300 py-4 rounded-2xl font-bold mt-2 text-xs transition flex justify-center items-center gap-2"><i className="fa-solid fa-motorcycle"></i> Panel Conductor</button>
                             </div>
+                            
+                            {user && (
+                                <button onClick={logout} className="mt-4 text-red-400 text-xs font-bold underline">
+                                    Cerrar Sesión ({user.nombre})
+                                </button>
+                            )}
                         </div>
                     </div>
                 );
@@ -689,29 +858,38 @@
             if (view === 'auth') {
                 return (
                     <div className="flex flex-col h-full bg-[#0b0f19] fade-in w-full">
-                        <HeaderNav title="Registro" onBack={() => setView('menu')} />
+                        <HeaderNav title={isLoginMode ? "Iniciar Sesión" : "Registro"} onBack={() => setView('menu')} />
                         <div className="flex-1 p-6 flex flex-col justify-center overflow-y-auto">
-                            <form onSubmit={handleRegister} className="bg-white p-6 rounded-3xl shadow-xl space-y-4">
-                                <h3 className="font-black text-center text-xl text-black mb-4">{authRole === 'store' ? 'Datos del Local' : 'Tus Datos'}</h3>
+                            <form onSubmit={handleAuthSubmit} className="bg-white p-6 rounded-3xl shadow-xl space-y-4">
+                                <h3 className="font-black text-center text-xl text-black mb-2">{isLoginMode ? "Bienvenido de nuevo" : "Crea tu Cuenta"}</h3>
+                                
                                 <input required name="email" type="email" placeholder="Correo electrónico" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none" />
                                 <input required name="password" type="password" placeholder="Contraseña" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none" />
-                                <input required name="nombre" placeholder={authRole === 'store' ? "Nombre del Local" : "Nombre completo"} onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none" />
-                                <input required name="telefono" type="tel" placeholder="WhatsApp" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none" />
                                 
-                                {authRole === 'driver' && (
-                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
-                                        <p className="text-[10px] font-black text-gray-500 uppercase text-center">Vehículo</p>
-                                        <input required name="placa" placeholder="Placa de la Moto" onChange={handleInputChange} className="w-full p-3 border-b border-gray-300 bg-transparent text-sm outline-none" />
-                                        <input required name="modelo" placeholder="Modelo y Año" onChange={handleInputChange} className="w-full p-3 border-b border-gray-300 bg-transparent text-sm outline-none" />
-                                    </div>
+                                {!isLoginMode && (
+                                    <>
+                                        <input required name="nombre" placeholder={authRole === 'store' ? "Nombre del Local" : "Nombre completo"} onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none" />
+                                        <input required name="telefono" type="tel" placeholder="WhatsApp" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none" />
+                                        {authRole === 'driver' && (
+                                            <div className="p-4 bg-gray-50 rounded-2xl border space-y-3">
+                                                <p className="text-[10px] font-black text-gray-500 uppercase text-center">Datos del Vehículo</p>
+                                                <input required name="placa" placeholder="Placa de la Moto" onChange={handleInputChange} className="w-full p-3 border-b bg-transparent text-sm outline-none" />
+                                                <input required name="modelo" placeholder="Modelo y Año" onChange={handleInputChange} className="w-full p-3 border-b bg-transparent text-sm outline-none" />
+                                            </div>
+                                        )}
+                                        <textarea required name="direccion" placeholder="Dirección exacta" onChange={handleInputChange} className="w-full p-4 border rounded-2xl bg-gray-50 text-sm outline-none h-20" />
+                                    </>
                                 )}
-                                <textarea required name="direccion" placeholder="Dirección exacta" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 text-sm outline-none h-24" />
                                 
-                                <button type="submit" className="w-full bg-grita-red text-white py-4 rounded-2xl font-black shadow-lg text-lg mt-4">Completar Registro</button>
-                                
-                                <button type="button" onClick={() => setView('menu')} className="w-full text-center text-gray-500 font-bold text-sm mt-3 py-2 underline">
-                                    ← Cancelar y Volver
+                                <button type="submit" className="w-full bg-grita-red text-white py-4 rounded-2xl font-black shadow-lg text-lg mt-2">
+                                    {isLoginMode ? "Entrar" : "Completar Registro"}
                                 </button>
+                                
+                                <div className="text-center mt-3">
+                                    <button type="button" onClick={() => setIsLoginMode(!isLoginMode)} className="text-blue-600 text-xs font-bold underline">
+                                        {isLoginMode ? "¿No tienes cuenta? Regístrate aquí" : "¿Ya estás registrado? Inicia sesión"}
+                                    </button>
+                                </div>
                             </form>
                         </div>
                     </div>
@@ -724,14 +902,14 @@
                         <div className="bg-white p-6 rounded-3xl shadow-2xl w-full border-t-8 border-yellow-400 overflow-y-auto text-center">
                             <i className="fa-solid fa-triangle-exclamation text-5xl text-yellow-500 mb-3"></i>
                             <h2 className="text-xl font-black text-black mb-4">REGLAS DEL CONDUCTOR</h2>
-                            <div className="text-left font-bold text-gray-700 space-y-3 mb-6 bg-gray-50 p-5 rounded-2xl text-[11px] border border-gray-200 shadow-inner">
-                                <p><span className="text-red-500">1.</span> <strong>Cobro:</strong> SOLO cobras la tarifa del traslado.</p>
-                                <p><span className="text-red-500">2.</span> <strong>Seguridad:</strong> Uso obligatorio de CASCO y CESTA.</p>
-                                <p><span className="text-red-500">3.</span> <strong>Tiempos:</strong> 60s para aceptar viaje asignado.</p>
-                                <p><span className="text-red-500">4.</span> <strong>Pagos:</strong> Comisión del 10% mensual a la central.</p>
+                            <div className="text-left font-bold text-gray-700 space-y-3 mb-6 bg-gray-50 p-5 rounded-2xl text-[11px] border shadow-inner">
+                                <p><span className="text-red-500">1.</span> <strong>Cobro:</strong> Solo cobras el traslado.</p>
+                                <p><span className="text-red-500">2.</span> <strong>Seguridad:</strong> Casco obligatorio (chofer y pasajero) + cesta para encomiendas.</p>
+                                <p><span className="text-red-500">3.</span> <strong>Tiempos:</strong> 60s para aceptar carrera asignada.</p>
+                                <p><span className="text-red-500">4.</span> <strong>Comisión:</strong> 10% mensual al administrador.</p>
                             </div>
-                            <button onClick={() => { window.open(`https://wa.me/${ADMIN_PHONE}?text=Me%20registré%20como%20chofer.`, '_blank'); setView('driver_dashboard'); }} className="w-full bg-green-500 text-white py-4 rounded-2xl font-black shadow-lg">
-                                Unirme al Grupo y Entrar
+                            <button onClick={() => { window.open(`https://wa.me/${ADMIN_PHONE}?text=Hola,%20me%20registré%20como%20chofer%20y%20espero%20aprobación.`, '_blank'); setView('menu'); }} className="w-full bg-green-500 text-white py-4 rounded-2xl font-black shadow-lg">
+                                Notificar al Admin por WhatsApp y Volver
                             </button>
                         </div>
                     </div>
@@ -750,6 +928,10 @@
                 return <DriverDashboard user={user} goBack={() => setView('menu')} triggerToast={triggerToast} />;
             }
 
+            if (view === 'admin_panel') {
+                return <AdminPanel onBack={() => setView('menu')} />;
+            }
+
             return null;
         }
 
@@ -757,4 +939,4 @@
         root.render(<App />);
     </script>
 </body>
-</html> 
+</html>
