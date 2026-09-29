@@ -5,12 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Moto UBGrit</title>
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet Maps (Para usar mapas satelitales Esri/Google libres) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    
+    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -21,9 +28,16 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes pulseLogo { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
         .animate-logo { animation: pulseLogo 2s infinite; }
-        .custom-pin { filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.5)); font-size: 30px; line-height: 30px; text-align: center; }
+        .custom-pin { filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.5)); font-size: 34px; line-height: 34px; text-align: center; cursor: pointer; transition: transform 0.1s; }
+        .custom-pin:active { transform: scale(1.2) translateY(-5px); }
         @keyframes ringBell { 0%, 50%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(15deg); } 20%, 40% { transform: rotate(-15deg); } }
         .animate-ring { animation: ringBell 1s infinite; }
+        
+        /* Animación del Radar */
+        .radar-box { position: relative; width: 100px; height: 100px; display: flex; justify-content: center; align-items: center; margin: 0 auto; }
+        .radar-box::before, .radar-box::after { content: ''; position: absolute; border-radius: 50%; border: 2px solid #3b82f6; width: 100%; height: 100%; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        .radar-box::after { animation-delay: 1s; }
+        @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
     </style>
 </head>
 <body>
@@ -32,16 +46,16 @@
     </div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo } = React;
+        const { useState, useEffect, useRef } = React;
 
-        // --- CONSTANTES Y TASAS EXACTAS ---
+        // --- CONSTANTES ---
         const TASA_USD_COP = 3000;
         const TASA_VES_COP = 3.0;
         const ADMIN_PHONE = "584140792843";
         const ADMIN_EMAIL = "motoubgrit@gmail.com";
         const ADMIN_PASS = "Universal11!!";
 
-        // --- INVENTARIO COMPRIMIDO (Para evitar errores de corte por límite de texto) ---
+        // --- INVENTARIO COMPRIMIDO ---
         const inventory = [
             {c:"Hortalizas y Verduras", n:"Tomate", p:4000, i:"🍅"}, {c:"Hortalizas y Verduras", n:"Cebolla", p:3500, i:"🧅"}, {c:"Hortalizas y Verduras", n:"Ajo", p:12000, i:"🧄"}, {c:"Hortalizas y Verduras", n:"Zanahoria", p:3000, i:"🥕"}, {c:"Hortalizas y Verduras", n:"Remolacha", p:3000, i:"🍠"}, {c:"Hortalizas y Verduras", n:"Repollo", p:2500, i:"🥬"}, {c:"Hortalizas y Verduras", n:"Coliflor", p:4000, i:"🥦"}, {c:"Hortalizas y Verduras", n:"Acelga", p:2000, i:"🥬"}, {c:"Hortalizas y Verduras", n:"Pepino", p:2500, i:"🥒"}, {c:"Hortalizas y Verduras", n:"Brócoli", p:4500, i:"🥦"}, {c:"Hortalizas y Verduras", n:"Calabacín", p:2500, i:"🥒"}, {c:"Hortalizas y Verduras", n:"Pimentón", p:5000, i:"🫑"}, {c:"Hortalizas y Verduras", n:"Espinaca", p:3000, i:"🥬"}, {c:"Hortalizas y Verduras", n:"Ají dulce", p:4000, i:"🌶️"}, {c:"Hortalizas y Verduras", n:"Ají picante", p:5000, i:"🔥"}, {c:"Hortalizas y Verduras", n:"Apio España", p:3000, i:"🥬"},
             {c:"Tubérculos y Vituallas", n:"Auyama", p:1500, i:"🎃"}, {c:"Tubérculos y Vituallas", n:"Papa", p:3500, i:"🥔"}, {c:"Tubérculos y Vituallas", n:"Yuca", p:2000, i:"🍠"}, {c:"Tubérculos y Vituallas", n:"Plátano Verde", p:3000, i:"🍌"}, {c:"Tubérculos y Vituallas", n:"Plátano Maduro", p:3000, i:"🍌"}, {c:"Tubérculos y Vituallas", n:"Apio", p:4000, i:"🌿"},
@@ -63,11 +77,11 @@
         const getDB = (key) => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { return []; } };
         const setDB = (key, data) => localStorage.setItem(key, JSON.stringify(data));
 
-        // --- COMPONENTES DE DISEÑO ---
+        // --- COMPONENTES UI ---
         const HeaderNav = ({ title, onBack, right }) => (
             <div className="bg-black text-white p-4 sticky top-0 z-50 flex items-center justify-between shadow-md h-16 shrink-0 w-full">
-                {onBack ? ( <button onClick={onBack} className="text-xs font-bold bg-white/20 px-3 py-2 rounded hover:bg-white/30"><i className="fa-solid fa-arrow-left"></i> Volver</button> ) : <div className="w-16"></div>}
-                <h2 className="text-sm font-black truncate flex-1 text-center">{title}</h2>
+                {onBack ? ( <button onClick={onBack} className="text-xs font-bold bg-white/20 px-3 py-2 rounded hover:bg-white/30 transition-colors"><i className="fa-solid fa-arrow-left"></i> Volver</button> ) : <div className="w-16"></div>}
+                <h2 className="text-sm font-black truncate flex-1 text-center px-2">{title}</h2>
                 <div className="w-16 flex justify-end">{right}</div>
             </div>
         );
@@ -78,11 +92,37 @@
             </div>
         );
 
+        // --- RASTREO DEL CHOFER EN VIVO ---
+        const DriverTrackingCard = ({ assignedDriver, goBack }) => (
+            <div className="bg-white p-6 rounded-3xl shadow-xl w-full border-t-8 border-green-500 text-center fade-in">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-green-500">
+                    <i className="fa-solid fa-user-check text-2xl text-green-600"></i>
+                </div>
+                <h2 className="text-xl font-black text-gray-800 mb-1">¡Chofer Asignado!</h2>
+                <p className="text-xs text-gray-500 mb-4">Tu conductor va en camino.</p>
+                
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-left space-y-2 mb-4">
+                    <p className="text-sm"><i className="fa-solid fa-id-card text-blue-500 w-5 text-center"></i> <strong>Nombre:</strong> {assignedDriver.driverName}</p>
+                    <p className="text-sm"><i className="fa-solid fa-fingerprint text-purple-500 w-5 text-center"></i> <strong>Cédula:</strong> {assignedDriver.driverCedula}</p>
+                    <p className="text-sm"><i className="fa-solid fa-motorcycle text-red-500 w-5 text-center"></i> <strong>Placa:</strong> <span className="bg-yellow-300 px-2 py-0.5 rounded font-black text-black border border-yellow-500">{assignedDriver.driverPlaca}</span></p>
+                </div>
+
+                <button onClick={() => window.open(`https://wa.me/${assignedDriver.driverPhone}?text=Hola,%20soy%20el%20cliente%20de%20Moto%20UBGrit.%20Te%20estoy%20esperando.`, '_blank')} className="w-full bg-[#25D366] text-white py-3 rounded-xl font-bold shadow-lg mb-3 flex items-center justify-center gap-2">
+                    <i className="fa-brands fa-whatsapp text-xl"></i> Escribir al Chofer
+                </button>
+                <button onClick={goBack} className="w-full border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-bold bg-gray-50 hover:bg-gray-100">🏠 Volver al Menú</button>
+            </div>
+        );
+
+        // --- MERCADO EN CASA ---
         const MercadoDashboard = ({ user, goBack, showToast }) => {
             const [view, setView] = useState('shop');
             const [catIdx, setCatIdx] = useState(0);
             const [cart, setCart] = useState({});
             const [currency, setCurrency] = useState('COP');
+            
+            const [orderId, setOrderId] = useState(null);
+            const [assignedDriver, setAssignedDriver] = useState(null);
 
             const currentCat = catList[catIdx];
             const products = inventory.filter(p => p.c === currentCat);
@@ -99,15 +139,12 @@
             const updateCart = (name, q, price) => {
                 const cleanQ = Math.max(0, Math.round(q * 100) / 100);
                 let finalPrice = price;
-                
-                // REGLA MATEMÁTICA: Si es huevo, calcula el precio automáticamente por 1/4 y Medio
                 if (name.toLowerCase().includes("huevo")) {
                     if (cleanQ === 0.25) finalPrice = 4000;
                     else if (cleanQ === 0.5) finalPrice = 8000;
                     else if (cleanQ === 0.75) finalPrice = 12000;
                     else finalPrice = 16000;
                 }
-                
                 setCart(prev => {
                     const newCart = { ...prev };
                     if (cleanQ <= 0) delete newCart[name];
@@ -122,25 +159,24 @@
             const totalVES = (totalCOP / TASA_VES_COP).toFixed(2);
             const totalUSD = (totalCOP / TASA_USD_COP).toFixed(2);
 
-            const submitOrder = async () => {
+            const submitOrder = () => {
                 if(totalCOP === 0) return;
                 
-                let itemsStr = Object.keys(cart).map(n => `${formatQty(cart[n].q, n)} ${n}`).join(", ");
+                const newId = Date.now();
+                setOrderId(newId);
+
                 let payDetails = currency === 'COP' ? `${totalCOP.toLocaleString()} COP (Efectivo)` : currency === 'VES' ? `${totalVES} VES` : `$${totalUSD} USD`;
                 
-                // Agregar a pendientes para Choferes/Admin
                 let pending = getDB('motoubgrit_pending');
                 pending.push({
-                    id: Date.now(), cliente: user.nombre, telefono: user.telefono,
+                    id: newId, cliente: user.nombre, telefono: user.telefono, cedula: user.cedula,
                     origen: "Mercado VicRos", destino: user.direccion, precio: totalCOP,
                     tipo: 'Mercado', status: 'pending', time: Date.now()
                 });
                 setDB('motoubgrit_pending', pending);
 
-                let wsMsg = `*🛒 MERCADO EN CASA*%0A*Cliente:* ${user.nombre}%0A*Tel:* ${user.telefono}%0A*Dir:* ${user.direccion}%0A%0A*PEDIDO:*%0A`;
-                Object.keys(cart).forEach(n => {
-                    wsMsg += `▪ ${formatQty(cart[n].q, n)} de ${n} - ${(cart[n].p * cart[n].q).toLocaleString()} COP%0A`;
-                });
+                let wsMsg = `*🛒 MERCADO EN CASA*%0A*Cliente:* ${user.nombre}%0A*C.I:* ${user.cedula}%0A*Tel:* ${user.telefono}%0A*Dir:* ${user.direccion}%0A%0A*PEDIDO:*%0A`;
+                Object.keys(cart).forEach(n => wsMsg += `▪ ${formatQty(cart[n].q, n)} de ${n} - ${(cart[n].p * cart[n].q).toLocaleString()} COP%0A`);
                 wsMsg += `🛵 *Delivery:* ${deliveryFee.toLocaleString()} COP%0A`;
                 wsMsg += `💵 *TOTAL A PAGAR:* ${payDetails}`;
                 
@@ -149,17 +185,28 @@
                 setView('success');
             };
 
+            // Polling para rastreo del chofer
+            useEffect(() => {
+                let timer;
+                if (view === 'success' && orderId && !assignedDriver) {
+                    timer = setInterval(() => {
+                        const acc = getDB('motoubgrit_accepted_trips');
+                        const found = acc.find(t => t.id === orderId);
+                        if (found) setAssignedDriver(found);
+                    }, 2000);
+                }
+                return () => clearInterval(timer);
+            }, [view, orderId, assignedDriver]);
+
             if (view === 'shop') return (
-                <div className="flex flex-col h-full bg-gray-50 fade-in w-full">
+                <div className="flex flex-col h-full bg-gray-50 fade-in w-full overflow-hidden">
                     <HeaderNav title="Mercado en Casa" onBack={goBack} right={<button onClick={()=>setView('cart')} className="bg-white text-green-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm border border-green-200">🛒 {Object.keys(cart).length}</button>} />
-                    
-                    <div className={`p-3 flex items-center justify-between shadow-sm shrink-0 ${catStyles[currentCat].light} border-b-4 ${catStyles[currentCat].border}`}>
+                    <div className={`p-3 flex items-center justify-between shadow-sm shrink-0 ${catStyles[currentCat].light} border-b-4 ${catStyles[currentCat].border} z-10 relative`}>
                         <button onClick={()=>setCatIdx(Math.max(0, catIdx-1))} disabled={catIdx===0} className="p-2 text-xl opacity-70 disabled:opacity-30">⬅️</button>
                         <h2 className={`text-sm font-black text-center ${catStyles[currentCat].text}`}>{currentCat}</h2>
                         <button onClick={()=>setCatIdx(Math.min(catList.length-1, catIdx+1))} disabled={catIdx===catList.length-1} className="p-2 text-xl opacity-70 disabled:opacity-30">➡️</button>
                     </div>
-
-                    <div className="flex-1 overflow-y-auto p-4 pb-20">
+                    <div className="flex-1 overflow-y-auto p-4 pb-20 scroll-smooth bg-gray-50">
                         <div className="grid grid-cols-2 gap-3">
                             {products.map(p => {
                                 const q = cart[p.n]?.q || 0;
@@ -171,29 +218,23 @@
                                         <div className="text-4xl mb-2">{p.i}</div>
                                         <h3 className="font-bold text-xs text-center h-8 flex items-center">{p.n}</h3>
                                         <p className={`${style.text} font-black text-[11px] my-2`}>{displayPrice.toLocaleString()} COP {isEgg?'/Cartón':'/Kg'}</p>
-                                        
                                         {q === 0 ? (
-                                            <button onClick={()=>{updateCart(p.n, 0.25, displayPrice); showToast(`${p.n} agregado`, false)}} className={`w-full ${style.light} ${style.text} border ${style.border} py-1.5 rounded-lg text-xs font-bold`}>➕ Agregar</button>
+                                            <button onClick={()=>{updateCart(p.n, 0.25, displayPrice); showToast(`${p.n} agregado`, false)}} className={`w-full ${style.light} ${style.text} border ${style.border} py-1.5 rounded-lg text-xs font-bold transition-transform active:scale-95`}>➕ Agregar</button>
                                         ) : (
                                             <div className="flex justify-between items-center w-full bg-gray-50 rounded-lg p-1 border">
-                                                <button onClick={()=>updateCart(p.n, q-0.25, displayPrice)} className="px-2 text-red-500 font-bold">-</button>
-                                                <span className="font-bold text-[10px]">{formatQty(q, p.n)}</span>
-                                                <button onClick={()=>updateCart(p.n, q+0.25, displayPrice)} className={`px-2 ${style.text} font-bold`}>+</button>
+                                                <button onClick={()=>updateCart(p.n, q-0.25, displayPrice)} className="px-2 text-red-500 font-bold active:scale-90">-</button>
+                                                <span className="font-bold text-[10px] text-center w-full">{formatQty(q, p.n)}</span>
+                                                <button onClick={()=>updateCart(p.n, q+0.25, displayPrice)} className={`px-2 ${style.text} font-bold active:scale-90`}>+</button>
                                             </div>
                                         )}
                                     </div>
                                 );
                             })}
                         </div>
-
                         {catIdx < catList.length - 1 ? (
-                            <button onClick={()=>{document.querySelector('.overflow-y-auto').scrollTo(0,0); setCatIdx(catIdx+1)}} className={`w-full mt-6 py-4 rounded-xl font-bold shadow-sm border-2 ${catStyles[catList[catIdx+1]].text} ${catStyles[catList[catIdx+1]].border}`}>
-                                Avanzar a {catList[catIdx+1]} ↓
-                            </button>
+                            <button onClick={()=>{document.querySelector('.overflow-y-auto').scrollTo(0,0); setCatIdx(catIdx+1)}} className={`w-full mt-6 py-4 rounded-xl font-bold shadow-sm border-2 ${catStyles[catList[catIdx+1]].text} ${catStyles[catList[catIdx+1]].border} bg-white transition-transform active:scale-95`}>Avanzar a {catList[catIdx+1]} ↓</button>
                         ) : (
-                            <button onClick={()=>setView('cart')} className="w-full mt-6 bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg">
-                                Ir al Carrito 🛒
-                            </button>
+                            <button onClick={()=>setView('cart')} className="w-full mt-6 bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg transition-transform active:scale-95">Ir al Carrito 🛒</button>
                         )}
                     </div>
                 </div>
@@ -202,69 +243,68 @@
             if (view === 'cart') return (
                 <div className="flex flex-col h-full bg-gray-100 fade-in w-full relative">
                     <HeaderNav title="Carrito de Compras" onBack={()=>setView('shop')} />
-                    
                     <div className="flex-1 overflow-y-auto p-4 pb-32">
-                        <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
-                            {Object.keys(cart).length === 0 ? <p className="text-center text-gray-500 text-sm">Carrito vacío</p> : null}
+                        <div className="bg-white rounded-xl shadow-sm p-4 mb-4 border border-gray-200">
+                            {Object.keys(cart).length === 0 ? <p className="text-center text-gray-500 text-sm font-bold">Carrito vacío</p> : null}
                             {Object.keys(cart).map(n => (
-                                <div key={n} className="flex justify-between items-center py-2 border-b text-xs">
-                                    <span>{formatQty(cart[n].q, n)} {n}</span>
-                                    <span className="font-bold">{(cart[n].p * cart[n].q).toLocaleString()} COP</span>
+                                <div key={n} className="flex justify-between items-center py-2 border-b text-xs border-dashed">
+                                    <span>{formatQty(cart[n].q, n)} {n}</span><span className="font-bold text-gray-700">{(cart[n].p * cart[n].q).toLocaleString()} COP</span>
                                 </div>
                             ))}
-                            <div className="flex justify-between items-center py-3 text-xs text-orange-600 font-bold border-b">
-                                <span>Delivery (La Grita)</span>
-                                <span>+{deliveryFee.toLocaleString()} COP</span>
-                            </div>
+                            {cartSubtotal > 0 && (
+                                <div className="flex justify-between items-center py-3 text-xs text-orange-600 font-bold">
+                                    <span>Delivery (La Grita)</span><span>+{deliveryFee.toLocaleString()} COP</span>
+                                </div>
+                            )}
                         </div>
-
-                        <div className="bg-white p-4 rounded-xl shadow-sm mb-6">
-                            <h3 className="font-bold text-xs text-center mb-3">Moneda de Pago</h3>
+                        
+                        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-200">
+                            <h3 className="font-bold text-xs text-center mb-3 text-gray-700">Moneda de Pago</h3>
                             <div className="grid grid-cols-3 gap-2 mb-4">
                                 {['COP', 'VES', 'USD'].map(c => (
-                                    <button key={c} onClick={()=>setCurrency(c)} className={`py-2 rounded-lg font-bold text-xs border-2 transition-colors ${currency === c ? 'bg-green-100 border-green-500 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
-                                        {c}
-                                    </button>
+                                    <button key={c} onClick={()=>setCurrency(c)} className={`py-2 rounded-lg font-bold text-xs border-2 transition-colors ${currency === c ? 'bg-green-100 border-green-500 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>{c}</button>
                                 ))}
                             </div>
-                            
-                            <div className="p-4 bg-gray-50 rounded-xl text-center border border-gray-200">
+                            <div className="p-4 bg-gray-50 rounded-xl text-center border border-gray-200 shadow-inner">
                                 <p className="text-[10px] font-bold text-gray-500 mb-1">TOTAL A PAGAR</p>
-                                {currency === 'COP' && <p className="font-black text-green-700 text-2xl">{totalCOP.toLocaleString()} COP</p>}
-                                {currency === 'VES' && <p className="font-black text-blue-700 text-2xl">{totalVES} VES</p>}
-                                {currency === 'USD' && <p className="font-black text-emerald-700 text-2xl">${totalUSD} USD</p>}
+                                {currency === 'COP' && <p className="font-black text-green-700 text-3xl">{totalCOP.toLocaleString()} <span className="text-sm">COP</span></p>}
+                                {currency === 'VES' && <p className="font-black text-blue-700 text-3xl">{totalVES} <span className="text-sm">VES</span></p>}
+                                {currency === 'USD' && <p className="font-black text-emerald-700 text-3xl">${totalUSD} <span className="text-sm">USD</span></p>}
                             </div>
                         </div>
                     </div>
-                    
-                    <div className="absolute bottom-0 left-0 w-full p-4 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50">
-                        <button onClick={submitOrder} disabled={totalCOP===0} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg flex justify-center gap-2 text-sm disabled:opacity-50">
-                            📲 Enviar Pedido por WhatsApp
-                        </button>
+                    <div className="absolute bottom-0 left-0 w-full p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-50">
+                        <button onClick={submitOrder} disabled={totalCOP===0} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg flex justify-center items-center gap-2 text-sm disabled:opacity-50 transition-transform active:scale-95">📲 Enviar Pedido por WhatsApp</button>
                     </div>
                 </div>
             );
 
             if (view === 'success') return (
                 <div className="flex flex-col h-full bg-green-50 fade-in w-full items-center justify-center p-6 text-center">
-                    <div className="bg-white p-8 rounded-3xl shadow-xl w-full border-t-8 border-green-600">
-                        <div className="text-5xl mb-4">✅</div>
-                        <h2 className="text-xl font-black text-green-800 mb-2">¡Pedido Enviado!</h2>
-                        <p className="text-xs text-gray-600 mb-6">Tu pedido ha sido procesado con éxito y enviado por WhatsApp.</p>
-                        <div className="space-y-3">
-                            <button onClick={()=>{setCart({}); setView('shop');}} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow">🛒 Hacer otro pedido</button>
-                            <button onClick={goBack} className="w-full border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-bold bg-gray-50">🏠 Volver al Menú</button>
+                    {assignedDriver ? (
+                        <DriverTrackingCard assignedDriver={assignedDriver} goBack={goBack} />
+                    ) : (
+                        <div className="bg-white p-8 rounded-3xl shadow-xl w-full border-t-8 border-green-600">
+                            <div className="radar-box mb-6"><i className="fa-solid fa-satellite-dish text-3xl text-blue-500 absolute z-10"></i></div>
+                            <h2 className="text-xl font-black text-green-800 mb-2">Pedido Registrado</h2>
+                            <p className="text-xs text-gray-600 mb-6 font-bold">Buscando chofer disponible para su entrega... Por favor espere aquí.</p>
+                            <div className="space-y-3">
+                                <button onClick={()=>{setCart({}); setView('shop');}} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-md hover:bg-green-700">🛒 Hacer otro pedido</button>
+                                <button onClick={goBack} className="w-full border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-bold bg-gray-50 hover:bg-gray-100">🏠 Volver al Menú</button>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             );
         };
 
+        // --- MAPA Y RUTAS (PASAJERO / ENCOMIENDA) ---
         const TripPlanner = ({ user, type, goBack, showToast }) => {
             const mapRef = useRef(null);
             const mapInst = useRef(null);
             const routeLayer = useRef(null);
-            const markers = useRef([]);
+            const originMarker = useRef(null);
+            const destMarker = useRef(null);
 
             const [view, setView] = useState('planner');
             const [oText, setOText] = useState('');
@@ -275,38 +315,66 @@
             const [currency, setCurrency] = useState('COP');
             const [encDetails, setEncDetails] = useState({ queLleva: '', recibe: '', telRecibe: '' });
             const [loading, setLoading] = useState(false);
+            
+            const [orderId, setOrderId] = useState(null);
+            const [assignedDriver, setAssignedDriver] = useState(null);
 
             useEffect(() => {
                 if (mapRef.current && !mapInst.current && view === 'planner') {
                     mapInst.current = L.map(mapRef.current, { zoomControl: false }).setView([8.1333, -71.9833], 15);
-                    // Servidor Esri (Estable, sin error 403)
+                    // Mapa Esri: Sin bloqueos 403, alta calidad.
                     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
-                        maxZoom: 19, attribution: 'Tiles &copy; Esri' 
+                        maxZoom: 19, attribution: 'Tiles &copy; Esri &mdash; MotoUBGrit' 
                     }).addTo(mapInst.current);
                 }
             }, [view]);
 
+            useEffect(() => {
+                if(!mapInst.current) return;
+                
+                const getReverseGeocode = async (lat, lng, isOrigin) => {
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                        const data = await res.json();
+                        let name = data && data.address ? (data.address.road || data.display_name.split(',')[0]) : "Punto en el mapa";
+                        if(isOrigin) setOText(name); else setDText(name);
+                    } catch(err) { 
+                        if(isOrigin) setOText("Punto en el mapa"); else setDText("Punto en el mapa"); 
+                    }
+                };
+
+                if (oCoords) {
+                    if (originMarker.current) mapInst.current.removeLayer(originMarker.current);
+                    originMarker.current = L.marker(oCoords, { draggable: true, icon: L.divIcon({ className: 'custom-pin text-green-500', html: '<i class="fa-solid fa-location-dot"></i>', iconSize:[30,30], iconAnchor:[15,30] }) }).addTo(mapInst.current);
+                    originMarker.current.on('dragend', (e) => { const { lat, lng } = e.target.getLatLng(); setOCoords([lat, lng]); getReverseGeocode(lat, lng, true); });
+                    if(!dCoords) mapInst.current.setView(oCoords, 16);
+                }
+                
+                if (dCoords) {
+                    if (destMarker.current) mapInst.current.removeLayer(destMarker.current);
+                    destMarker.current = L.marker(dCoords, { draggable: true, icon: L.divIcon({ className: 'custom-pin text-red-600', html: '<i class="fa-solid fa-location-dot"></i>', iconSize:[30,30], iconAnchor:[15,30] }) }).addTo(mapInst.current);
+                    destMarker.current.on('dragend', (e) => { const { lat, lng } = e.target.getLatLng(); setDCoords([lat, lng]); getReverseGeocode(lat, lng, false); });
+                    if(!oCoords) mapInst.current.setView(dCoords, 16);
+                }
+                
+                if (oCoords && dCoords) calcRoute(oCoords, dCoords);
+            }, [oCoords, dCoords]);
+
             const geocode = async (text, isOrigin) => {
-                if(!text) return showToast("Escribe una referencia", true);
+                if(!text) return showToast("Escribe una dirección", true);
                 setLoading(true);
                 try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text + ', La Grita, Táchira')}`);
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text + ', La Grita, Tachira')}`);
                     const data = await res.json();
                     if(data && data.length > 0) {
                         const c = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-                        if(isOrigin) { setOCoords(c); showToast("Origen fijado📍", false); } 
-                        else { setDCoords(c); showToast("Destino fijado🏁", false); }
-                        
-                        mapInst.current.setView(c, 16);
-                        const m = L.marker(c, { 
-                            icon: L.divIcon({ className: 'custom-pin', html: isOrigin?'🟢':'🔴', iconSize:[30,30], iconAnchor:[15,30] }) 
-                        }).addTo(mapInst.current);
-                        markers.current.push(m);
-                        
-                        if (isOrigin && dCoords) calcRoute(c, dCoords);
-                        else if (!isOrigin && oCoords) calcRoute(oCoords, c);
-                    } else showToast("Lugar no encontrado", true);
-                } catch(e) { showToast("Error de red", true); }
+                        if(isOrigin) { setOCoords(c); setOText(data[0].name || text); } else { setDCoords(c); setDText(data[0].name || text); }
+                    } else {
+                        const center = [8.1333, -71.9833];
+                        if(isOrigin) { setOCoords(center); setOText("Arrastra el pin al Origen"); } else { setDCoords(center); setDText("Arrastra el pin al Destino"); }
+                        showToast("Busca en el mapa y arrastra el pin📍", false);
+                    }
+                } catch(e) { showToast("Error de conexión", true); }
                 setLoading(false);
             };
 
@@ -316,12 +384,13 @@
                     const data = await res.json();
                     if(data.routes && data.routes.length > 0) {
                         if(routeLayer.current) mapInst.current.removeLayer(routeLayer.current);
-                        routeLayer.current = L.geoJSON(data.routes[0].geometry, { style: { color: '#2563eb', weight: 5, opacity: 0.9 } }).addTo(mapInst.current);
+                        routeLayer.current = L.geoJSON(data.routes[0].geometry, { style: { color: '#3b82f6', weight: 5, opacity: 0.9 } }).addTo(mapInst.current);
                         mapInst.current.fitBounds(routeLayer.current.getBounds(), { padding: [40, 40] });
                         
-                        const distMeters = data.routes[0].distance;
+                        const dist = data.routes[0].distance;
                         let p = 5000; 
-                        if(distMeters > 2000) p += Math.ceil((distMeters - 2000) / 1000) * 1500; 
+                        // Hasta 5 Kilometros = 5000 fijos (Cubre todo el casco central).
+                        if(dist > 5000) p += Math.ceil((dist - 5000) / 1000) * 1500; 
                         setPriceCOP(p);
                     }
                 } catch(e){}
@@ -331,9 +400,12 @@
                 if(!oCoords || !dCoords) return showToast("Fija Origen y Destino", true);
                 if(type === 'encomienda' && view === 'planner') return setView('details');
                 
+                const newId = Date.now();
+                setOrderId(newId);
+
                 const isEnc = type === 'encomienda';
                 const tripData = { 
-                    id: Date.now(), cliente: user.nombre, telefono: user.telefono, 
+                    id: newId, cliente: user.nombre, telefono: user.telefono, cedula: user.cedula,
                     origen: oText, destino: dText, precio: priceCOP, 
                     tipo: isEnc ? 'Encomienda' : 'Pasajero', detalles: isEnc ? encDetails : null, 
                     coords: {o: oCoords, d: dCoords}, status: 'pending', time: Date.now() 
@@ -346,27 +418,39 @@
                 let pVES = (priceCOP / TASA_VES_COP).toFixed(2);
                 let pUSD = (priceCOP / TASA_USD_COP).toFixed(2);
                 
-                let msg = `*🚀 SOLICITUD MOTO UBGRIT*%0A*Cliente:* ${user.nombre}%0A📍 *De:* ${oText}%0A🏁 *Para:* ${dText}%0A💵 *Costo:* ${priceCOP} COP | ${pVES} VES | $${pUSD} USD`;
+                let msg = `*🚀 SOLICITUD MOTO UBGRIT*%0A*Cliente:* ${user.nombre}%0A*C.I:* ${user.cedula}%0A📍 *De:* ${oText}%0A🏁 *Para:* ${dText}%0A💵 *Costo:* ${priceCOP} COP | ${pVES} VES | $${pUSD} USD`;
                 if(isEnc) msg += `%0A📦 *Lleva:* ${encDetails.queLleva}%0A👤 *Recibe:* ${encDetails.recibe} (${encDetails.telRecibe})`;
                 
                 window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
                 setView('success');
             };
 
+            useEffect(() => {
+                let timer;
+                if (view === 'success' && orderId && !assignedDriver) {
+                    timer = setInterval(() => {
+                        const acc = getDB('motoubgrit_accepted_trips');
+                        const found = acc.find(t => t.id === orderId);
+                        if (found) setAssignedDriver(found);
+                    }, 2000);
+                }
+                return () => clearInterval(timer);
+            }, [view, orderId, assignedDriver]);
+
             if(view === 'planner') return (
                 <div className="flex flex-col h-full bg-gray-100 fade-in relative w-full">
                     <HeaderNav title={type === 'encomienda' ? 'Ruta Encomienda' : 'Pedir Moto'} onBack={goBack} />
                     
                     <div className="absolute top-20 left-4 right-4 z-[400] space-y-2">
-                        <div className="flex bg-white rounded-lg shadow-md border overflow-hidden">
-                            <span className="p-3 bg-gray-50 text-green-500 text-xs">🟢</span>
-                            <input placeholder="Origen (Ej: Plaza Bolívar)" value={oText} onChange={e=>setOText(e.target.value)} className="flex-1 p-2 text-xs outline-none" />
-                            <button onClick={()=>geocode(oText, true)} disabled={loading} className="bg-blue-600 text-white px-3 text-xs font-bold">Buscar</button>
+                        <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-100 overflow-hidden">
+                            <span className="p-3 bg-green-50 text-green-500 text-xs flex items-center justify-center w-10"><i className="fa-solid fa-circle-dot"></i></span>
+                            <input placeholder="Origen (Ej: Plaza Bolívar)" value={oText} onChange={e=>setOText(e.target.value)} className="flex-1 p-2 text-xs outline-none font-bold text-gray-700" />
+                            <button onClick={()=>geocode(oText, true)} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white px-4 text-xs font-bold transition-colors">Buscar</button>
                         </div>
-                        <div className="flex bg-white rounded-lg shadow-md border overflow-hidden">
-                            <span className="p-3 bg-gray-50 text-red-500 text-xs">🔴</span>
-                            <input placeholder="Destino (Ej: Hospital)" value={dText} onChange={e=>setDText(e.target.value)} className="flex-1 p-2 text-xs outline-none" />
-                            <button onClick={()=>geocode(dText, false)} disabled={loading} className="bg-blue-600 text-white px-3 text-xs font-bold">Buscar</button>
+                        <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-100 overflow-hidden">
+                            <span className="p-3 bg-red-50 text-red-500 text-xs flex items-center justify-center w-10"><i className="fa-solid fa-location-dot"></i></span>
+                            <input placeholder="Destino (Ej: Hospital)" value={dText} onChange={e=>setDText(e.target.value)} className="flex-1 p-2 text-xs outline-none font-bold text-gray-700" />
+                            <button onClick={()=>geocode(dText, false)} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white px-4 text-xs font-bold transition-colors">Buscar</button>
                         </div>
                     </div>
                     
@@ -374,20 +458,20 @@
                         <div ref={mapRef} className="absolute inset-0 w-full h-full"></div>
                     </div>
                     
-                    <div className="bg-white p-5 shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-[400] shrink-0 rounded-t-3xl pb-8 text-center relative">
+                    <div className="bg-white p-5 shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-[400] shrink-0 rounded-t-3xl pb-8 text-center relative border-t border-gray-200">
                         {priceCOP > 0 ? (
                             <div className="mb-4 fade-in">
                                 <div className="flex justify-center gap-2 mb-2">
-                                    {['COP','VES','USD'].map(c => <button key={c} onClick={()=>setCurrency(c)} className={`px-3 py-1 rounded-full text-[10px] font-bold transition-colors ${currency===c?'bg-blue-600 text-white shadow':'bg-gray-100 text-gray-500'}`}>{c}</button>)}
+                                    {['COP','VES','USD'].map(c => <button key={c} onClick={()=>setCurrency(c)} className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all ${currency===c?'bg-black text-white shadow-md scale-105':'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{c}</button>)}
                                 </div>
-                                <h3 className="text-3xl font-black text-blue-600">
+                                <h3 className="text-3xl font-black text-blue-600 tracking-tight">
                                     {currency==='COP' ? `${priceCOP.toLocaleString()} COP` : currency==='VES' ? `${(priceCOP/TASA_VES_COP).toFixed(2)} VES` : `$${(priceCOP/TASA_USD_COP).toFixed(2)} USD`}
                                 </h3>
                             </div>
                         ) : (
-                            <p className="text-xs font-bold text-gray-500 mb-4 bg-gray-50 p-3 rounded-xl border">Escribe origen y destino y presiona Buscar.</p>
+                            <p className="text-xs font-bold text-gray-500 mb-4 bg-gray-50 p-3 rounded-xl border border-gray-200 shadow-inner">Busca origen y destino o arrastra los pines en el mapa.</p>
                         )}
-                        <button onClick={submitTrip} className={`w-full text-white py-4 rounded-xl font-bold shadow-lg transition-colors ${priceCOP>0 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 pointer-events-none'}`}>
+                        <button onClick={submitTrip} className={`w-full text-white py-4 rounded-xl font-black shadow-lg transition-all ${priceCOP>0 ? 'bg-blue-600 hover:bg-blue-700 active:scale-95' : 'bg-gray-400 pointer-events-none'}`}>
                             {type === 'encomienda' ? 'Continuar Encomienda 📦' : 'Pedir Moto Ahora 🏍️'}
                         </button>
                     </div>
@@ -398,29 +482,32 @@
                 <div className="flex flex-col h-full bg-gray-50 fade-in w-full">
                     <HeaderNav title="Datos Encomienda" onBack={()=>setView('planner')} />
                     <div className="p-5 space-y-4">
-                        <input placeholder="¿Qué llevas? (Ej: 2 Pizzas, Documentos)" value={encDetails.queLleva} onChange={e=>setEncDetails({...encDetails, queLleva:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-                        <input placeholder="Nombre de quien recibe" value={encDetails.recibe} onChange={e=>setEncDetails({...encDetails, recibe:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-                        <input placeholder="Teléfono destino" type="tel" value={encDetails.telRecibe} onChange={e=>setEncDetails({...encDetails, telRecibe:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-                        
-                        <div className="bg-blue-50 p-4 rounded-xl text-blue-800 text-xs font-bold mt-2">Costo calculado: {priceCOP.toLocaleString()} COP</div>
-                        <button onClick={submitTrip} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg">Confirmar Envío por WhatsApp</button>
+                        <input placeholder="¿Qué llevas? (Ej: 2 Pizzas, Documentos)" value={encDetails.queLleva} onChange={e=>setEncDetails({...encDetails, queLleva:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input placeholder="Nombre de quien recibe" value={encDetails.recibe} onChange={e=>setEncDetails({...encDetails, recibe:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input placeholder="Teléfono destino" type="tel" value={encDetails.telRecibe} onChange={e=>setEncDetails({...encDetails, telRecibe:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                        <button onClick={submitTrip} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg mt-4 active:scale-95 transition-transform">Confirmar Envío por WhatsApp</button>
                     </div>
                 </div>
             );
 
             if (view === 'success') return (
                 <div className="flex flex-col h-full bg-blue-50 fade-in items-center justify-center p-6 text-center w-full">
-                    <div className="bg-white p-8 rounded-3xl shadow-xl w-full border-t-8 border-blue-600">
-                        <div className="text-5xl mb-4">🚀</div>
-                        <h2 className="text-xl font-black text-blue-800 mb-2">¡Solicitud Enviada!</h2>
-                        <p className="text-xs text-gray-600 mb-6">Un conductor será notificado pronto.</p>
-                        <button onClick={()=>{setView('planner');setPriceCOP(0);setOCoords(null);setDCoords(null);}} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow">📍 Pedir otro viaje</button>
-                        <button onClick={goBack} className="w-full border-2 border-gray-200 py-3 rounded-xl font-bold text-gray-700 bg-gray-50">🏠 Volver al Menú</button>
-                    </div>
+                    {assignedDriver ? (
+                        <DriverTrackingCard assignedDriver={assignedDriver} goBack={()=>{setView('planner');setPriceCOP(0);setOCoords(null);setDCoords(null);setOText('');setDText(''); goBack();}} />
+                    ) : (
+                        <div className="bg-white p-8 rounded-3xl shadow-xl w-full border-t-8 border-blue-600">
+                            <div className="radar-box mb-6"><i className="fa-solid fa-motorcycle text-4xl text-blue-500 absolute z-10"></i></div>
+                            <h2 className="text-xl font-black text-blue-800 mb-2">¡Solicitud Enviada!</h2>
+                            <p className="text-xs text-gray-600 mb-6 font-bold">Rastreando conductores cercanos... No cierres esta pantalla.</p>
+                            <button onClick={()=>{setView('planner');setPriceCOP(0);setOCoords(null);setDCoords(null);setOText('');setDText('');}} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow-md hover:bg-blue-700">📍 Pedir otro viaje</button>
+                            <button onClick={goBack} className="w-full border-2 border-gray-200 py-3 rounded-xl font-bold text-gray-700 bg-gray-50 hover:bg-gray-100">🏠 Volver al Menú</button>
+                        </div>
+                    )}
                 </div>
             );
         };
 
+        // --- DASHBOARD CHOFER ---
         const DriverDashboard = ({ user, goBack, showToast }) => {
             const [view, setView] = useState('dash');
             const [activeTrip, setActiveTrip] = useState(null);
@@ -435,11 +522,8 @@
                 const timer = setInterval(() => {
                     if(activeTrip) return;
                     const p = getDB('motoubgrit_pending');
-                    if(p.length > 0 && p[0].status === 'pending') {
-                        setPendingTrip(p[0]);
-                    } else {
-                        setPendingTrip(null);
-                    }
+                    if(p.length > 0 && p[0].status === 'pending') setPendingTrip(p[0]);
+                    else setPendingTrip(null);
                 }, 3000);
                 return () => clearInterval(timer);
             }, [activeTrip]);
@@ -452,11 +536,8 @@
                         setTimeLeft(prev => {
                             if(prev <= 1) { 
                                 clearInterval(t); 
-                                let p = getDB('motoubgrit_pending'); 
-                                p.shift(); 
-                                setDB('motoubgrit_pending', p); 
-                                setPendingTrip(null); 
-                                showToast("Tiempo agotado. Viaje reasignado.", true); 
+                                let p = getDB('motoubgrit_pending'); p.shift(); setDB('motoubgrit_pending', p); 
+                                setPendingTrip(null); showToast("Tiempo agotado. Reasignado.", true); 
                                 return 0; 
                             }
                             return prev - 1;
@@ -468,50 +549,68 @@
 
             const acceptTrip = () => {
                 if(!pendingTrip) return;
-                let p = getDB('motoubgrit_pending'); 
-                p = p.filter(t => t.id !== pendingTrip.id);
-                setDB('motoubgrit_pending', p);
                 
-                setActiveTrip(pendingTrip); 
-                setDB(`act_${user.email}`, [pendingTrip]);
+                let p = getDB('motoubgrit_pending'); 
+                p = p.filter(t => t.id !== pendingTrip.id); 
+                setDB('motoubgrit_pending', p);
+
+                const acceptedTrip = { 
+                    ...pendingTrip, 
+                    driverName: user.nombre, 
+                    driverPhone: user.telefono, 
+                    driverPlaca: user.placa, 
+                    driverCedula: user.cedula 
+                };
+
+                let acc = getDB('motoubgrit_accepted_trips');
+                acc.push(acceptedTrip);
+                setDB('motoubgrit_accepted_trips', acc);
+
+                setActiveTrip(acceptedTrip); 
+                setDB(`act_${user.email}`, [acceptedTrip]); 
                 setPendingTrip(null);
+                showToast("¡Viaje Aceptado! Ve a buscar al cliente.", false);
             };
 
             const finishTrip = () => {
                 if(!activeTrip) return;
+                
+                let acc = getDB('motoubgrit_accepted_trips');
+                acc = acc.filter(t => t.id !== activeTrip.id);
+                setDB('motoubgrit_accepted_trips', acc);
+
                 const h = [activeTrip, ...history]; 
                 setHistory(h); 
                 setDB(`hist_${user.email}`, h); 
-                
                 setActiveTrip(null); 
                 setDB(`act_${user.email}`, []); 
-                showToast("✅ Viaje completado. Ingreso guardado.", false);
+                showToast("✅ Viaje completado y guardado en billetera.", false);
             };
 
             const totalGen = history.reduce((s, t) => s + t.precio, 0);
 
             if(view === 'wallet') return (
                 <div className="flex flex-col h-full bg-gray-100 fade-in w-full">
-                    <HeaderNav title="Billetera e Historial" onBack={()=>setView('dash')} />
+                    <HeaderNav title="Mi Billetera" onBack={()=>setView('dash')} />
                     <div className="p-5 flex-1 overflow-y-auto">
-                        <div className="bg-black p-5 rounded-2xl text-white text-center shadow-lg mb-6 border-t-4 border-yellow-400">
-                            <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">Total Generado (Mes)</p>
-                            <h3 className="text-3xl font-black text-green-400 mb-4">{totalGen.toLocaleString()} COP</h3>
-                            <div className="bg-red-500/20 border border-red-500/50 p-3 rounded-xl">
-                                <p className="text-[10px] font-bold text-red-300">A PAGAR ADMIN (10%)</p>
-                                <p className="text-2xl font-black text-red-400">{(totalGen * 0.1).toLocaleString()} COP</p>
+                        <div className="bg-black p-5 rounded-3xl text-white text-center shadow-2xl mb-6 border-t-4 border-yellow-400">
+                            <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-widest">Total Generado</p>
+                            <h3 className="text-4xl font-black text-green-400 mb-4">{totalGen.toLocaleString()} COP</h3>
+                            <div className="bg-red-500/20 border border-red-500/50 p-4 rounded-2xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 bg-red-600 text-white text-[9px] font-black px-2 py-1 rounded-bl-lg">DEUDA</div>
+                                <p className="text-xs font-bold text-red-300 mb-1">A PAGAR ADMIN (10%)</p>
+                                <p className="text-3xl font-black text-red-400">{(totalGen * 0.1).toLocaleString()} COP</p>
                             </div>
                         </div>
-                        <h3 className="font-bold text-sm mb-3 px-1 text-gray-700">Historial Permanente</h3>
-                        {history.length === 0 ? <p className="text-xs text-center text-gray-400">No hay carreras aún.</p> : null}
+                        <h3 className="font-bold text-sm mb-3 px-2 text-gray-700 flex items-center gap-2"><i className="fa-solid fa-list-check text-blue-500"></i> Historial de Viajes</h3>
+                        {history.length === 0 ? <p className="text-xs text-center text-gray-400 bg-white p-4 rounded-xl border border-dashed">Aún no tienes viajes completados.</p> : null}
                         {history.map((t,i) => (
-                            <div key={i} className="bg-white p-3 rounded-xl shadow-sm border mb-2 text-xs">
-                                <div className="flex justify-between font-bold border-b pb-1 mb-1">
-                                    <span>{t.tipo}</span>
-                                    <span className="text-green-700">+{t.precio.toLocaleString()} COP</span>
+                            <div key={i} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-3 text-xs">
+                                <div className="flex justify-between font-black border-b border-gray-100 pb-2 mb-2">
+                                    <span className="text-gray-800">{t.tipo}</span><span className="text-green-600 bg-green-50 px-2 py-1 rounded">+{t.precio.toLocaleString()} COP</span>
                                 </div>
-                                <p className="text-[10px] text-gray-500">De: {t.origen}</p>
-                                <p className="text-[10px] text-gray-500">A: {t.destino}</p>
+                                <p className="text-[11px] text-gray-500 mb-1"><i className="fa-solid fa-circle-dot text-green-500 w-4"></i> {t.origen}</p>
+                                <p className="text-[11px] text-gray-500"><i className="fa-solid fa-location-dot text-red-500 w-4"></i> {t.destino}</p>
                             </div>
                         ))}
                     </div>
@@ -519,73 +618,84 @@
             );
 
             return (
-                <div className="flex flex-col h-full bg-gray-100 fade-in w-full">
-                    <div className="bg-black text-white p-4 sticky top-0 z-20 flex justify-between items-center shadow-md">
-                        <div>
-                            <h1 className="font-black text-sm">Panel Chofer</h1>
-                            <p className="text-[9px] text-green-400 font-bold flex items-center gap-1"><span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> En Línea</p>
-                        </div>
-                        <button onClick={()=>setView('wallet')} className="text-xs bg-gray-800 px-3 py-1.5 rounded-lg font-bold border border-gray-700 hover:bg-gray-700">💰 Billetera</button>
+                <div className="flex flex-col h-full bg-gray-100 fade-in w-full relative">
+                    <div className="bg-black text-white p-4 sticky top-0 z-20 flex justify-between items-center shadow-lg">
+                        <div><h1 className="font-black text-sm tracking-wide">Panel Chofer</h1><p className="text-[10px] text-green-400 font-bold flex items-center gap-1.5 mt-0.5"><span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> {user.nombre}</p></div>
+                        <button onClick={()=>setView('wallet')} className="text-xs bg-gray-800 px-4 py-2 rounded-xl font-bold border border-gray-700 hover:bg-gray-700 shadow-inner flex items-center gap-2"><i className="fa-solid fa-wallet text-yellow-400"></i> Billetera</button>
                     </div>
-                    
                     <div className="p-4 flex-1 overflow-y-auto">
                         {activeTrip ? (
-                            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-blue-500 mb-6">
-                                <div className="bg-blue-600 p-2 text-white text-center font-black text-xs">VIAJE EN CURSO</div>
-                                <div className="p-4 space-y-3 text-xs">
-                                    <p className="font-bold text-sm">👤 {activeTrip.cliente} <a href={`tel:${activeTrip.telefono}`} className="text-blue-500 ml-2 underline">Llamar</a></p>
-                                    <div className="bg-gray-50 p-3 rounded-lg border">
-                                        <p className="font-bold mb-1">📍 De: {activeTrip.origen}</p>
-                                        <p className="font-bold">🏁 Para: {activeTrip.destino}</p>
-                                        {activeTrip.detalles && <p className="font-bold mt-2 text-purple-700 bg-purple-50 p-1 rounded">📦 Lleva: {activeTrip.detalles.queLleva}</p>}
+                            <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-2 border-blue-500 mb-6 relative">
+                                <div className="bg-blue-600 p-3 text-white text-center font-black text-xs tracking-widest flex items-center justify-center gap-2"><i className="fa-solid fa-motorcycle animate-bounce"></i> VIAJE EN CURSO</div>
+                                <div className="p-5 space-y-4 text-sm">
+                                    <div className="flex items-center justify-between border-b pb-3">
+                                        <div>
+                                            <p className="font-black text-gray-800"><i className="fa-solid fa-user text-gray-400 mr-1"></i> {activeTrip.cliente}</p>
+                                            <p className="text-[10px] text-gray-500 mt-1 font-bold">C.I: {activeTrip.cedula}</p>
+                                        </div>
+                                        <a href={`https://wa.me/${activeTrip.telefono}`} target="_blank" className="bg-[#25D366] text-white p-3 rounded-full shadow-md hover:scale-105 transition-transform"><i className="fa-brands fa-whatsapp text-xl"></i></a>
                                     </div>
-                                    <div className="text-center bg-green-50 p-3 rounded-lg border border-green-200">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Cobrar al cliente</p>
-                                        <p className="text-2xl font-black text-green-700">{activeTrip.precio.toLocaleString()} COP</p>
+                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-2 relative shadow-inner">
+                                        <p className="font-bold text-xs"><i className="fa-solid fa-circle-dot text-green-500 w-4"></i> {activeTrip.origen}</p>
+                                        <div className="w-0.5 h-4 bg-gray-300 ml-1.5"></div>
+                                        <p className="font-bold text-xs"><i className="fa-solid fa-location-dot text-red-500 w-4"></i> {activeTrip.destino}</p>
+                                        {activeTrip.detalles && <div className="mt-3 bg-purple-100 p-3 rounded-lg border border-purple-200"><p className="font-black text-purple-800 text-[10px] uppercase mb-1">📦 Lleva Encomienda:</p><p className="font-bold text-xs text-purple-900">{activeTrip.detalles.queLleva}</p></div>}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2 mt-2">
-                                        {activeTrip.coords?.o ? (
-                                            <button onClick={()=>window.open(`https://www.google.com/maps?q=${activeTrip.coords.o[0]},${activeTrip.coords.o[1]}`, '_blank')} className="bg-gray-800 text-white py-3 rounded-xl font-bold text-xs shadow">Nav Origen</button>
-                                        ) : <button disabled className="bg-gray-300 text-gray-500 py-3 rounded-xl font-bold text-xs">Sin GPS</button>}
-                                        
-                                        {activeTrip.coords?.d ? (
-                                            <button onClick={()=>window.open(`https://www.google.com/maps?q=${activeTrip.coords.d[0]},${activeTrip.coords.d[1]}`, '_blank')} className="bg-blue-600 text-white py-3 rounded-xl font-bold text-xs shadow">Nav Destino</button>
-                                        ) : <button disabled className="bg-gray-300 text-gray-500 py-3 rounded-xl font-bold text-xs">Sin GPS</button>}
+                                    <div className="text-center bg-green-50 p-4 rounded-xl border border-green-200 shadow-sm">
+                                        <p className="text-[10px] font-black text-gray-500 uppercase mb-1">Cobrar al cliente</p>
+                                        <p className="text-3xl font-black text-green-700">{activeTrip.precio.toLocaleString()} <span className="text-sm">COP</span></p>
                                     </div>
-                                    <button onClick={finishTrip} className="w-full bg-green-500 text-white py-4 rounded-xl font-black mt-3 shadow-lg hover:bg-green-600 text-sm">✅ Finalizar Viaje</button>
+                                    <div className="grid grid-cols-2 gap-3 mt-4">
+                                        {activeTrip.coords?.o ? <button onClick={()=>window.open(`https://www.google.com/maps?q=${activeTrip.coords.o[0]},${activeTrip.coords.o[1]}`, '_blank')} className="bg-gray-800 hover:bg-gray-900 text-white py-3.5 rounded-xl font-bold text-xs shadow-md transition-colors"><i className="fa-solid fa-location-arrow text-blue-400 mr-1"></i> Ir a Origen</button> : <button disabled className="bg-gray-200 text-gray-400 py-3.5 rounded-xl font-bold text-xs">Sin GPS</button>}
+                                        {activeTrip.coords?.d ? <button onClick={()=>window.open(`https://www.google.com/maps?q=${activeTrip.coords.d[0]},${activeTrip.coords.d[1]}`, '_blank')} className="bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold text-xs shadow-md transition-colors"><i className="fa-solid fa-flag-checkered text-white mr-1"></i> Ir a Destino</button> : <button disabled className="bg-gray-200 text-gray-400 py-3.5 rounded-xl font-bold text-xs">Sin GPS</button>}
+                                    </div>
+                                    <button onClick={finishTrip} className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-black mt-4 shadow-xl text-sm transition-transform active:scale-95"><i className="fa-solid fa-check-double mr-2"></i> FINALIZAR VIAJE</button>
                                 </div>
                             </div>
                         ) : pendingTrip ? (
-                            <div className="bg-yellow-400 rounded-2xl shadow-xl p-5 text-center border-4 border-white animate-pulse">
-                                <h3 className="font-black text-lg mb-1">¡NUEVO VIAJE!</h3>
-                                <p className="text-xs font-bold text-red-700 mb-3 bg-red-100 rounded-full inline-block px-3 py-1">Aceptar en: {timeLeft}s</p>
-                                <div className="bg-white p-3 rounded-lg text-left text-xs mb-4 shadow-inner">
-                                    <p className="mb-1"><strong className="text-gray-500">De:</strong> {pendingTrip.origen}</p>
-                                    <p><strong className="text-gray-500">Para:</strong> {pendingTrip.destino}</p>
-                                    <p className="font-black text-green-600 text-xl mt-3 text-center border-t pt-2">{pendingTrip.precio.toLocaleString()} COP</p>
+                            <div className="bg-yellow-400 rounded-3xl shadow-2xl p-6 text-center border-4 border-white animate-pulse">
+                                <div className="text-4xl mb-2">🔔</div>
+                                <h3 className="font-black text-2xl mb-1 text-black tracking-tight">¡NUEVO VIAJE!</h3>
+                                <p className="text-xs font-black text-white mb-4 bg-red-600 rounded-full inline-block px-4 py-1.5 shadow-inner">Aceptar en: {timeLeft}s</p>
+                                <div className="bg-white p-4 rounded-xl text-left text-xs mb-6 shadow-md border-b-4 border-gray-200">
+                                    <p className="mb-2 flex items-start gap-2"><i className="fa-solid fa-circle-dot text-green-500 mt-0.5"></i> <span className="font-bold text-gray-700">{pendingTrip.origen}</span></p>
+                                    <p className="flex items-start gap-2"><i className="fa-solid fa-location-dot text-red-500 mt-0.5"></i> <span className="font-bold text-gray-700">{pendingTrip.destino}</span></p>
+                                    <div className="mt-4 pt-3 border-t border-dashed border-gray-300 text-center">
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Tarifa Estimada</p>
+                                        <p className="font-black text-green-600 text-3xl">{pendingTrip.precio.toLocaleString()} <span className="text-sm">COP</span></p>
+                                    </div>
                                 </div>
-                                <button onClick={acceptTrip} className="w-full bg-black text-white py-4 rounded-xl font-black shadow-lg text-lg">Aceptar Viaje</button>
+                                <button onClick={acceptTrip} className="w-full bg-black text-white py-5 rounded-2xl font-black shadow-xl text-lg hover:bg-gray-900 transition-transform active:scale-95"><i className="fa-solid fa-bolt text-yellow-400 mr-2"></i> ACEPTAR VIAJE</button>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-64 opacity-50">
-                                <i className="fa-solid fa-satellite-dish text-6xl mb-4 text-blue-500 animate-pulse"></i>
-                                <p className="font-bold text-sm text-center text-gray-600">Buscando viajes cercanos...<br/>Estás En Línea.</p>
+                            <div className="flex flex-col items-center justify-center h-[60vh] opacity-60">
+                                <div className="relative mb-6">
+                                    <i className="fa-solid fa-satellite-dish text-7xl text-blue-500 z-10 relative"></i>
+                                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-blue-400 rounded-full opacity-20 animate-ping"></div>
+                                </div>
+                                <p className="font-black text-lg text-gray-800 text-center tracking-tight">Buscando viajes...</p>
+                                <p className="font-bold text-xs text-gray-500 text-center mt-1">Estás En Línea y listo para recibir solicitudes.</p>
                             </div>
                         )}
-                        <button onClick={goBack} className="w-full border-2 border-gray-300 text-gray-600 py-4 rounded-xl font-bold mt-4 text-xs bg-white">Salir al Menú Principal</button>
+                    </div>
+                    <div className="p-4 bg-white border-t border-gray-200 pb-8">
+                        <button onClick={goBack} className="w-full border-2 border-gray-300 text-gray-600 py-3.5 rounded-xl font-bold text-xs bg-gray-50 hover:bg-gray-100 transition-colors"><i className="fa-solid fa-arrow-right-from-bracket mr-2"></i> Salir al Menú Principal</button>
                     </div>
                 </div>
             );
         };
 
+        // --- DASHBOARD ADMIN ---
         const AdminPanel = ({ goBack, showToast }) => {
             const [pendings, setPendings] = useState([]);
-            const [drivers, setDrivers] = useState([]);
+            const [users, setUsers] = useState([]);
+            const [adminTab, setAdminTab] = useState('viajes'); 
+            const [selectedUser, setSelectedUser] = useState(null);
 
             useEffect(() => {
                 const load = () => {
                     setPendings(getDB('motoubgrit_pending'));
-                    setDrivers(getDB('motoubgrit_users').filter(x => x.role === 'driver'));
+                    setUsers(getDB('motoubgrit_users'));
                 };
                 load();
                 const t = setInterval(load, 3000);
@@ -594,59 +704,132 @@
 
             const toggleVerify = (email) => {
                 let u = getDB('motoubgrit_users').map(x => { if(x.email === email) x.verified = !x.verified; return x; });
-                setDB('motoubgrit_users', u); 
-                setDrivers(u.filter(x => x.role === 'driver'));
+                setDB('motoubgrit_users', u);
+                setUsers(u);
+                if(selectedUser) setSelectedUser({...selectedUser, verified: !selectedUser.verified});
                 showToast("Estado de chofer actualizado", false);
             };
 
+            const drivers = users.filter(u => u.role === 'driver');
+            const clients = users.filter(u => u.role === 'client' || u.role === 'store' || u.role === 'market');
+
+            if (selectedUser) {
+                return (
+                    <div className="flex flex-col h-full bg-gray-100 fade-in w-full relative">
+                        <HeaderNav title={`Perfil: ${selectedUser.nombre}`} onBack={() => setSelectedUser(null)} />
+                        <div className="p-4 flex-1 overflow-y-auto space-y-4 pb-24">
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 text-sm">
+                                <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-xl"><i className="fa-solid fa-user text-gray-400"></i></div>
+                                        <div>
+                                            <h3 className="font-black text-lg text-gray-800 leading-tight">{selectedUser.nombre}</h3>
+                                            <span className="text-[9px] font-black px-2 py-0.5 bg-blue-100 text-blue-800 rounded uppercase tracking-wider">{selectedUser.role}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <p className="bg-gray-50 p-3 rounded-lg border"><span className="font-black text-gray-400 block text-[9px] uppercase mb-1">Cédula de Identidad</span> <span className="font-bold text-gray-700">{selectedUser.cedula}</span></p>
+                                    <p className="bg-gray-50 p-3 rounded-lg border"><span className="font-black text-gray-400 block text-[9px] uppercase mb-1">Correo Electrónico</span> <span className="font-bold text-gray-700">{selectedUser.email}</span></p>
+                                    <p className="bg-gray-50 p-3 rounded-lg border"><span className="font-black text-gray-400 block text-[9px] uppercase mb-1">WhatsApp</span> <a href={`https://wa.me/${selectedUser.telefono}`} target="_blank" className="text-[#25D366] font-black flex items-center gap-1"><i className="fa-brands fa-whatsapp"></i> {selectedUser.telefono}</a></p>
+                                    <p className="bg-gray-50 p-3 rounded-lg border"><span className="font-black text-gray-400 block text-[9px] uppercase mb-1">Dirección Registrada</span> <span className="font-bold text-gray-700 text-xs">{selectedUser.direccion}</span></p>
+                                </div>
+                                
+                                {selectedUser.role === 'driver' && (
+                                    <div className="mt-5 bg-blue-50 p-4 rounded-xl border border-blue-200">
+                                        <h4 className="font-black mb-3 text-blue-900 border-b border-blue-200 pb-2 flex items-center gap-2"><i className="fa-solid fa-motorcycle"></i> Datos del Vehículo</h4>
+                                        <p><span className="font-black text-blue-600 block text-[9px] uppercase mb-1">Placa Registrada</span> <span className="font-bold text-xl text-blue-900 bg-white px-3 py-1 rounded shadow-sm border">{selectedUser.placa || 'No registrada'}</span></p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        {selectedUser.role === 'driver' && (
+                            <div className="absolute bottom-0 left-0 w-full p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] pb-8">
+                                <button onClick={() => toggleVerify(selectedUser.email)} className={`w-full py-4 rounded-xl font-black shadow-lg text-white transition-all active:scale-95 ${selectedUser.verified ? 'bg-red-500 hover:bg-red-600' : 'bg-green-600 hover:bg-green-700'}`}>
+                                    {selectedUser.verified ? '🚫 BLOQUEAR CHOFER' : '✅ APROBAR CHOFER'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+
             return (
                 <div className="flex flex-col h-full bg-gray-100 fade-in w-full">
-                    <HeaderNav 
-                        title="Central Admin" 
-                        onBack={goBack} 
-                        right={
-                            <div className="relative">
-                                <i className={`fa-solid fa-bell text-xl ${pendings.length>0?'animate-ring text-red-500':'text-gray-400'}`}></i>
-                                {pendings.length>0 && <span className="absolute -top-1 -right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 rounded-full">{pendings.length}</span>}
-                            </div>
-                        } 
-                    />
-                    <div className="p-4 flex-1 overflow-y-auto space-y-4">
-                        <div className={`p-4 rounded-xl shadow border ${pendings.length>0?'bg-red-50 border-red-200':'bg-white'}`}>
-                            <h3 className="font-black text-xs mb-3 text-gray-800">📡 Cola de Solicitudes</h3>
-                            {pendings.length === 0 ? (
-                                <p className="text-xs opacity-60 text-center py-2">Sin pedidos en este momento.</p>
-                            ) : pendings.map(t => (
-                                <div key={t.id} className="p-3 bg-white rounded-lg border mb-2 text-xs shadow-sm flex justify-between items-center">
-                                    <div>
-                                        <p className="font-bold text-blue-700">{t.tipo}</p>
-                                        <p className="text-[10px] text-gray-600 truncate max-w-[200px]">{t.origen} → {t.destino}</p>
-                                    </div>
-                                    <p className="font-black text-green-600">{t.precio} COP</p>
-                                </div>
-                            ))}
-                        </div>
+                    <HeaderNav title="Central Admin" onBack={goBack} right={<div className="relative mt-1"><i className={`fa-solid fa-bell text-2xl ${pendings.length>0?'animate-ring text-red-500 drop-shadow-md':'text-gray-500'}`}></i>{pendings.length>0 && <span className="absolute -top-1 -right-2 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full border border-white">{pendings.length}</span>}</div>} />
+                    
+                    <div className="flex bg-white shadow-sm shrink-0 border-b border-gray-200">
+                        <button onClick={()=>setAdminTab('viajes')} className={`flex-1 py-3.5 text-xs font-black transition-colors ${adminTab==='viajes'?'border-b-4 border-red-500 text-red-600 bg-red-50':'text-gray-500 hover:bg-gray-50'}`}><i className="fa-solid fa-route"></i> Viajes</button>
+                        <button onClick={()=>setAdminTab('choferes')} className={`flex-1 py-3.5 text-xs font-black transition-colors ${adminTab==='choferes'?'border-b-4 border-blue-500 text-blue-600 bg-blue-50':'text-gray-500 hover:bg-gray-50'}`}><i className="fa-solid fa-helmet-safety"></i> Choferes</button>
+                        <button onClick={()=>setAdminTab('usuarios')} className={`flex-1 py-3.5 text-xs font-black transition-colors ${adminTab==='usuarios'?'border-b-4 border-green-500 text-green-600 bg-green-50':'text-gray-500 hover:bg-gray-50'}`}><i className="fa-solid fa-users"></i> Clientes</button>
+                    </div>
 
-                        <div className="bg-white p-4 rounded-xl shadow border">
-                            <h3 className="font-black text-xs mb-3 text-gray-800">Choferes Registrados</h3>
-                            {drivers.length === 0 && <p className="text-xs text-gray-400 text-center">No hay choferes.</p>}
-                            {drivers.map(d => (
-                                <div key={d.email} className="p-3 bg-gray-50 rounded-lg border mb-2 text-xs flex justify-between items-center">
-                                    <div>
-                                        <p className="font-bold text-gray-800">{d.nombre}</p>
-                                        <p className="text-[10px] text-gray-500">Placa: {d.placa}</p>
+                    <div className="p-4 flex-1 overflow-y-auto space-y-4 pb-20">
+                        {adminTab === 'viajes' && (
+                            <div className={`p-5 rounded-2xl shadow-sm border ${pendings.length>0?'bg-red-50 border-red-200':'bg-white border-gray-200'}`}>
+                                <h3 className="font-black text-sm mb-4 text-gray-800 flex items-center gap-2"><i className="fa-solid fa-satellite-dish text-red-500"></i> Solicitudes Activas</h3>
+                                {pendings.length === 0 ? <p className="text-xs font-bold text-gray-400 text-center py-8 bg-gray-50 rounded-xl border border-dashed">No hay pedidos en cola.</p> : pendings.map(t => (
+                                    <div key={t.id} className="p-4 bg-white rounded-xl border border-gray-200 mb-3 shadow-sm flex flex-col gap-2">
+                                        <div className="flex justify-between items-center border-b pb-2">
+                                            <span className="font-black text-[10px] bg-blue-100 text-blue-800 px-2 py-1 rounded uppercase tracking-wider">{t.tipo}</span>
+                                            <span className="font-black text-green-700 text-lg">{t.precio.toLocaleString()} <span className="text-[10px]">COP</span></span>
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-xs text-gray-800"><i className="fa-solid fa-user text-gray-400 w-4"></i> {t.cliente}</p>
+                                            <p className="text-[10px] text-gray-500 mt-1"><i className="fa-solid fa-circle-dot text-green-500 w-4"></i> {t.origen}</p>
+                                            <p className="text-[10px] text-gray-500"><i className="fa-solid fa-location-dot text-red-500 w-4"></i> {t.destino}</p>
+                                        </div>
                                     </div>
-                                    <button onClick={()=>toggleVerify(d.email)} className={`px-3 py-1.5 rounded-lg text-white font-bold shadow-sm transition-colors ${d.verified?'bg-red-500':'bg-green-500'}`}>
-                                        {d.verified ? 'Bloquear' : 'Aprobar'}
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {adminTab === 'choferes' && (
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                                <h3 className="font-black text-sm mb-4 text-gray-800 border-b pb-2">Directorio de Choferes</h3>
+                                {drivers.length === 0 && <p className="text-xs font-bold text-gray-400 text-center py-6 bg-gray-50 rounded-xl border border-dashed">No hay choferes registrados.</p>}
+                                {drivers.map(d => (
+                                    <div key={d.email} onClick={() => setSelectedUser(d)} className="p-3 bg-gray-50 rounded-xl border border-gray-200 mb-2 flex justify-between items-center cursor-pointer hover:bg-blue-50 transition-colors shadow-sm active:scale-95">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border shadow-sm"><i className="fa-solid fa-motorcycle text-gray-500"></i></div>
+                                            <div>
+                                                <p className="font-black text-gray-800 text-xs">{d.nombre}</p>
+                                                <p className="text-[9px] text-gray-500 mt-0.5 font-bold">Placa: {d.placa || 'N/A'}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`px-2 py-1 rounded text-[9px] font-black text-white shadow-sm uppercase ${d.verified?'bg-green-500':'bg-red-500 animate-pulse'}`}>{d.verified ? 'Activo' : 'Revisar'}</span>
+                                            <i className="fa-solid fa-chevron-right text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {adminTab === 'usuarios' && (
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                                <h3 className="font-black text-sm mb-4 text-gray-800 border-b pb-2">Directorio General</h3>
+                                {clients.length === 0 && <p className="text-xs font-bold text-gray-400 text-center py-6 bg-gray-50 rounded-xl border border-dashed">Sin usuarios registrados.</p>}
+                                {clients.map(c => (
+                                    <div key={c.email} onClick={() => setSelectedUser(c)} className="p-3 bg-gray-50 rounded-xl border border-gray-200 mb-2 flex justify-between items-center cursor-pointer hover:bg-green-50 transition-colors shadow-sm active:scale-95">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border shadow-sm"><i className={`fa-solid ${c.role==='store'?'fa-store':'fa-user'} text-gray-500`}></i></div>
+                                            <div>
+                                                <p className="font-black text-gray-800 text-xs">{c.nombre}</p>
+                                                <p className="text-[9px] text-gray-500 mt-0.5 font-bold uppercase">{c.role}</p>
+                                            </div>
+                                        </div>
+                                        <i className="fa-solid fa-chevron-right text-gray-300"></i>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             );
         };
 
+        // --- NÚCLEO APP ---
         function App() {
             const [view, setView] = useState('splash');
             const [user, setUser] = useState(null);
@@ -660,23 +843,11 @@
                 setTimeout(() => { if(view === 'splash') setView('menu'); }, 3000);
             }, []);
 
-            const showToast = (msg, isError) => { 
-                setToast({msg, isError}); 
-                setTimeout(()=>setToast(null), 3500); 
-            };
-
-            const handleLogout = () => {
-                localStorage.removeItem('motoubgrit_current');
-                setUser(null);
-                showToast("Sesión cerrada", false);
-                setView('menu');
-            };
+            const showToast = (msg, isError) => { setToast({msg, isError}); setTimeout(()=>setToast(null), 3500); };
+            const handleLogout = () => { localStorage.removeItem('motoubgrit_current'); setUser(null); showToast("Sesión cerrada correctamente", false); setView('menu'); };
 
             const nav = (u) => { 
-                if(u.role==='driver') { 
-                    if(!u.verified) showToast("Aún esperando aprobación del Admin", true); 
-                    else setView('driver_dash'); 
-                } 
+                if(u.role==='driver') { if(!u.verified) showToast("⚠️ Tu cuenta de chofer está en revisión por el Administrador.", true); else setView('driver_dash'); } 
                 else if(u.role==='market') setView('market'); 
                 else if(u.role==='store') setView('enco'); 
                 else setView('client'); 
@@ -685,65 +856,54 @@
             const handleAuth = (e) => {
                 e.preventDefault();
                 if(role === 'admin') { 
-                    if(form.email === ADMIN_EMAIL && form.password === ADMIN_PASS) {
-                        setView('admin'); showToast("Acceso Admin Concedido", false);
-                    } else showToast("Credenciales inválidas", true); 
+                    if(form.email === ADMIN_EMAIL && form.password === ADMIN_PASS) { setView('admin'); showToast("🔐 Acceso Concedido al Panel Central", false); } 
+                    else showToast("Credenciales de Administrador inválidas", true); 
                     return; 
                 }
                 
                 let users = getDB('motoubgrit_users');
                 const exist = users.find(x => x.email === form.email && x.password === form.password);
-                if(exist) { 
-                    setUser(exist); localStorage.setItem('motoubgrit_current', JSON.stringify(exist)); 
-                    nav(exist); showToast("Bienvenido", false); 
-                } else if(form.nombre) { 
+                if(exist) { setUser(exist); localStorage.setItem('motoubgrit_current', JSON.stringify(exist)); nav(exist); showToast(`¡Hola de nuevo, ${exist.nombre}!`, false); } 
+                else if(form.nombre && form.cedula) { 
                     const nu = { ...form, role: role, verified: false }; 
                     users.push(nu); setDB('motoubgrit_users', users);
                     setUser(nu); localStorage.setItem('motoubgrit_current', JSON.stringify(nu));
-                    if(role === 'driver') setView('driver_rules'); else nav(nu);
-                } else showToast("Datos incompletos para registro", true);
+                    if(role === 'driver') setView('driver_rules'); else { showToast("Registro exitoso", false); nav(nu); }
+                } else showToast("Faltan datos obligatorios (Revisa Cédula y Nombre)", true);
             };
 
             if(view === 'splash') return (
-                <div className="fixed inset-0 bg-[#0b0f19] flex flex-col items-center justify-center z-50">
-                    <div className="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center mb-4 animate-logo shadow-[0_0_40px_rgba(220,38,38,0.6)]">
-                        <i className="fa-solid fa-motorcycle text-4xl text-white"></i>
-                    </div>
-                    <h1 className="text-4xl font-black text-white mb-2 tracking-tighter">Moto UBGrit</h1>
-                    <div className="bg-white/10 px-4 py-2 rounded-xl mt-2">
-                        <p className="text-[10px] text-gray-200 font-bold uppercase tracking-widest text-center">Tu Traslado / Encomienda<br/>Mercado / Medicamento</p>
-                        <p className="text-red-500 font-black text-center mt-1 text-xs tracking-widest">RÁPIDO Y SEGURO</p>
+                <div className="fixed inset-0 bg-[#0b0f19] flex flex-col items-center justify-center z-50 text-center">
+                    <div className="w-28 h-28 bg-red-600 rounded-full flex items-center justify-center mb-6 animate-logo shadow-[0_0_50px_rgba(220,38,38,0.6)] border-4 border-red-500"><i className="fa-solid fa-motorcycle text-5xl text-white"></i></div>
+                    <h1 className="text-5xl font-black text-white mb-2 tracking-tighter">Moto UBGrit</h1>
+                    <div className="bg-black/40 border border-gray-800 p-4 rounded-2xl mt-4 w-10/12 backdrop-blur-sm">
+                        <p className="text-[11px] text-gray-300 font-black uppercase tracking-widest leading-relaxed">Tu Traslado / Encomienda<br/>Mercado / Medicamento</p>
+                        <div className="mt-3 bg-red-600/20 border border-red-500/50 rounded-lg py-1.5"><p className="text-red-500 font-black text-[10px] tracking-[0.2em]">RÁPIDO Y SEGURO</p></div>
                     </div>
                 </div>
             );
             
             if(view === 'menu') return (
-                <div className="flex flex-col h-full bg-[#0b0f19] w-full p-6 text-center relative overflow-y-auto">
+                <div className="flex flex-col h-full bg-[#0b0f19] w-full p-5 text-center relative overflow-y-auto">
                     {toast && <Toast msg={toast.msg} isError={toast.isError} />}
-                    
                     <div className="absolute top-4 right-4 flex gap-2 z-20">
-                        <button onClick={()=>{setRole('admin');setView('auth');}} className="bg-white/10 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-white/20 transition-colors">⚙️ Admin</button>
-                        {user && <button onClick={handleLogout} className="bg-red-600 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-red-700 shadow-lg">Salir</button>}
+                        <button onClick={()=>{setRole('admin');setView('auth');}} className="bg-white/10 text-white px-3 py-2 rounded-lg text-[10px] font-black border border-white/20 hover:bg-white/20"><i className="fa-solid fa-shield-halved"></i> Admin</button>
+                        {user && <button onClick={handleLogout} className="bg-red-600 text-white px-3 py-2 rounded-lg text-[10px] font-black shadow-md hover:bg-red-700"><i className="fa-solid fa-right-from-bracket"></i> Salir</button>}
                     </div>
-
-                    <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4 mt-10 shadow-[0_0_30px_rgba(220,38,38,0.4)]">
-                        <i className="fa-solid fa-motorcycle text-3xl text-white"></i>
+                    <div className="mt-10 mb-6 flex flex-col items-center">
+                        <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(220,38,38,0.4)] border-2 border-red-500"><i className="fa-solid fa-motorcycle text-3xl text-white"></i></div>
+                        <h1 className="text-3xl font-black text-white mb-2 tracking-tight">Moto UBGrit</h1>
+                        <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest leading-relaxed">Tu Traslado / Encomienda<br/>Mercado / Medicamento</p>
+                        <p className="text-red-500 font-black tracking-[0.2em] mt-2 text-[9px] bg-red-500/10 border border-red-500/30 px-3 py-1 rounded-full">RÁPIDO Y SEGURO</p>
                     </div>
-                    <h1 className="text-3xl font-black text-white mb-2">Moto UBGrit</h1>
-                    
-                    <div className="mb-8">
-                        <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest">Tu Traslado / Encomienda / Mercado / Medicamento</p>
-                        <p className="text-red-500 font-black tracking-widest mt-1 text-xs">RÁPIDO Y SEGURO</p>
-                    </div>
-
-                    <div className="space-y-3 w-full max-w-sm mx-auto mt-2">
-                        <button onClick={()=>{setRole('client'); user?.role==='client'?nav(user):setView('auth');}} className="w-full bg-white text-black font-black py-4 rounded-xl text-sm shadow-lg">🏍️ Pedir Moto (Pasajero)</button>
-                        <button onClick={()=>{setRole('store'); user?.role==='store'?nav(user):setView('auth');}} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl text-sm shadow-lg">📦 Local / Encomiendas</button>
-                        <button onClick={()=>{setRole('market'); user?.role==='market'?nav(user):setView('auth');}} className="w-full bg-green-600 text-white font-bold py-4 rounded-xl text-sm shadow-lg">🛒 Mercado en Casa</button>
-                        <button onClick={()=>showToast('Módulo de Farmacia en desarrollo.', false)} className="w-full bg-purple-600 text-white font-bold py-4 rounded-xl text-sm shadow">💊 Farmacia (Próximamente)</button>
+                    <div className="space-y-3 w-full max-w-sm mx-auto pb-8">
+                        <button onClick={()=>{setRole('client'); user?.role==='client'?nav(user):setView('auth');}} className="w-full bg-white text-black font-black py-4 rounded-xl text-sm shadow-xl flex items-center justify-center gap-3 transition-transform active:scale-95"><div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"><i className="fa-solid fa-person-biking text-gray-700"></i></div> Pedir Moto (Pasajero)</button>
+                        <button onClick={()=>{setRole('store'); user?.role==='store'?nav(user):setView('auth');}} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl text-sm shadow-xl flex items-center justify-center gap-3 transition-transform active:scale-95"><div className="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center"><i className="fa-solid fa-box text-white"></i></div> Local / Encomiendas</button>
+                        <button onClick={()=>{setRole('market'); user?.role==='market'?nav(user):setView('auth');}} className="w-full bg-green-600 text-white font-black py-4 rounded-xl text-sm shadow-xl flex items-center justify-center gap-3 transition-transform active:scale-95"><div className="w-8 h-8 bg-green-700 rounded-full flex items-center justify-center"><i className="fa-solid fa-basket-shopping text-white"></i></div> Mercado en Casa</button>
+                        <button onClick={()=>showToast('Módulo de Farmacia en desarrollo', false)} className="w-full bg-purple-600 text-white font-black py-4 rounded-xl text-sm shadow-xl opacity-90 flex items-center justify-center gap-3 transition-transform active:scale-95"><div className="w-8 h-8 bg-purple-700 rounded-full flex items-center justify-center"><i className="fa-solid fa-pills text-white"></i></div> Farmacia (Próximamente)</button>
                         
-                        <div className="pt-4 mt-4 border-t border-gray-800">
-                            <button onClick={()=>{setRole('driver'); user?.role==='driver'?nav(user):setView('auth');}} className="w-full bg-[#1a1a1a] text-gray-400 border border-gray-700 py-4 rounded-xl font-bold text-xs">Panel Conductor</button>
+                        <div className="pt-6 mt-6 border-t border-gray-800/50">
+                            <button onClick={()=>{setRole('driver'); user?.role==='driver'?nav(user):setView('auth');}} className="w-full bg-[#1a1a1a] text-gray-400 border-2 border-gray-800 hover:border-gray-600 py-4 rounded-xl font-black text-xs transition-colors flex items-center justify-center gap-2"><i className="fa-solid fa-helmet-safety"></i> Panel Conductor</button>
                         </div>
                     </div>
                 </div>
@@ -751,30 +911,30 @@
 
             if(view === 'auth') return (
                 <div className="flex flex-col h-full bg-[#0b0f19] w-full overflow-y-auto">
-                    <HeaderNav title={role==='admin'?"Acceso Admin": "Ingreso / Registro"} onBack={()=>setView('menu')} />
-                    <div className="p-6">
-                        <form onSubmit={handleAuth} className="bg-white p-6 rounded-3xl space-y-4 shadow-2xl">
-                            <p className="text-xs text-center text-gray-500 font-bold mb-4">{role === 'admin' ? 'Ingresa credenciales exclusivas' : 'Si ya tienes cuenta, solo pon correo y clave.'}</p>
+                    <HeaderNav title={role==='admin'?"Acceso Administrador": "Ingreso Seguro"} onBack={()=>setView('menu')} />
+                    <div className="p-5 pb-20">
+                        <form onSubmit={handleAuth} className="bg-white p-6 rounded-3xl space-y-4 shadow-2xl relative border-t-8 border-red-600">
+                            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-red-600 rounded-full flex items-center justify-center shadow-lg border-4 border-[#0b0f19]"><i className="fa-solid fa-lock text-white"></i></div>
+                            <h2 className="text-center font-black text-lg text-gray-800 mt-2 mb-1">Tus Datos</h2>
+                            <p className="text-[10px] text-center text-gray-500 font-bold mb-4">{role === 'admin' ? 'Área restringida. Solo personal autorizado.' : 'Ingresa correo y clave. Si eres nuevo, llena el resto para registrarte.'}</p>
                             
-                            <input required name="email" type="email" placeholder="Correo electrónico" onChange={e=>setForm({...form, email:e.target.value})} className="w-full p-4 border rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-red-500 outline-none" />
-                            <input required name="password" type="password" placeholder="Contraseña" onChange={e=>setForm({...form, password:e.target.value})} className="w-full p-4 border rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-red-500 outline-none" />
-                            
+                            <div className="space-y-3">
+                                <input required name="email" type="email" placeholder="Correo electrónico" onChange={e=>setForm({...form, email:e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                                <input required name="password" type="password" placeholder="Contraseña" onChange={e=>setForm({...form, password:e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                            </div>
+
                             {role !== 'admin' && !user && (
-                                <>
-                                    <div className="border-t pt-4 mt-2">
-                                        <p className="text-[10px] text-gray-400 font-bold mb-3 uppercase tracking-wider text-center">Datos para nuevos usuarios</p>
-                                        <div className="space-y-4">
-                                            <input name="nombre" placeholder="Nombre completo o Local" onChange={e=>setForm({...form, nombre:e.target.value})} className="w-full p-4 border rounded-xl bg-gray-50 text-sm outline-none" />
-                                            <input name="telefono" type="tel" placeholder="WhatsApp" onChange={e=>setForm({...form, telefono:e.target.value})} className="w-full p-4 border rounded-xl bg-gray-50 text-sm outline-none" />
-                                            {role === 'driver' && <input name="placa" placeholder="Placa de la Moto" onChange={e=>setForm({...form, placa:e.target.value})} className="w-full p-4 border rounded-xl bg-gray-50 text-sm outline-none" />}
-                                            <textarea name="direccion" placeholder="Dirección exacta" onChange={e=>setForm({...form, direccion:e.target.value})} className="w-full p-4 border rounded-xl bg-gray-50 text-sm h-20 outline-none" />
-                                        </div>
-                                    </div>
-                                </>
+                                <div className="border-t border-dashed border-gray-300 pt-4 mt-2 space-y-3">
+                                    <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest text-center bg-gray-50 py-1 rounded">Completar Registro</p>
+                                    <input name="nombre" placeholder="Nombre completo o Local" onChange={e=>setForm({...form, nombre:e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                                    <input name="cedula" type="number" placeholder="Cédula de Identidad" onChange={e=>setForm({...form, cedula:e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                                    <input name="telefono" type="tel" placeholder="WhatsApp (Ej: 584141234567)" onChange={e=>setForm({...form, telefono:e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                                    {role === 'driver' && <input name="placa" placeholder="Placa y Modelo de Moto" onChange={e=>setForm({...form, placa:e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />}
+                                    <textarea name="direccion" placeholder="Dirección exacta en La Grita" onChange={e=>setForm({...form, direccion:e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs h-20 outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                                </div>
                             )}
-                            
-                            <button type="submit" className="w-full bg-red-600 text-white py-4 rounded-xl font-black text-lg shadow-lg mt-4">Acceder</button>
-                            <button type="button" onClick={()=>setView('menu')} className="w-full bg-gray-100 text-gray-600 py-3 rounded-xl text-xs font-bold mt-2">← Cancelar y Volver</button>
+                            <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-black text-sm shadow-lg mt-4 transition-transform active:scale-95">Ingresar / Registrar</button>
+                            <button type="button" onClick={()=>setView('menu')} className="w-full text-gray-500 py-3 rounded-xl text-xs font-bold mt-1 hover:bg-gray-50"><i className="fa-solid fa-arrow-left mr-1"></i> Cancelar y Volver</button>
                         </form>
                     </div>
                 </div>
@@ -783,15 +943,14 @@
             if(view === 'driver_rules') return (
                 <div className="flex flex-col h-full bg-[#0b0f19] p-6 text-center justify-center">
                     <div className="bg-white p-6 rounded-3xl border-4 border-yellow-400 shadow-2xl">
-                        <span className="text-5xl block mb-2">⚠️</span>
-                        <h2 className="text-2xl font-black mb-4">REGLAS CHOFER</h2>
-                        <div className="text-left text-xs font-bold space-y-3 mb-6 bg-gray-50 p-4 rounded-xl border">
-                            <p>🟢 1. Cobrar estrictamente la tarifa de TRASLADO.</p>
-                            <p>🟢 2. Casco (chofer y pasajero) y cesta son obligatorios.</p>
-                            <p>🟢 3. Tienes 60s para aceptar un viaje antes de que pase a otro.</p>
-                            <p className="text-red-600 bg-red-50 p-2 rounded">🔴 4. El pago del 10% es mensual. La app se bloqueará si hay impagos.</p>
+                        <span className="text-5xl block mb-2">⚠️</span><h2 className="text-xl font-black mb-4 text-gray-800">REGLAS DEL CHOFER</h2>
+                        <div className="text-left text-xs font-bold space-y-3 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200 text-gray-600 shadow-inner">
+                            <p><i className="fa-solid fa-check text-green-500 mr-1"></i> 1. Cobrar estrictamente la tarifa base de la app.</p>
+                            <p><i className="fa-solid fa-check text-green-500 mr-1"></i> 2. Casco (chofer y pasajero) obligatorio.</p>
+                            <p><i className="fa-solid fa-check text-green-500 mr-1"></i> 3. Tienes 60s para aceptar un viaje antes de que pase a otro.</p>
+                            <p className="text-red-700 bg-red-100 p-3 rounded-lg border border-red-200 mt-2"><i className="fa-solid fa-triangle-exclamation mr-1"></i> 4. El pago del 10% a la central es mensual. La app se bloqueará automáticamente si hay impagos.</p>
                         </div>
-                        <button onClick={()=>{window.open(`https://wa.me/${ADMIN_PHONE}?text=Registrado%20como%20chofer.%20Espero%20aprobacion.`, '_blank'); setView('menu');}} className="w-full bg-green-500 text-white py-4 rounded-xl font-black shadow-lg">Notificar Admin y Salir</button>
+                        <button onClick={()=>{window.open(`https://wa.me/${ADMIN_PHONE}?text=Registrado%20como%20chofer.%20Mi%20nombre%20es%20${user.nombre},%20cedula%20${user.cedula}.%20Espero%20aprobacion.`, '_blank'); setView('menu');}} className="w-full bg-black text-white py-4 rounded-xl font-black shadow-lg transition-transform active:scale-95"><i className="fa-brands fa-whatsapp text-green-500 mr-2"></i> Notificar Admin y Salir</button>
                     </div>
                 </div>
             );
