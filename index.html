@@ -5,19 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Moto UBGrit</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Leaflet Maps (Para usar mapas satelitales Esri/Google libres) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-    
-    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -26,14 +19,12 @@
         #mobile-container { width: 100%; max-width: 430px; height: 100%; max-height: 100dvh; background-color: #f9fafb; position: relative; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes pulseLogo { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        @keyframes pulseLogo { 0% { transform: scale(1); box-shadow: 0 0 20px rgba(220,38,38,0.5); } 50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(220,38,38,0.8); } 100% { transform: scale(1); box-shadow: 0 0 20px rgba(220,38,38,0.5); } }
         .animate-logo { animation: pulseLogo 2s infinite; }
         .custom-pin { filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.5)); font-size: 34px; line-height: 34px; text-align: center; cursor: pointer; transition: transform 0.1s; }
         .custom-pin:active { transform: scale(1.2) translateY(-5px); }
         @keyframes ringBell { 0%, 50%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(15deg); } 20%, 40% { transform: rotate(-15deg); } }
         .animate-ring { animation: ringBell 1s infinite; }
-        
-        /* Animación del Radar */
         .radar-box { position: relative; width: 100px; height: 100px; display: flex; justify-content: center; align-items: center; margin: 0 auto; }
         .radar-box::before, .radar-box::after { content: ''; position: absolute; border-radius: 50%; border: 2px solid #3b82f6; width: 100%; height: 100%; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
         .radar-box::after { animation-delay: 1s; }
@@ -45,39 +36,59 @@
         <div id="root" class="w-full h-full"></div>
     </div>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const initCloudDB = async () => {
+            try {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'moto-ubgrit-app';
+                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+                
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                const db = getFirestore(app);
+
+                if (typeof __initial_auth_token !== 'undefined') {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // Exponer a React mediante variables globales seguras
+                window.fb = { db, auth, appId, doc, getDoc, setDoc, updateDoc, onSnapshot, collection };
+                window.dispatchEvent(new Event('firebase-ready'));
+                console.log("Nube de Moto UBGrit conectada exitosamente.");
+            } catch (error) {
+                console.error("Error conectando a la nube:", error);
+            }
+        };
+        initCloudDB();
+    </script>
+
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- CONSTANTES ---
         const TASA_USD_COP = 3000;
         const TASA_VES_COP = 3.0;
-        const ADMIN_PHONE = "584140792843";
         const ADMIN_EMAIL = "motoubgrit@gmail.com";
         const ADMIN_PASS = "Universal11!!";
+        const ADMIN_PHONE = "584140792843";
 
-        // --- INVENTARIO COMPRIMIDO ---
-        const inventory = [
-            {c:"Hortalizas y Verduras", n:"Tomate", p:4000, i:"🍅"}, {c:"Hortalizas y Verduras", n:"Cebolla", p:3500, i:"🧅"}, {c:"Hortalizas y Verduras", n:"Ajo", p:12000, i:"🧄"}, {c:"Hortalizas y Verduras", n:"Zanahoria", p:3000, i:"🥕"}, {c:"Hortalizas y Verduras", n:"Remolacha", p:3000, i:"🍠"}, {c:"Hortalizas y Verduras", n:"Repollo", p:2500, i:"🥬"}, {c:"Hortalizas y Verduras", n:"Coliflor", p:4000, i:"🥦"}, {c:"Hortalizas y Verduras", n:"Acelga", p:2000, i:"🥬"}, {c:"Hortalizas y Verduras", n:"Pepino", p:2500, i:"🥒"}, {c:"Hortalizas y Verduras", n:"Brócoli", p:4500, i:"🥦"}, {c:"Hortalizas y Verduras", n:"Calabacín", p:2500, i:"🥒"}, {c:"Hortalizas y Verduras", n:"Pimentón", p:5000, i:"🫑"}, {c:"Hortalizas y Verduras", n:"Espinaca", p:3000, i:"🥬"}, {c:"Hortalizas y Verduras", n:"Ají dulce", p:4000, i:"🌶️"}, {c:"Hortalizas y Verduras", n:"Ají picante", p:5000, i:"🔥"}, {c:"Hortalizas y Verduras", n:"Apio España", p:3000, i:"🥬"},
-            {c:"Tubérculos y Vituallas", n:"Auyama", p:1500, i:"🎃"}, {c:"Tubérculos y Vituallas", n:"Papa", p:3500, i:"🥔"}, {c:"Tubérculos y Vituallas", n:"Yuca", p:2000, i:"🍠"}, {c:"Tubérculos y Vituallas", n:"Plátano Verde", p:3000, i:"🍌"}, {c:"Tubérculos y Vituallas", n:"Plátano Maduro", p:3000, i:"🍌"}, {c:"Tubérculos y Vituallas", n:"Apio", p:4000, i:"🌿"},
-            {c:"Frutas", n:"Lechoza", p:2500, i:"🍈"}, {c:"Frutas", n:"Melón", p:3000, i:"🍈"}, {c:"Frutas", n:"Guanábana", p:4500, i:"🍐"}, {c:"Frutas", n:"Guayaba", p:3000, i:"🍏"}, {c:"Frutas", n:"Parchita", p:4000, i:"🟡"}, {c:"Frutas", n:"Manzana", p:8000, i:"🍎"}, {c:"Frutas", n:"Cambur", p:2000, i:"🍌"}, {c:"Frutas", n:"Naranja", p:2500, i:"🍊"}, {c:"Frutas", n:"Fresa", p:8000, i:"🍓"}, {c:"Frutas", n:"Uva", p:10000, i:"🍇"}, {c:"Frutas", n:"Piña", p:3500, i:"🍍"}, {c:"Frutas", n:"Patilla", p:2000, i:"🍉"}, {c:"Frutas", n:"Limón", p:3000, i:"🍋"}, {c:"Frutas", n:"Mango", p:2500, i:"🥭"}, {c:"Frutas", n:"Pera", p:8000, i:"🍐"},
-            {c:"Ramas, Hierbas y Especias", n:"Cilantro", p:2000, i:"🌿"}, {c:"Ramas, Hierbas y Especias", n:"Perejil", p:2000, i:"🌿"}, {c:"Ramas, Hierbas y Especias", n:"Ajoporro", p:2500, i:"🌱"}, {c:"Ramas, Hierbas y Especias", n:"Matadera", p:2000, i:"☘️"}, {c:"Ramas, Hierbas y Especias", n:"Albahaca", p:2000, i:"🌱"}, {c:"Ramas, Hierbas y Especias", n:"Romero", p:2500, i:"🌿"}, {c:"Ramas, Hierbas y Especias", n:"Tomillo", p:2500, i:"🌿"}, {c:"Ramas, Hierbas y Especias", n:"Menta", p:2000, i:"🍃"}, {c:"Ramas, Hierbas y Especias", n:"Orégano", p:2000, i:"🌿"}, {c:"Ramas, Hierbas y Especias", n:"Cebollín", p:2000, i:"🌱"}, {c:"Ramas, Hierbas y Especias", n:"Comino", p:2000, i:"🧂"}, {c:"Ramas, Hierbas y Especias", n:"Paprica", p:2500, i:"🌶️"}, {c:"Ramas, Hierbas y Especias", n:"Ajo en polvo", p:3000, i:"🧄"}, {c:"Ramas, Hierbas y Especias", n:"Clavito", p:2000, i:"🟤"}, {c:"Ramas, Hierbas y Especias", n:"Guayabita", p:2500, i:"🫒"}, {c:"Ramas, Hierbas y Especias", n:"Canela", p:3000, i:"🪵"}, {c:"Ramas, Hierbas y Especias", n:"Canela en polvo", p:3000, i:"🫙"}, {c:"Ramas, Hierbas y Especias", n:"Pimienta", p:3000, i:"🧂"}, {c:"Ramas, Hierbas y Especias", n:"Anís estrellado", p:3000, i:"🌟"}, {c:"Ramas, Hierbas y Especias", n:"Hoja de laurel", p:2000, i:"🍃"},
-            {c:"Proteínas y Huevos", n:"Cartón de Huevos", p:16000, i:"🥚"}
-        ];
+        // Funciones auxiliares para acceder a las rutas estrictas de la nube
+        const getCol = (colName) => window.fb.collection(window.fb.db, 'artifacts', window.fb.appId, 'public', 'data', colName);
+        const getDoc = (colName, docId) => window.fb.doc(window.fb.db, 'artifacts', window.fb.appId, 'public', 'data', colName, String(docId));
 
-        const catStyles = {
-            "Hortalizas y Verduras": { bg: "bg-green-600", text: "text-green-700", border: "border-green-500", light: "bg-green-50" },
-            "Tubérculos y Vituallas": { bg: "bg-amber-600", text: "text-amber-700", border: "border-amber-500", light: "bg-amber-50" },
-            "Frutas": { bg: "bg-orange-500", text: "text-orange-700", border: "border-orange-500", light: "bg-orange-50" },
-            "Ramas, Hierbas y Especias": { bg: "bg-teal-600", text: "text-teal-700", border: "border-teal-500", light: "bg-teal-50" },
-            "Proteínas y Huevos": { bg: "bg-red-500", text: "text-red-700", border: "border-red-500", light: "bg-red-50" }
-        };
+        // INVENTARIO COMPRIMIDO (Para evitar cortes de código)
+        const inventarioTexto = "Hortalizas y Verduras:Tomate|4000|🍅,Cebolla|3500|🧅,Ajo|12000|🧄,Zanahoria|3000|🥕,Remolacha|3000|🍠,Repollo|2500|🥬,Coliflor|4000|🥦,Acelga|2000|🥬,Pepino|2500|🥒,Brócoli|4500|🥦,Calabacín|2500|🥒,Pimentón|5000|🫑,Espinaca|3000|🥬,Ají dulce|4000|🌶️,Ají picante|5000|🔥,Apio España|3000|🥬;Tubérculos y Vituallas:Auyama|1500|🎃,Papa|3500|🥔,Yuca|2000|🍠,Plátano Verde|3000|🍌,Plátano Maduro|3000|🍌,Apio|4000|🌿;Frutas:Lechoza|2500|🍈,Melón|3000|🍈,Guanábana|4500|🍐,Guayaba|3000|🍏,Parchita|4000|🟡,Manzana|8000|🍎,Cambur|2000|🍌,Naranja|2500|🍊,Fresa|8000|🍓,Uva|10000|🍇,Piña|3500|🍍,Patilla|2000|🍉,Limón|3000|🍋,Mango|2500|🥭,Pera|8000|🍐;Ramas, Hierbas y Especias:Cilantro|2000|🌿,Perejil|2000|🌿,Ajoporro|2500|🌱,Matadera|2000|☘️,Albahaca|2000|🌱,Romero|2500|🌿,Tomillo|2500|🌿,Menta|2000|🍃,Orégano|2000|🌿,Cebollín|2000|🌱,Comino|2000|🧂,Paprica|2500|🌶️,Ajo en polvo|3000|🧄,Clavito|2000|🟤,Guayabita|2500|🫒,Canela|3000|🪵,Canela en polvo|3000|🫙,Pimienta|3000|🧂,Anís estrellado|3000|🌟,Hoja de laurel|2000|🍃;Proteínas y Huevos:Cartón de Huevos|16000|🥚";
+        const inventory = [];
+        inventarioTexto.split(';').forEach(catStr => { const [cName, itemsStr] = catStr.split(':'); itemsStr.split(',').forEach(itemStr => { const [n, p, i] = itemStr.split('|'); inventory.push({ c: cName, n, p: parseInt(p), i }); }); });
+
+        const catStyles = { "Hortalizas y Verduras": { bg: "bg-green-600", text: "text-green-700", border: "border-green-500", light: "bg-green-50" }, "Tubérculos y Vituallas": { bg: "bg-amber-600", text: "text-amber-700", border: "border-amber-500", light: "bg-amber-50" }, "Frutas": { bg: "bg-orange-500", text: "text-orange-700", border: "border-orange-500", light: "bg-orange-50" }, "Ramas, Hierbas y Especias": { bg: "bg-teal-600", text: "text-teal-700", border: "border-teal-500", light: "bg-teal-50" }, "Proteínas y Huevos": { bg: "bg-red-500", text: "text-red-700", border: "border-red-500", light: "bg-red-50" } };
         const catList = Object.keys(catStyles);
 
-        // --- BASE DE DATOS LOCAL ---
-        const getDB = (key) => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { return []; } };
-        const setDB = (key, data) => localStorage.setItem(key, JSON.stringify(data));
-
-        // --- COMPONENTES UI ---
+        /* Componentes Globales UI */
         const HeaderNav = ({ title, onBack, right }) => (
             <div className="bg-black text-white p-4 sticky top-0 z-50 flex items-center justify-between shadow-md h-16 shrink-0 w-full">
                 {onBack ? ( <button onClick={onBack} className="text-xs font-bold bg-white/20 px-3 py-2 rounded hover:bg-white/30 transition-colors"><i className="fa-solid fa-arrow-left"></i> Volver</button> ) : <div className="w-16"></div>}
@@ -92,29 +103,21 @@
             </div>
         );
 
-        // --- RASTREO DEL CHOFER EN VIVO ---
         const DriverTrackingCard = ({ assignedDriver, goBack }) => (
             <div className="bg-white p-6 rounded-3xl shadow-xl w-full border-t-8 border-green-500 text-center fade-in">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-green-500">
-                    <i className="fa-solid fa-user-check text-2xl text-green-600"></i>
-                </div>
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-green-500"><i className="fa-solid fa-user-check text-2xl text-green-600"></i></div>
                 <h2 className="text-xl font-black text-gray-800 mb-1">¡Chofer Asignado!</h2>
                 <p className="text-xs text-gray-500 mb-4">Tu conductor va en camino.</p>
-                
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-left space-y-2 mb-4">
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-left space-y-2 mb-4 shadow-inner">
                     <p className="text-sm"><i className="fa-solid fa-id-card text-blue-500 w-5 text-center"></i> <strong>Nombre:</strong> {assignedDriver.driverName}</p>
                     <p className="text-sm"><i className="fa-solid fa-fingerprint text-purple-500 w-5 text-center"></i> <strong>Cédula:</strong> {assignedDriver.driverCedula}</p>
-                    <p className="text-sm"><i className="fa-solid fa-motorcycle text-red-500 w-5 text-center"></i> <strong>Placa:</strong> <span className="bg-yellow-300 px-2 py-0.5 rounded font-black text-black border border-yellow-500">{assignedDriver.driverPlaca}</span></p>
+                    <p className="text-sm"><i className="fa-solid fa-motorcycle text-red-500 w-5 text-center"></i> <strong>Moto:</strong> <span className="bg-yellow-300 px-2 py-0.5 rounded font-black text-black border border-yellow-500">{assignedDriver.driverPlaca}</span></p>
                 </div>
-
-                <button onClick={() => window.open(`https://wa.me/${assignedDriver.driverPhone}?text=Hola,%20soy%20el%20cliente%20de%20Moto%20UBGrit.%20Te%20estoy%20esperando.`, '_blank')} className="w-full bg-[#25D366] text-white py-3 rounded-xl font-bold shadow-lg mb-3 flex items-center justify-center gap-2">
-                    <i className="fa-brands fa-whatsapp text-xl"></i> Escribir al Chofer
-                </button>
-                <button onClick={goBack} className="w-full border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-bold bg-gray-50 hover:bg-gray-100">🏠 Volver al Menú</button>
+                <button onClick={() => window.open(`https://wa.me/${assignedDriver.driverPhone}?text=Hola,%20soy%20el%20cliente%20de%20Moto%20UBGrit.%20Te%20estoy%20esperando.`, '_blank')} className="w-full bg-[#25D366] text-white py-3 rounded-xl font-bold shadow-lg mb-3 flex items-center justify-center gap-2 transition-transform active:scale-95"><i className="fa-brands fa-whatsapp text-xl"></i> Escribir al Chofer</button>
+                <button onClick={goBack} className="w-full border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-bold bg-gray-50 hover:bg-gray-100 transition-colors">🏠 Volver al Menú</button>
             </div>
         );
 
-        // --- MERCADO EN CASA ---
         const MercadoDashboard = ({ user, goBack, showToast }) => {
             const [view, setView] = useState('shop');
             const [catIdx, setCatIdx] = useState(0);
@@ -159,44 +162,43 @@
             const totalVES = (totalCOP / TASA_VES_COP).toFixed(2);
             const totalUSD = (totalCOP / TASA_USD_COP).toFixed(2);
 
-            const submitOrder = () => {
-                if(totalCOP === 0) return;
+            const submitOrder = async () => {
+                if(totalCOP === 0 || !window.fb) return;
                 
-                const newId = Date.now();
+                const newId = Date.now().toString();
                 setOrderId(newId);
 
-                let payDetails = currency === 'COP' ? `${totalCOP.toLocaleString()} COP (Efectivo)` : currency === 'VES' ? `${totalVES} VES` : `$${totalUSD} USD`;
-                
-                let pending = getDB('motoubgrit_pending');
-                pending.push({
-                    id: newId, cliente: user.nombre, telefono: user.telefono, cedula: user.cedula,
-                    origen: "Mercado VicRos", destino: user.direccion, precio: totalCOP,
-                    tipo: 'Mercado', status: 'pending', time: Date.now()
-                });
-                setDB('motoubgrit_pending', pending);
+                // Escribir en Firestore (Nube)
+                try {
+                    await window.fb.setDoc(getDoc('trips', newId), {
+                        id: newId, cliente: user.nombre, telefono: user.telefono, cedula: user.cedula,
+                        origen: "Mercado Central", destino: user.direccion, precio: totalCOP,
+                        tipo: 'Mercado', status: 'pending', time: Date.now()
+                    });
 
-                let wsMsg = `*🛒 MERCADO EN CASA*%0A*Cliente:* ${user.nombre}%0A*C.I:* ${user.cedula}%0A*Tel:* ${user.telefono}%0A*Dir:* ${user.direccion}%0A%0A*PEDIDO:*%0A`;
-                Object.keys(cart).forEach(n => wsMsg += `▪ ${formatQty(cart[n].q, n)} de ${n} - ${(cart[n].p * cart[n].q).toLocaleString()} COP%0A`);
-                wsMsg += `🛵 *Delivery:* ${deliveryFee.toLocaleString()} COP%0A`;
-                wsMsg += `💵 *TOTAL A PAGAR:* ${payDetails}`;
-                
-                window.open(`https://wa.me/${ADMIN_PHONE}?text=${wsMsg}`, '_blank');
-                setCart({});
-                setView('success');
+                    let payDetails = currency === 'COP' ? `${totalCOP.toLocaleString()} COP` : currency === 'VES' ? `${totalVES} VES` : `$${totalUSD} USD`;
+                    let wsMsg = `*🛒 MERCADO EN CASA*%0A*Cliente:* ${user.nombre}%0A*C.I:* ${user.cedula}%0A*Tel:* ${user.telefono}%0A*Dir:* ${user.direccion}%0A%0A*PEDIDO:*%0A`;
+                    Object.keys(cart).forEach(n => wsMsg += `▪ ${formatQty(cart[n].q, n)} de ${n} - ${(cart[n].p * cart[n].q).toLocaleString()} COP%0A`);
+                    wsMsg += `🛵 *Delivery:* ${deliveryFee.toLocaleString()} COP%0A💵 *TOTAL:* ${payDetails}`;
+                    
+                    window.open(`https://wa.me/${ADMIN_PHONE}?text=${wsMsg}`, '_blank');
+                    setCart({});
+                    setView('success');
+                } catch(e) {
+                    showToast("Error conectando al servidor.", true);
+                }
             };
 
-            // Polling para rastreo del chofer
+            // Listener en tiempo real para asignación de chofer
             useEffect(() => {
-                let timer;
-                if (view === 'success' && orderId && !assignedDriver) {
-                    timer = setInterval(() => {
-                        const acc = getDB('motoubgrit_accepted_trips');
-                        const found = acc.find(t => t.id === orderId);
-                        if (found) setAssignedDriver(found);
-                    }, 2000);
-                }
-                return () => clearInterval(timer);
-            }, [view, orderId, assignedDriver]);
+                if (!orderId || view !== 'success' || assignedDriver || !window.fb) return;
+                const unsub = window.fb.onSnapshot(getDoc('trips', orderId), (snap) => {
+                    if (snap.exists() && snap.data().status === 'accepted') {
+                        setAssignedDriver(snap.data());
+                    }
+                }, (err) => console.log(err));
+                return () => unsub();
+            }, [orderId, view, assignedDriver]);
 
             if (view === 'shop') return (
                 <div className="flex flex-col h-full bg-gray-50 fade-in w-full overflow-hidden">
@@ -206,7 +208,7 @@
                         <h2 className={`text-sm font-black text-center ${catStyles[currentCat].text}`}>{currentCat}</h2>
                         <button onClick={()=>setCatIdx(Math.min(catList.length-1, catIdx+1))} disabled={catIdx===catList.length-1} className="p-2 text-xl opacity-70 disabled:opacity-30">➡️</button>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 pb-20 scroll-smooth bg-gray-50">
+                    <div className="flex-1 overflow-y-auto p-4 pb-24 scroll-smooth bg-gray-50">
                         <div className="grid grid-cols-2 gap-3">
                             {products.map(p => {
                                 const q = cart[p.n]?.q || 0;
@@ -259,7 +261,7 @@
                         </div>
                         
                         <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-200">
-                            <h3 className="font-bold text-xs text-center mb-3 text-gray-700">Moneda de Pago</h3>
+                            <h3 className="font-bold text-xs text-center mb-3 text-gray-700">Seleccione Moneda de Pago</h3>
                             <div className="grid grid-cols-3 gap-2 mb-4">
                                 {['COP', 'VES', 'USD'].map(c => (
                                     <button key={c} onClick={()=>setCurrency(c)} className={`py-2 rounded-lg font-bold text-xs border-2 transition-colors ${currency === c ? 'bg-green-100 border-green-500 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>{c}</button>
@@ -274,7 +276,7 @@
                         </div>
                     </div>
                     <div className="absolute bottom-0 left-0 w-full p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-50">
-                        <button onClick={submitOrder} disabled={totalCOP===0} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg flex justify-center items-center gap-2 text-sm disabled:opacity-50 transition-transform active:scale-95">📲 Enviar Pedido por WhatsApp</button>
+                        <button onClick={submitOrder} disabled={totalCOP===0} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg flex justify-center items-center gap-2 text-sm disabled:opacity-50 transition-transform active:scale-95">📲 Confirmar y Enviar Pedido</button>
                     </div>
                 </div>
             );
@@ -289,8 +291,8 @@
                             <h2 className="text-xl font-black text-green-800 mb-2">Pedido Registrado</h2>
                             <p className="text-xs text-gray-600 mb-6 font-bold">Buscando chofer disponible para su entrega... Por favor espere aquí.</p>
                             <div className="space-y-3">
-                                <button onClick={()=>{setCart({}); setView('shop');}} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-md hover:bg-green-700">🛒 Hacer otro pedido</button>
-                                <button onClick={goBack} className="w-full border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-bold bg-gray-50 hover:bg-gray-100">🏠 Volver al Menú</button>
+                                <button onClick={()=>{setCart({}); setView('shop');}} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-md hover:bg-green-700 transition-colors">🛒 Hacer otro pedido</button>
+                                <button onClick={goBack} className="w-full border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-bold bg-gray-50 hover:bg-gray-100 transition-colors">🏠 Volver al Menú</button>
                             </div>
                         </div>
                     )}
@@ -298,7 +300,6 @@
             );
         };
 
-        // --- MAPA Y RUTAS (PASAJERO / ENCOMIENDA) ---
         const TripPlanner = ({ user, type, goBack, showToast }) => {
             const mapRef = useRef(null);
             const mapInst = useRef(null);
@@ -314,7 +315,6 @@
             const [priceCOP, setPriceCOP] = useState(0);
             const [currency, setCurrency] = useState('COP');
             const [encDetails, setEncDetails] = useState({ queLleva: '', recibe: '', telRecibe: '' });
-            const [loading, setLoading] = useState(false);
             
             const [orderId, setOrderId] = useState(null);
             const [assignedDriver, setAssignedDriver] = useState(null);
@@ -322,7 +322,7 @@
             useEffect(() => {
                 if (mapRef.current && !mapInst.current && view === 'planner') {
                     mapInst.current = L.map(mapRef.current, { zoomControl: false }).setView([8.1333, -71.9833], 15);
-                    // Mapa Esri: Sin bloqueos 403, alta calidad.
+                    // Mapas de alta calidad Esri (No se bloquean como OpenStreetMap)
                     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
                         maxZoom: 19, attribution: 'Tiles &copy; Esri &mdash; MotoUBGrit' 
                     }).addTo(mapInst.current);
@@ -331,15 +331,14 @@
 
             useEffect(() => {
                 if(!mapInst.current) return;
-                
                 const getReverseGeocode = async (lat, lng, isOrigin) => {
                     try {
                         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
                         const data = await res.json();
-                        let name = data && data.address ? (data.address.road || data.display_name.split(',')[0]) : "Punto en el mapa";
+                        let name = data && data.address ? (data.address.road || data.display_name.split(',')[0]) : "Ubicación fijada";
                         if(isOrigin) setOText(name); else setDText(name);
                     } catch(err) { 
-                        if(isOrigin) setOText("Punto en el mapa"); else setDText("Punto en el mapa"); 
+                        if(isOrigin) setOText("Ubicación fijada en mapa"); else setDText("Ubicación fijada en mapa"); 
                     }
                 };
 
@@ -347,35 +346,32 @@
                     if (originMarker.current) mapInst.current.removeLayer(originMarker.current);
                     originMarker.current = L.marker(oCoords, { draggable: true, icon: L.divIcon({ className: 'custom-pin text-green-500', html: '<i class="fa-solid fa-location-dot"></i>', iconSize:[30,30], iconAnchor:[15,30] }) }).addTo(mapInst.current);
                     originMarker.current.on('dragend', (e) => { const { lat, lng } = e.target.getLatLng(); setOCoords([lat, lng]); getReverseGeocode(lat, lng, true); });
-                    if(!dCoords) mapInst.current.setView(oCoords, 16);
                 }
                 
                 if (dCoords) {
                     if (destMarker.current) mapInst.current.removeLayer(destMarker.current);
                     destMarker.current = L.marker(dCoords, { draggable: true, icon: L.divIcon({ className: 'custom-pin text-red-600', html: '<i class="fa-solid fa-location-dot"></i>', iconSize:[30,30], iconAnchor:[15,30] }) }).addTo(mapInst.current);
                     destMarker.current.on('dragend', (e) => { const { lat, lng } = e.target.getLatLng(); setDCoords([lat, lng]); getReverseGeocode(lat, lng, false); });
-                    if(!oCoords) mapInst.current.setView(dCoords, 16);
                 }
-                
                 if (oCoords && dCoords) calcRoute(oCoords, dCoords);
             }, [oCoords, dCoords]);
 
             const geocode = async (text, isOrigin) => {
-                if(!text) return showToast("Escribe una dirección", true);
-                setLoading(true);
+                if(!text) return showToast("Escribe una dirección para buscar", true);
                 try {
                     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text + ', La Grita, Tachira')}`);
                     const data = await res.json();
                     if(data && data.length > 0) {
                         const c = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
                         if(isOrigin) { setOCoords(c); setOText(data[0].name || text); } else { setDCoords(c); setDText(data[0].name || text); }
+                        mapInst.current.setView(c, 16);
                     } else {
-                        const center = [8.1333, -71.9833];
-                        if(isOrigin) { setOCoords(center); setOText("Arrastra el pin al Origen"); } else { setDCoords(center); setDText("Arrastra el pin al Destino"); }
-                        showToast("Busca en el mapa y arrastra el pin📍", false);
+                        const center = mapInst.current.getCenter();
+                        if(isOrigin) { setOCoords([center.lat, center.lng]); setOText("Mueve el pin verde"); } 
+                        else { setDCoords([center.lat, center.lng]); setDText("Mueve el pin rojo"); }
+                        showToast("Dirección no encontrada. Arrastra el pin en el mapa.", false);
                     }
                 } catch(e) { showToast("Error de conexión", true); }
-                setLoading(false);
             };
 
             const calcRoute = async (c1, c2) => {
@@ -389,53 +385,52 @@
                         
                         const dist = data.routes[0].distance;
                         let p = 5000; 
-                        // Hasta 5 Kilometros = 5000 fijos (Cubre todo el casco central).
+                        // Ampliado a 5 Kilómetros como rango plano para cobrar 5000 COP
                         if(dist > 5000) p += Math.ceil((dist - 5000) / 1000) * 1500; 
                         setPriceCOP(p);
                     }
                 } catch(e){}
             };
 
-            const submitTrip = () => {
-                if(!oCoords || !dCoords) return showToast("Fija Origen y Destino", true);
+            const submitTrip = async () => {
+                if(!oCoords || !dCoords) return showToast("Debes fijar Origen y Destino", true);
                 if(type === 'encomienda' && view === 'planner') return setView('details');
+                if(!window.fb) return;
                 
-                const newId = Date.now();
+                const newId = Date.now().toString();
                 setOrderId(newId);
-
                 const isEnc = type === 'encomienda';
-                const tripData = { 
-                    id: newId, cliente: user.nombre, telefono: user.telefono, cedula: user.cedula,
-                    origen: oText, destino: dText, precio: priceCOP, 
-                    tipo: isEnc ? 'Encomienda' : 'Pasajero', detalles: isEnc ? encDetails : null, 
-                    coords: {o: oCoords, d: dCoords}, status: 'pending', time: Date.now() 
-                };
-                
-                let pending = getDB('motoubgrit_pending');
-                pending.push(tripData);
-                setDB('motoubgrit_pending', pending);
 
-                let pVES = (priceCOP / TASA_VES_COP).toFixed(2);
-                let pUSD = (priceCOP / TASA_USD_COP).toFixed(2);
-                
-                let msg = `*🚀 SOLICITUD MOTO UBGRIT*%0A*Cliente:* ${user.nombre}%0A*C.I:* ${user.cedula}%0A📍 *De:* ${oText}%0A🏁 *Para:* ${dText}%0A💵 *Costo:* ${priceCOP} COP | ${pVES} VES | $${pUSD} USD`;
-                if(isEnc) msg += `%0A📦 *Lleva:* ${encDetails.queLleva}%0A👤 *Recibe:* ${encDetails.recibe} (${encDetails.telRecibe})`;
-                
-                window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
-                setView('success');
+                try {
+                    await window.fb.setDoc(getDoc('trips', newId), { 
+                        id: newId, cliente: user.nombre, telefono: user.telefono, cedula: user.cedula,
+                        origen: oText, destino: dText, precio: priceCOP, 
+                        tipo: isEnc ? 'Encomienda' : 'Pasajero', detalles: isEnc ? encDetails : null, 
+                        coords: {o: oCoords, d: dCoords}, status: 'pending', time: Date.now() 
+                    });
+
+                    let pVES = (priceCOP / TASA_VES_COP).toFixed(2);
+                    let pUSD = (priceCOP / TASA_USD_COP).toFixed(2);
+                    let msg = `*🚀 SOLICITUD MOTO UBGRIT*%0A*Cliente:* ${user.nombre}%0A*C.I:* ${user.cedula}%0A📍 *De:* ${oText}%0A🏁 *Para:* ${dText}%0A💵 *Costo:* ${priceCOP} COP | ${pVES} VES | $${pUSD} USD`;
+                    if(isEnc) msg += `%0A📦 *Lleva:* ${encDetails.queLleva}%0A👤 *Recibe:* ${encDetails.recibe} (${encDetails.telRecibe})`;
+                    
+                    window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
+                    setView('success');
+                } catch (e) {
+                    showToast("Error conectando a la base de datos", true);
+                }
             };
 
+            // Listener en tiempo real de Firebase para el Cliente
             useEffect(() => {
-                let timer;
-                if (view === 'success' && orderId && !assignedDriver) {
-                    timer = setInterval(() => {
-                        const acc = getDB('motoubgrit_accepted_trips');
-                        const found = acc.find(t => t.id === orderId);
-                        if (found) setAssignedDriver(found);
-                    }, 2000);
-                }
-                return () => clearInterval(timer);
-            }, [view, orderId, assignedDriver]);
+                if (!orderId || view !== 'success' || assignedDriver || !window.fb) return;
+                const unsub = window.fb.onSnapshot(getDoc('trips', orderId), (snap) => {
+                    if (snap.exists() && snap.data().status === 'accepted') {
+                        setAssignedDriver(snap.data());
+                    }
+                }, (err) => console.log(err));
+                return () => unsub();
+            }, [orderId, view, assignedDriver]);
 
             if(view === 'planner') return (
                 <div className="flex flex-col h-full bg-gray-100 fade-in relative w-full">
@@ -444,13 +439,13 @@
                     <div className="absolute top-20 left-4 right-4 z-[400] space-y-2">
                         <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-100 overflow-hidden">
                             <span className="p-3 bg-green-50 text-green-500 text-xs flex items-center justify-center w-10"><i className="fa-solid fa-circle-dot"></i></span>
-                            <input placeholder="Origen (Ej: Plaza Bolívar)" value={oText} onChange={e=>setOText(e.target.value)} className="flex-1 p-2 text-xs outline-none font-bold text-gray-700" />
-                            <button onClick={()=>geocode(oText, true)} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white px-4 text-xs font-bold transition-colors">Buscar</button>
+                            <input placeholder="Origen (O toca el mapa)" value={oText} onChange={e=>setOText(e.target.value)} onFocus={()=>{if(!oCoords) setOCoords([8.1333, -71.9833])}} className="flex-1 p-2 text-xs outline-none font-bold text-gray-700" />
+                            <button onClick={()=>geocode(oText, true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 text-xs font-bold transition-colors">Buscar</button>
                         </div>
                         <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-100 overflow-hidden">
                             <span className="p-3 bg-red-50 text-red-500 text-xs flex items-center justify-center w-10"><i className="fa-solid fa-location-dot"></i></span>
-                            <input placeholder="Destino (Ej: Hospital)" value={dText} onChange={e=>setDText(e.target.value)} className="flex-1 p-2 text-xs outline-none font-bold text-gray-700" />
-                            <button onClick={()=>geocode(dText, false)} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white px-4 text-xs font-bold transition-colors">Buscar</button>
+                            <input placeholder="Destino (O toca el mapa)" value={dText} onChange={e=>setDText(e.target.value)} onFocus={()=>{if(!dCoords) setDCoords([8.1333, -71.9833])}} className="flex-1 p-2 text-xs outline-none font-bold text-gray-700" />
+                            <button onClick={()=>geocode(dText, false)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 text-xs font-bold transition-colors">Buscar</button>
                         </div>
                     </div>
                     
@@ -469,7 +464,7 @@
                                 </h3>
                             </div>
                         ) : (
-                            <p className="text-xs font-bold text-gray-500 mb-4 bg-gray-50 p-3 rounded-xl border border-gray-200 shadow-inner">Busca origen y destino o arrastra los pines en el mapa.</p>
+                            <p className="text-xs font-bold text-gray-500 mb-4 bg-gray-50 p-3 rounded-xl border border-gray-200 shadow-inner">Escribe la calle o arrastra los pines en el mapa.</p>
                         )}
                         <button onClick={submitTrip} className={`w-full text-white py-4 rounded-xl font-black shadow-lg transition-all ${priceCOP>0 ? 'bg-blue-600 hover:bg-blue-700 active:scale-95' : 'bg-gray-400 pointer-events-none'}`}>
                             {type === 'encomienda' ? 'Continuar Encomienda 📦' : 'Pedir Moto Ahora 🏍️'}
@@ -485,7 +480,7 @@
                         <input placeholder="¿Qué llevas? (Ej: 2 Pizzas, Documentos)" value={encDetails.queLleva} onChange={e=>setEncDetails({...encDetails, queLleva:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm outline-none focus:ring-2 focus:ring-blue-500" />
                         <input placeholder="Nombre de quien recibe" value={encDetails.recibe} onChange={e=>setEncDetails({...encDetails, recibe:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm outline-none focus:ring-2 focus:ring-blue-500" />
                         <input placeholder="Teléfono destino" type="tel" value={encDetails.telRecibe} onChange={e=>setEncDetails({...encDetails, telRecibe:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                        <button onClick={submitTrip} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg mt-4 active:scale-95 transition-transform">Confirmar Envío por WhatsApp</button>
+                        <button onClick={submitTrip} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg mt-4 active:scale-95 transition-transform">Confirmar y Solicitar Moto</button>
                     </div>
                 </div>
             );
@@ -498,46 +493,60 @@
                         <div className="bg-white p-8 rounded-3xl shadow-xl w-full border-t-8 border-blue-600">
                             <div className="radar-box mb-6"><i className="fa-solid fa-motorcycle text-4xl text-blue-500 absolute z-10"></i></div>
                             <h2 className="text-xl font-black text-blue-800 mb-2">¡Solicitud Enviada!</h2>
-                            <p className="text-xs text-gray-600 mb-6 font-bold">Rastreando conductores cercanos... No cierres esta pantalla.</p>
-                            <button onClick={()=>{setView('planner');setPriceCOP(0);setOCoords(null);setDCoords(null);setOText('');setDText('');}} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow-md hover:bg-blue-700">📍 Pedir otro viaje</button>
-                            <button onClick={goBack} className="w-full border-2 border-gray-200 py-3 rounded-xl font-bold text-gray-700 bg-gray-50 hover:bg-gray-100">🏠 Volver al Menú</button>
+                            <p className="text-xs text-gray-600 mb-6 font-bold">Rastreando conductores en la nube... El sistema está asignando tu viaje.</p>
+                            <button onClick={()=>{setView('planner');setPriceCOP(0);setOCoords(null);setDCoords(null);setOText('');setDText('');}} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow-md hover:bg-blue-700 transition-colors">📍 Pedir otro viaje</button>
+                            <button onClick={goBack} className="w-full border-2 border-gray-200 py-3 rounded-xl font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors">🏠 Volver al Menú</button>
                         </div>
                     )}
                 </div>
             );
         };
 
-        // --- DASHBOARD CHOFER ---
         const DriverDashboard = ({ user, goBack, showToast }) => {
             const [view, setView] = useState('dash');
             const [activeTrip, setActiveTrip] = useState(null);
             const [pendingTrip, setPendingTrip] = useState(null);
             const [history, setHistory] = useState([]);
             const [timeLeft, setTimeLeft] = useState(60);
+            const [ignoredTrips, setIgnoredTrips] = useState([]);
 
+            // Escuchar viajes en la Nube
             useEffect(() => {
-                setHistory(getDB(`hist_${user.email}`));
-                setActiveTrip(getDB(`act_${user.email}`)[0] || null);
+                if(!window.fb) return;
+                const unsub = window.fb.onSnapshot(getCol('trips'), (snap) => {
+                    const allTrips = snap.docs.map(d => d.data());
+                    
+                    // Buscar viaje activo de este chofer
+                    const myActive = allTrips.find(t => t.status === 'accepted' && t.driverEmail === user.email);
+                    setActiveTrip(myActive || null);
 
-                const timer = setInterval(() => {
-                    if(activeTrip) return;
-                    const p = getDB('motoubgrit_pending');
-                    if(p.length > 0 && p[0].status === 'pending') setPendingTrip(p[0]);
-                    else setPendingTrip(null);
-                }, 3000);
-                return () => clearInterval(timer);
-            }, [activeTrip]);
+                    // Buscar historial del chofer
+                    const myHistory = allTrips.filter(t => t.status === 'completed' && t.driverEmail === user.email).sort((a,b) => b.time - a.time);
+                    setHistory(myHistory);
 
+                    // Buscar viajes pendientes nuevos (ignora los que dejó pasar 60s)
+                    if(!myActive) {
+                        const newPending = allTrips.find(t => t.status === 'pending' && !ignoredTrips.includes(t.id));
+                        setPendingTrip(newPending || null);
+                    } else {
+                        setPendingTrip(null);
+                    }
+                }, (err) => console.log(err));
+                return () => unsub();
+            }, [ignoredTrips, user.email]);
+
+            // Temporizador de 60 Segundos para aceptar viaje
             useEffect(() => {
                 let t;
-                if(pendingTrip) {
+                if(pendingTrip && !activeTrip) {
                     setTimeLeft(60);
                     t = setInterval(() => {
                         setTimeLeft(prev => {
                             if(prev <= 1) { 
                                 clearInterval(t); 
-                                let p = getDB('motoubgrit_pending'); p.shift(); setDB('motoubgrit_pending', p); 
-                                setPendingTrip(null); showToast("Tiempo agotado. Reasignado.", true); 
+                                setIgnoredTrips([...ignoredTrips, pendingTrip.id]); // Lo pasa al siguiente chofer
+                                setPendingTrip(null); 
+                                showToast("Tiempo agotado. Viaje reasignado.", true); 
                                 return 0; 
                             }
                             return prev - 1;
@@ -545,46 +554,25 @@
                     }, 1000);
                 }
                 return () => clearInterval(t);
-            }, [pendingTrip]);
+            }, [pendingTrip, activeTrip]);
 
-            const acceptTrip = () => {
-                if(!pendingTrip) return;
-                
-                let p = getDB('motoubgrit_pending'); 
-                p = p.filter(t => t.id !== pendingTrip.id); 
-                setDB('motoubgrit_pending', p);
-
-                const acceptedTrip = { 
-                    ...pendingTrip, 
-                    driverName: user.nombre, 
-                    driverPhone: user.telefono, 
-                    driverPlaca: user.placa, 
-                    driverCedula: user.cedula 
-                };
-
-                let acc = getDB('motoubgrit_accepted_trips');
-                acc.push(acceptedTrip);
-                setDB('motoubgrit_accepted_trips', acc);
-
-                setActiveTrip(acceptedTrip); 
-                setDB(`act_${user.email}`, [acceptedTrip]); 
-                setPendingTrip(null);
-                showToast("¡Viaje Aceptado! Ve a buscar al cliente.", false);
+            const acceptTrip = async () => {
+                if(!pendingTrip || !window.fb) return;
+                try {
+                    await window.fb.updateDoc(getDoc('trips', pendingTrip.id), { 
+                        status: 'accepted', driverEmail: user.email, driverName: user.nombre, 
+                        driverPhone: user.telefono, driverPlaca: user.placa, driverCedula: user.cedula 
+                    });
+                    showToast("¡Viaje Aceptado! El cliente fue notificado.", false);
+                } catch (e) { showToast("Alguien tomó este viaje", true); }
             };
 
-            const finishTrip = () => {
-                if(!activeTrip) return;
-                
-                let acc = getDB('motoubgrit_accepted_trips');
-                acc = acc.filter(t => t.id !== activeTrip.id);
-                setDB('motoubgrit_accepted_trips', acc);
-
-                const h = [activeTrip, ...history]; 
-                setHistory(h); 
-                setDB(`hist_${user.email}`, h); 
-                setActiveTrip(null); 
-                setDB(`act_${user.email}`, []); 
-                showToast("✅ Viaje completado y guardado en billetera.", false);
+            const finishTrip = async () => {
+                if(!activeTrip || !window.fb) return;
+                try {
+                    await window.fb.updateDoc(getDoc('trips', activeTrip.id), { status: 'completed' });
+                    showToast("✅ Viaje completado.", false);
+                } catch (e) { showToast("Error al finalizar", true); }
             };
 
             const totalGen = history.reduce((s, t) => s + t.precio, 0);
@@ -592,7 +580,7 @@
             if(view === 'wallet') return (
                 <div className="flex flex-col h-full bg-gray-100 fade-in w-full">
                     <HeaderNav title="Mi Billetera" onBack={()=>setView('dash')} />
-                    <div className="p-5 flex-1 overflow-y-auto">
+                    <div className="p-5 flex-1 overflow-y-auto pb-20">
                         <div className="bg-black p-5 rounded-3xl text-white text-center shadow-2xl mb-6 border-t-4 border-yellow-400">
                             <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-widest">Total Generado</p>
                             <h3 className="text-4xl font-black text-green-400 mb-4">{totalGen.toLocaleString()} COP</h3>
@@ -623,7 +611,7 @@
                         <div><h1 className="font-black text-sm tracking-wide">Panel Chofer</h1><p className="text-[10px] text-green-400 font-bold flex items-center gap-1.5 mt-0.5"><span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> {user.nombre}</p></div>
                         <button onClick={()=>setView('wallet')} className="text-xs bg-gray-800 px-4 py-2 rounded-xl font-bold border border-gray-700 hover:bg-gray-700 shadow-inner flex items-center gap-2"><i className="fa-solid fa-wallet text-yellow-400"></i> Billetera</button>
                     </div>
-                    <div className="p-4 flex-1 overflow-y-auto">
+                    <div className="p-4 flex-1 overflow-y-auto pb-20">
                         {activeTrip ? (
                             <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-2 border-blue-500 mb-6 relative">
                                 <div className="bg-blue-600 p-3 text-white text-center font-black text-xs tracking-widest flex items-center justify-center gap-2"><i className="fa-solid fa-motorcycle animate-bounce"></i> VIAJE EN CURSO</div>
@@ -644,10 +632,6 @@
                                     <div className="text-center bg-green-50 p-4 rounded-xl border border-green-200 shadow-sm">
                                         <p className="text-[10px] font-black text-gray-500 uppercase mb-1">Cobrar al cliente</p>
                                         <p className="text-3xl font-black text-green-700">{activeTrip.precio.toLocaleString()} <span className="text-sm">COP</span></p>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3 mt-4">
-                                        {activeTrip.coords?.o ? <button onClick={()=>window.open(`https://www.google.com/maps?q=${activeTrip.coords.o[0]},${activeTrip.coords.o[1]}`, '_blank')} className="bg-gray-800 hover:bg-gray-900 text-white py-3.5 rounded-xl font-bold text-xs shadow-md transition-colors"><i className="fa-solid fa-location-arrow text-blue-400 mr-1"></i> Ir a Origen</button> : <button disabled className="bg-gray-200 text-gray-400 py-3.5 rounded-xl font-bold text-xs">Sin GPS</button>}
-                                        {activeTrip.coords?.d ? <button onClick={()=>window.open(`https://www.google.com/maps?q=${activeTrip.coords.d[0]},${activeTrip.coords.d[1]}`, '_blank')} className="bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold text-xs shadow-md transition-colors"><i className="fa-solid fa-flag-checkered text-white mr-1"></i> Ir a Destino</button> : <button disabled className="bg-gray-200 text-gray-400 py-3.5 rounded-xl font-bold text-xs">Sin GPS</button>}
                                     </div>
                                     <button onClick={finishTrip} className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-black mt-4 shadow-xl text-sm transition-transform active:scale-95"><i className="fa-solid fa-check-double mr-2"></i> FINALIZAR VIAJE</button>
                                 </div>
@@ -674,18 +658,17 @@
                                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-blue-400 rounded-full opacity-20 animate-ping"></div>
                                 </div>
                                 <p className="font-black text-lg text-gray-800 text-center tracking-tight">Buscando viajes...</p>
-                                <p className="font-bold text-xs text-gray-500 text-center mt-1">Estás En Línea y listo para recibir solicitudes.</p>
+                                <p className="font-bold text-xs text-gray-500 text-center mt-1">Estás En Línea en la Nube y listo para recibir solicitudes.</p>
                             </div>
                         )}
                     </div>
-                    <div className="p-4 bg-white border-t border-gray-200 pb-8">
+                    <div className="absolute bottom-0 left-0 w-full p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] pb-8">
                         <button onClick={goBack} className="w-full border-2 border-gray-300 text-gray-600 py-3.5 rounded-xl font-bold text-xs bg-gray-50 hover:bg-gray-100 transition-colors"><i className="fa-solid fa-arrow-right-from-bracket mr-2"></i> Salir al Menú Principal</button>
                     </div>
                 </div>
             );
         };
 
-        // --- DASHBOARD ADMIN ---
         const AdminPanel = ({ goBack, showToast }) => {
             const [pendings, setPendings] = useState([]);
             const [users, setUsers] = useState([]);
@@ -693,25 +676,34 @@
             const [selectedUser, setSelectedUser] = useState(null);
 
             useEffect(() => {
-                const load = () => {
-                    setPendings(getDB('motoubgrit_pending'));
-                    setUsers(getDB('motoubgrit_users'));
-                };
-                load();
-                const t = setInterval(load, 3000);
-                return () => clearInterval(t);
+                if(!window.fb) return;
+                
+                // Suscripción en tiempo real a Usuarios
+                const unsubUsers = window.fb.onSnapshot(getCol('users'), (snap) => {
+                    setUsers(snap.docs.map(d => d.data()));
+                }, (err) => console.log(err));
+
+                // Suscripción en tiempo real a Viajes Pendientes (Activa Campanita Visual)
+                const unsubTrips = window.fb.onSnapshot(getCol('trips'), (snap) => {
+                    const allPending = snap.docs.map(d => d.data()).filter(t => t.status === 'pending');
+                    setPendings(allPending);
+                }, (err) => console.log(err));
+
+                return () => { unsubUsers(); unsubTrips(); };
             }, []);
 
-            const toggleVerify = (email) => {
-                let u = getDB('motoubgrit_users').map(x => { if(x.email === email) x.verified = !x.verified; return x; });
-                setDB('motoubgrit_users', u);
-                setUsers(u);
-                if(selectedUser) setSelectedUser({...selectedUser, verified: !selectedUser.verified});
-                showToast("Estado de chofer actualizado", false);
+            const toggleVerify = async (email) => {
+                if(!window.fb) return;
+                try {
+                    const targetUser = users.find(u => u.email === email);
+                    await window.fb.updateDoc(getDoc('users', email), { verified: !targetUser.verified });
+                    if(selectedUser) setSelectedUser({...selectedUser, verified: !targetUser.verified});
+                    showToast("Estado de chofer actualizado en la nube", false);
+                } catch(e) { showToast("Error al verificar", true); }
             };
 
             const drivers = users.filter(u => u.role === 'driver');
-            const clients = users.filter(u => u.role === 'client' || u.role === 'store' || u.role === 'market');
+            const clients = users.filter(u => u.role !== 'driver' && u.role !== 'admin');
 
             if (selectedUser) {
                 return (
@@ -829,52 +821,74 @@
             );
         };
 
-        // --- NÚCLEO APP ---
         function App() {
             const [view, setView] = useState('splash');
             const [user, setUser] = useState(null);
             const [role, setRole] = useState('');
             const [form, setForm] = useState({});
             const [toast, setToast] = useState(null);
+            const [fbReady, setFbReady] = useState(false);
 
             useEffect(() => {
+                if (window.fb) setFbReady(true);
+                else window.addEventListener('firebase-ready', () => setFbReady(true));
+
                 const u = localStorage.getItem('motoubgrit_current'); 
                 if(u) setUser(JSON.parse(u));
                 setTimeout(() => { if(view === 'splash') setView('menu'); }, 3000);
             }, []);
 
             const showToast = (msg, isError) => { setToast({msg, isError}); setTimeout(()=>setToast(null), 3500); };
-            const handleLogout = () => { localStorage.removeItem('motoubgrit_current'); setUser(null); showToast("Sesión cerrada correctamente", false); setView('menu'); };
+            const handleLogout = () => { localStorage.removeItem('motoubgrit_current'); setUser(null); showToast("Sesión cerrada", false); setView('menu'); };
+            const handleInputChange = (e) => setForm({...form, [e.target.name]: e.target.value});
 
-            const nav = (u) => { 
-                if(u.role==='driver') { if(!u.verified) showToast("⚠️ Tu cuenta de chofer está en revisión por el Administrador.", true); else setView('driver_dash'); } 
+            const nav = async (u) => { 
+                if(u.role==='driver') { 
+                    if(window.fb) {
+                        const snap = await window.fb.getDoc(getDoc('users', u.email));
+                        if(snap.exists() && snap.data().verified) { setView('driver_dash'); } 
+                        else showToast("⚠️ Cuenta en revisión por Admin.", true);
+                    }
+                } 
                 else if(u.role==='market') setView('market'); 
                 else if(u.role==='store') setView('enco'); 
                 else setView('client'); 
             };
 
-            const handleAuth = (e) => {
+            const handleAuth = async (e) => {
                 e.preventDefault();
+                if(!fbReady) return showToast("Conectando nube...", true);
+
                 if(role === 'admin') { 
-                    if(form.email === ADMIN_EMAIL && form.password === ADMIN_PASS) { setView('admin'); showToast("🔐 Acceso Concedido al Panel Central", false); } 
-                    else showToast("Credenciales de Administrador inválidas", true); 
+                    if(form.email === ADMIN_EMAIL && form.password === ADMIN_PASS) { setView('admin'); showToast("🔐 Acceso Concedido", false); } 
+                    else showToast("Credenciales inválidas", true); 
                     return; 
                 }
                 
-                let users = getDB('motoubgrit_users');
-                const exist = users.find(x => x.email === form.email && x.password === form.password);
-                if(exist) { setUser(exist); localStorage.setItem('motoubgrit_current', JSON.stringify(exist)); nav(exist); showToast(`¡Hola de nuevo, ${exist.nombre}!`, false); } 
-                else if(form.nombre && form.cedula) { 
-                    const nu = { ...form, role: role, verified: false }; 
-                    users.push(nu); setDB('motoubgrit_users', users);
-                    setUser(nu); localStorage.setItem('motoubgrit_current', JSON.stringify(nu));
-                    if(role === 'driver') setView('driver_rules'); else { showToast("Registro exitoso", false); nav(nu); }
-                } else showToast("Faltan datos obligatorios (Revisa Cédula y Nombre)", true);
+                try {
+                    const userRef = getDoc('users', form.email);
+                    const snap = await window.fb.getDoc(userRef);
+                    
+                    if (snap.exists() && snap.data().password === form.password) {
+                        const exist = snap.data();
+                        setUser(exist); localStorage.setItem('motoubgrit_current', JSON.stringify(exist)); 
+                        nav(exist); showToast(`¡Hola de nuevo, ${exist.nombre}!`, false);
+                    } else if (form.nombre && form.cedula) { 
+                        const nu = { ...form, role: role, verified: false }; 
+                        await window.fb.setDoc(userRef, nu);
+                        setUser(nu); localStorage.setItem('motoubgrit_current', JSON.stringify(nu));
+                        if(role === 'driver') setView('driver_rules'); else { showToast("Registro exitoso en Nube", false); nav(nu); }
+                    } else {
+                        showToast("Faltan datos obligatorios o clave errónea", true);
+                    }
+                } catch(err) {
+                    showToast("Error de conexión con la nube", true);
+                }
             };
 
             if(view === 'splash') return (
                 <div className="fixed inset-0 bg-[#0b0f19] flex flex-col items-center justify-center z-50 text-center">
-                    <div className="w-28 h-28 bg-red-600 rounded-full flex items-center justify-center mb-6 animate-logo shadow-[0_0_50px_rgba(220,38,38,0.6)] border-4 border-red-500"><i className="fa-solid fa-motorcycle text-5xl text-white"></i></div>
+                    <div className="w-28 h-28 bg-red-600 rounded-full flex items-center justify-center mb-6 animate-logo border-4 border-red-500"><i className="fa-solid fa-motorcycle text-5xl text-white"></i></div>
                     <h1 className="text-5xl font-black text-white mb-2 tracking-tighter">Moto UBGrit</h1>
                     <div className="bg-black/40 border border-gray-800 p-4 rounded-2xl mt-4 w-10/12 backdrop-blur-sm">
                         <p className="text-[11px] text-gray-300 font-black uppercase tracking-widest leading-relaxed">Tu Traslado / Encomienda<br/>Mercado / Medicamento</p>
@@ -901,7 +915,6 @@
                         <button onClick={()=>{setRole('store'); user?.role==='store'?nav(user):setView('auth');}} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl text-sm shadow-xl flex items-center justify-center gap-3 transition-transform active:scale-95"><div className="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center"><i className="fa-solid fa-box text-white"></i></div> Local / Encomiendas</button>
                         <button onClick={()=>{setRole('market'); user?.role==='market'?nav(user):setView('auth');}} className="w-full bg-green-600 text-white font-black py-4 rounded-xl text-sm shadow-xl flex items-center justify-center gap-3 transition-transform active:scale-95"><div className="w-8 h-8 bg-green-700 rounded-full flex items-center justify-center"><i className="fa-solid fa-basket-shopping text-white"></i></div> Mercado en Casa</button>
                         <button onClick={()=>showToast('Módulo de Farmacia en desarrollo', false)} className="w-full bg-purple-600 text-white font-black py-4 rounded-xl text-sm shadow-xl opacity-90 flex items-center justify-center gap-3 transition-transform active:scale-95"><div className="w-8 h-8 bg-purple-700 rounded-full flex items-center justify-center"><i className="fa-solid fa-pills text-white"></i></div> Farmacia (Próximamente)</button>
-                        
                         <div className="pt-6 mt-6 border-t border-gray-800/50">
                             <button onClick={()=>{setRole('driver'); user?.role==='driver'?nav(user):setView('auth');}} className="w-full bg-[#1a1a1a] text-gray-400 border-2 border-gray-800 hover:border-gray-600 py-4 rounded-xl font-black text-xs transition-colors flex items-center justify-center gap-2"><i className="fa-solid fa-helmet-safety"></i> Panel Conductor</button>
                         </div>
@@ -916,24 +929,24 @@
                         <form onSubmit={handleAuth} className="bg-white p-6 rounded-3xl space-y-4 shadow-2xl relative border-t-8 border-red-600">
                             <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-red-600 rounded-full flex items-center justify-center shadow-lg border-4 border-[#0b0f19]"><i className="fa-solid fa-lock text-white"></i></div>
                             <h2 className="text-center font-black text-lg text-gray-800 mt-2 mb-1">Tus Datos</h2>
-                            <p className="text-[10px] text-center text-gray-500 font-bold mb-4">{role === 'admin' ? 'Área restringida. Solo personal autorizado.' : 'Ingresa correo y clave. Si eres nuevo, llena el resto para registrarte.'}</p>
+                            <p className="text-[10px] text-center text-gray-500 font-bold mb-4">{role === 'admin' ? 'Solo personal autorizado.' : 'Ingresa correo y clave. Si eres nuevo, llena el resto para registrarte.'}</p>
                             
                             <div className="space-y-3">
-                                <input required name="email" type="email" placeholder="Correo electrónico" onChange={e=>setForm({...form, email:e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                <input required name="password" type="password" placeholder="Contraseña" onChange={e=>setForm({...form, password:e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                                <input required name="email" type="email" placeholder="Correo electrónico" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                                <input required name="password" type="password" placeholder="Contraseña" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
                             </div>
 
-                            {role !== 'admin' && !user && (
+                            {role !== 'admin' && (
                                 <div className="border-t border-dashed border-gray-300 pt-4 mt-2 space-y-3">
-                                    <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest text-center bg-gray-50 py-1 rounded">Completar Registro</p>
-                                    <input name="nombre" placeholder="Nombre completo o Local" onChange={e=>setForm({...form, nombre:e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                    <input name="cedula" type="number" placeholder="Cédula de Identidad" onChange={e=>setForm({...form, cedula:e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                    <input name="telefono" type="tel" placeholder="WhatsApp (Ej: 584141234567)" onChange={e=>setForm({...form, telefono:e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                    {role === 'driver' && <input name="placa" placeholder="Placa y Modelo de Moto" onChange={e=>setForm({...form, placa:e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />}
-                                    <textarea name="direccion" placeholder="Dirección exacta en La Grita" onChange={e=>setForm({...form, direccion:e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs h-20 outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                                    <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest text-center bg-gray-50 py-1 rounded">Si eres nuevo, llena esto:</p>
+                                    <input name="nombre" placeholder="Nombre completo o Local" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                                    <input name="cedula" type="number" placeholder="Cédula de Identidad" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                                    <input name="telefono" type="tel" placeholder="WhatsApp (Ej: 584141234567)" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                                    {role === 'driver' && <input name="placa" placeholder="Placa y Modelo de Moto" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />}
+                                    <textarea name="direccion" placeholder="Dirección exacta en La Grita" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs h-20 outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
                                 </div>
                             )}
-                            <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-black text-sm shadow-lg mt-4 transition-transform active:scale-95">Ingresar / Registrar</button>
+                            <button type="submit" disabled={!fbReady} className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-black text-sm shadow-lg mt-4 transition-transform active:scale-95 disabled:opacity-50">{fbReady ? 'Ingresar / Registrar' : 'Conectando Nube...'}</button>
                             <button type="button" onClick={()=>setView('menu')} className="w-full text-gray-500 py-3 rounded-xl text-xs font-bold mt-1 hover:bg-gray-50"><i className="fa-solid fa-arrow-left mr-1"></i> Cancelar y Volver</button>
                         </form>
                     </div>
@@ -945,10 +958,10 @@
                     <div className="bg-white p-6 rounded-3xl border-4 border-yellow-400 shadow-2xl">
                         <span className="text-5xl block mb-2">⚠️</span><h2 className="text-xl font-black mb-4 text-gray-800">REGLAS DEL CHOFER</h2>
                         <div className="text-left text-xs font-bold space-y-3 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200 text-gray-600 shadow-inner">
-                            <p><i className="fa-solid fa-check text-green-500 mr-1"></i> 1. Cobrar estrictamente la tarifa base de la app.</p>
+                            <p><i className="fa-solid fa-check text-green-500 mr-1"></i> 1. Cobrar estrictamente la tarifa de la app.</p>
                             <p><i className="fa-solid fa-check text-green-500 mr-1"></i> 2. Casco (chofer y pasajero) obligatorio.</p>
-                            <p><i className="fa-solid fa-check text-green-500 mr-1"></i> 3. Tienes 60s para aceptar un viaje antes de que pase a otro.</p>
-                            <p className="text-red-700 bg-red-100 p-3 rounded-lg border border-red-200 mt-2"><i className="fa-solid fa-triangle-exclamation mr-1"></i> 4. El pago del 10% a la central es mensual. La app se bloqueará automáticamente si hay impagos.</p>
+                            <p><i className="fa-solid fa-check text-green-500 mr-1"></i> 3. Tienes 60s para aceptar un viaje antes de que pase a otro chofer.</p>
+                            <p className="text-red-700 bg-red-100 p-3 rounded-lg border border-red-200 mt-2"><i className="fa-solid fa-triangle-exclamation mr-1"></i> 4. Tu cuenta debe ser aprobada por el administrador.</p>
                         </div>
                         <button onClick={()=>{window.open(`https://wa.me/${ADMIN_PHONE}?text=Registrado%20como%20chofer.%20Mi%20nombre%20es%20${user.nombre},%20cedula%20${user.cedula}.%20Espero%20aprobacion.`, '_blank'); setView('menu');}} className="w-full bg-black text-white py-4 rounded-xl font-black shadow-lg transition-transform active:scale-95"><i className="fa-brands fa-whatsapp text-green-500 mr-2"></i> Notificar Admin y Salir</button>
                     </div>
