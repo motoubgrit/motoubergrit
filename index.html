@@ -2,781 +2,149 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Moto UBGrit</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0b0f19; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100dvh; overflow: hidden; touch-action: manipulation; }
-        ::-webkit-scrollbar { display: none; }
-        #mobile-container { width: 100%; max-width: 430px; height: 100%; max-height: 100dvh; background-color: #f9fafb; position: relative; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes pulseLogo { 0% { transform: scale(1); box-shadow: 0 0 20px rgba(220,38,38,0.5); } 50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(220,38,38,0.8); } 100% { transform: scale(1); box-shadow: 0 0 20px rgba(220,38,38,0.5); } }
-        .animate-logo { animation: pulseLogo 2s infinite; }
-        .custom-pin { filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.5)); font-size: 34px; line-height: 34px; text-align: center; cursor: pointer; transition: transform 0.1s; }
-        .custom-pin:active { transform: scale(1.2) translateY(-5px); }
-        @keyframes ringBell { 0%, 50%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(15deg); } 20%, 40% { transform: rotate(-15deg); } }
-        .animate-ring { animation: ringBell 1s infinite; }
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
     </style>
 </head>
 <body>
-    <div id="mobile-container">
-        <div id="root" class="w-full h-full"></div>
-    </div>
+    <div id="root"></div>
 
-    <!-- 🔥 MÓDULO FIREBASE (NUBE REAL) 🔥 -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, where, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
-        // =====================================================================
-        // ⚠️ PEGA AQUÍ TUS LLAVES DE FIREBASE (Reemplaza todo este bloque) ⚠️
-        // =====================================================================
-const firebaseConfig = {
-  apiKey: "AIzaSyC4RaeKy1IjcAKK6tJtSD5-hxAbhra6wEU",
-  authDomain: "moto-ubgrit.firebaseapp.com",
-  projectId: "moto-ubgrit",
-  storageBucket: "moto-ubgrit.firebasestorage.app",
-  messagingSenderId: "1079394065391",
-  appId: "1:1079394065391:web:6744ccdaa2a26a344bf41a"
-};
-        // =====================================================================
-
-        const initCloudDB = async () => {
-            if (firebaseConfig.apiKey.includes("PEGA_AQUI")) {
-                console.warn("⚠️ Llaves de Firebase no detectadas. Manteniendo modo WhatsApp autónomo para evitar bloqueos.");
-                window.db = null;
-            } else {
-                try {
-                    const app = initializeApp(firebaseConfig);
-                    window.db = getFirestore(app);
-                    window.fb = { collection, addDoc, getDocs, onSnapshot, query, where, updateDoc, doc };
-                    console.log("☁️ NUBE FIREBASE CONECTADA EXITOSAMENTE ☁️");
-                } catch (error) {
-                    console.error("Error conectando a Firebase:", error);
-                    window.db = null;
-                }
-            }
-            window.dispatchEvent(new Event('firebase-ready'));
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4RaeKy1IjcAKK6tJtSD5-hxAbhra6wEU",
+            authDomain: "moto-ubgrit.firebaseapp.com",
+            projectId: "moto-ubgrit",
+            storageBucket: "moto-ubgrit.firebasestorage.app",
+            messagingSenderId: "1079394065391",
+            appId: "1:1079394065391:web:6744ccdaa2a26a344bf41a"
         };
-        initCloudDB();
+        const app = initializeApp(firebaseConfig);
+        const db = window.db = getFirestore(app);
     </script>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState } = React;
 
-        const TASA_USD_COP = 3000;
-        const TASA_VES_COP = 3.0;
-        const ADMIN_EMAIL = "motoubgrit@gmail.com";
-        const ADMIN_PASS = "Universal11!!";
-        const ADMIN_PHONE = "584140792843";
+        function App() {
+            const [view, setView] = useState('menu');
 
-        // === DICCIONARIO DE PRECIOS FIJOS ===
-        const RUTAS_FIJAS = {
-            "AGUA DIAZ": 5000, "FLORESTA": 4000, "LA MESETA CAPILLA": 5000, "LOS PINOS": 5000, "PARTE ALTA": 6000,
-            "LA GRANJA": 3000, "2 DE FEBRERO": 5000, "11 DE JUNIO": 5000, "GUATAVITAS": 6000,
-            "BUENOS AIRES LOS GONZALES": 5000, "SURURAL CAPILLA": 5000, "SURURAL PARQUE": 7000, "POSADA EL MARACUCHO": 8000, 
-            "URB. CAPRAVERA": 5000, "PUENTE COLGANTE": 5000, "NAZARENO": 6000, "LA GALLERA": 4000, "CANTINA": 4000, 
-            "EL PUEBLITO HASTA EL CASERIO": 10000, "ALTO DE LOS CHACONES": 20000, "MINA DE YESO": 15000, "LA CAPILLA": 20000, 
-            "LA ESCUELA EL PARCHAL": 25000, "LA Y PARCHAL": 30000, "LA Y BONIQUEA": 40000, "BONIQUEA ESCUELA": 45000, 
-            "LOMA DEL TRIGO": 40000, "PÁRAMO LAS PIEDRAS": 60000, "PÁRAMO LOS PANTANOS": 90000, "ENTRADA CARICUENA": 10000, 
-            "CASA COMUNAL": 12000, "EL RINCON": 15000, "TANQUE DEL HINOS": 20000, "LOS PALMITOS": 25000, 
-            "PARMEROS PARTE BAJA": 30000, "PARMEROS PARTE ALTA": 35000, "LLANETES LA CAPILLA": 8000, "MOGOTES EL TELÉFONO": 12000, 
-            "EL PALENQUE CAPILLA": 30000, "CHITADA": 12000, "LLANETES PUENTE PARTE ALTA": 15000, "LA CRUZ": 12000, 
-            "SR. LINO": 20000, "SR. ALEJO": 25000, "MESA DEL BARRO": 30000, "MESA DE LA LATA": 50000, "EL DISPENSARIO": 70000,
-            "PÁRAMO DEL VERDE": 100000, "ENTRADA AGUA CALIENTE": 7000, "TRAPICHE": 12000, "FINAL": 40000, "BAUQUENA CAPILLA": 20000, 
-            "LAS PALMAS": 25000, "POSADA ELPARAISO": 30000, "ESCUELA DEL PÁRAMO ROSAL": 40000, "POSADA LA NONA": 50000, "LA CORTADA": 50000, 
-            "EL CUJI": 6000, "LA CURVA": 8000, "LOS PLANES ENTRADA": 10000, "MACHADO PUENTE": 5000, "MACHADO PLANADA": 10000, 
-            "LAS LOMITAS": 15000, "TORNEADERO LA ESCUELA": 25000, "TORNEADERO TRAPICHE": 30000, "BORRIQUERO": 4000, 
-            "LOS HIGUERONES": 5000, "HIERRO LA GRITA": 6000, "LA ESCUELA": 10000, "LA Y": 15000, "EL SORURE": 20000,
-            "LA ESPINOSA": 15000, "EL ESPEJO": 35000, "LOS CIENTIFICOS": 10000, "LOS CACHIMBOS": 15000, "AMBULATORIO": 60000, "OSORIO PARTE ALTA": 60000,
-            "EL PINAR": 15000, "ENTRADA SANTO DOMINGO": 20000, "PARAMITO BAJA": 20000, "PARAMITO ALTA": 20000, "LA LAGUNA RODEO": 30000, 
-            "LAGUNA CAPILLA": 35000, "ALTO MATEO LICEO CANCHA": 40000, "BOCA DE MONTE": 50000, "PLAZA SANTA CLARA": 80000, "EL COCAL": 80000, 
-            "EL TESORO": 90000, "UMUQUENA": 100000, "SAN CRISTOBAL": 200000, "SANTA ANA DEL TACHIRA": 230000, "SAN CRISTOBAL VIA COLON": 250000, 
-            "QUENIQUEA": 180000, "SAN JOSE": 180000, "VENEGARA CAPILLA": 30000, "GUACHARACA": 25000, "LA PRADERA": 30000, 
-            "LA BOMBA SABANA GRANDE": 35000, "TIENDA DE USEBIO": 40000, "EL PESEBRE": 40000, "EL CEDRITO": 50000, "PUEBLO HONDO": 70000, 
-            "PUEBLO ENCIMA": 80000, "NANJAR": 80000, "PARAMO LA NEGRA": 120000, "VENTORRILLO": 90000, "LA LAGUNA": 100000, "ANGOSTURA": 100000, 
-            "SAN SIMON": 120000, "HERNANDEZ": 150000, "COLON": 100000, "SAN PEDRO DEL RIO": 120000, "LOBATERA": 140000, 
-            "MICHELENA": 160000, "PERIBECA": 180000, "CAPACHO": 250000, "RUBIO": 300000, "UREÑA": 300000, "SAN ANTONIO": 320000, 
-            "LA COLORADA": 10000, "EL AZUL": 12000, "HATICO": 20000, "SEBORUCO": 25000, "POTRERITO": 25000, "LLANITO": 30000, 
-            "SANTA FILOMENA": 30000, "PALTA": 35000, "CLUB JAGUALITO": 30000, "PALMARITO": 30000, "LAS MESAS": 50000,
-            "LA FRIA": 60000, "LA FRIA AEROPUERTO": 70000, "CARRIZAL": 4000, "HOTEL BORRIQUERO": 5000, "SANTUARIO": 5000, 
-            "C.I.C.P.C": 6000, "PEPSICO": 7000, "CORRALITOS PUENTE": 10000, "CORRALITOS PISCINA": 12000, "LA QUINTA": 8000, 
-            "HOTEL ATENAS": 10000, "TRES ISLAS": 80000, "OROPE": 100000, "PUERTO": 120000, "JUDIO": 15000, "REST. HUMBERTO": 15000, 
-            "HOTEL MONTAÑA": 20000, "CAMPO ALEGRE": 20000, "QUEDA HONDA": 25000, "MONASTERIO": 30000, "PARQUE LAS PORQUERAS": 35000, 
-            "EL PORTACHUELO": 60000, "EL DELGADITO": 70000, "LA PLAYITA": 80000, "BAILADORES": 100000, "TOVAR": 150000, 
-            "ZEA": 200000, "EJIDO": 250000, "MÉRIDA": 300000, "VALLA PLATEADO": 100000, "VALLE NEGRO": 120000, 
-            "LAGUNA GARCIA": 160000, "PREGONERO": 200000, "COLONCITO": 120000, "LA TENDIDA": 170000, "EL VIGIA": 200000, 
-            "LA SABINA": 10000, "SANTA ANA VATEA": 12000, "CAPILLA SANTA ANA": 15000, "LA PUNTICA": 25000, "ENTRADA BOCAQUEA": 30000, 
-            "PARQUE ANGOSTURA": 40000, "EL COBRE": 50000, "RIO ARRIBA": 60000, "LOS MIRTOS": 80000, "ZUMBADOR": 100000, 
-            "MESA DE AURA": 120000, "LA AUYAMALA": 140000, "CORDERO": 160000, "TARIBA": 180000
-        };
-
-        // INVENTARIO COMPRIMIDO 
-        const inventarioTexto = "Hortalizas y Verduras:Tomate|4000|🍅,Cebolla|3500|🧅,Ajo|12000|🧄,Zanahoria|3000|🥕,Remolacha|3000|🍠,Repollo|2500|🥬,Coliflor|4000|🥦,Acelga|2000|🥬,Pepino|2500|🥒,Brócoli|4500|🥦,Calabacín|2500|🥒,Pimentón|5000|🫑,Espinaca|3000|🥬,Ají dulce|4000|🌶️,Ají picante|5000|🔥,Apio España|3000|🥬;Tubérculos y Vituallas:Auyama|1500|🎃,Papa|3500|🥔,Yuca|2000|🍠,Plátano Verde|3000|🍌,Plátano Maduro|3000|🍌,Apio|4000|🌿;Frutas:Lechoza|2500|🍈,Melón|3000|🍈,Guanábana|4500|🍐,Guayaba|3000|🍏,Parchita|4000|🟡,Manzana|8000|🍎,Cambur|2000|🍌,Naranja|2500|🍊,Fresa|8000|🍓,Uva|10000|🍇,Piña|3500|🍍,Patilla|2000|🍉,Limón|3000|🍋,Mango|2500|🥭,Pera|8000|🍐;Ramas, Hierbas y Especias:Cilantro|2000|🌿,Perejil|2000|🌿,Ajoporro|2500|🌱,Matadera|2000|☘️,Albahaca|2000|🌱,Romero|2500|🌿,Tomillo|2500|🌿,Menta|2000|🍃,Orégano|2000|🌿,Cebollín|2000|🌱,Comino|2000|🧂,Paprica|2500|🌶️️,Ajo en polvo|3000|🧄,Clavito|2000|🟤,Guayabita|2500|🫒,Canela|3000|🪵,Canela en polvo|3000|🫙,Pimienta|3000|🧂,Anís estrellado|3000|🌟,Hoja de laurel|2000|🍃;Proteínas y Huevos:Cartón de Huevos|16000|🥚";
-        const inventory = [];
-        inventarioTexto.split(';').forEach(catStr => { const [cName, itemsStr] = catStr.split(':'); itemsStr.split(',').forEach(itemStr => { const [n, p, i] = itemStr.split('|'); inventory.push({ c: cName, n, p: parseInt(p), i }); }); });
-        const catStyles = { "Hortalizas y Verduras": { bg: "bg-green-600", text: "text-green-700", border: "border-green-500", light: "bg-green-50" }, "Tubérculos y Vituallas": { bg: "bg-amber-600", text: "text-amber-700", border: "border-amber-500", light: "bg-amber-50" }, "Frutas": { bg: "bg-orange-500", text: "text-orange-700", border: "border-orange-500", light: "bg-orange-50" }, "Ramas, Hierbas y Especias": { bg: "bg-teal-600", text: "text-teal-700", border: "border-teal-500", light: "bg-teal-50" }, "Proteínas y Huevos": { bg: "bg-red-500", text: "text-red-700", border: "border-red-500", light: "bg-red-50" } };
-        const catList = Object.keys(catStyles);
-
-        /* UI Global */
-        const HeaderNav = ({ title, onBack, right }) => (
-            <div className="bg-black text-white p-4 sticky top-0 z-50 flex items-center justify-between shadow-md h-16 shrink-0 w-full">
-                {onBack ? ( <button onClick={onBack} className="text-xs font-bold bg-white/20 px-3 py-2 rounded hover:bg-white/30 transition-colors"><i className="fa-solid fa-arrow-left"></i> Volver</button> ) : <div className="w-16"></div>}
-                <h2 className="text-sm font-black truncate flex-1 text-center px-2">{title}</h2>
-                <div className="w-16 flex justify-end">{right}</div>
-            </div>
-        );
-
-        const Toast = ({ msg, isError }) => (
-            <div className={`absolute top-20 left-1/2 transform -translate-x-1/2 z-[999] w-11/12 max-w-xs fade-in ${isError ? 'bg-red-600' : 'bg-green-600'} text-white px-4 py-3 rounded-xl shadow-2xl font-bold text-xs text-center pointer-events-none`}>
-                {msg}
-            </div>
-        );
-
-        const MercadoDashboard = ({ user, goBack, showToast }) => {
-            const [view, setView] = useState('shop');
-            const [catIdx, setCatIdx] = useState(0);
-            const [cart, setCart] = useState({});
-            const [currency, setCurrency] = useState('COP');
-
-            const currentCat = catList[catIdx];
-            const products = inventory.filter(p => p.c === currentCat);
-
-            const formatQty = (q, name) => {
-                const isEgg = name.toLowerCase().includes("huevo");
-                if (q === 0.25) return isEgg ? "1/4 Cartón" : "250g";
-                if (q === 0.5) return isEgg ? "Medio Cartón" : "Medio Kg";
-                if (q === 0.75) return isEgg ? "3/4 Cartón" : "750g";
-                if (q === 1) return isEgg ? "1 Cartón" : "1 Kg";
-                return `${q} ${isEgg ? 'Cartones' : 'Kg/Und'}`;
-            };
-
-            const updateCart = (name, q, price) => {
-                const cleanQ = Math.max(0, Math.round(q * 100) / 100);
-                let finalPrice = price;
-                if (name.toLowerCase().includes("huevo")) {
-                    if (cleanQ === 0.25) finalPrice = 4000;
-                    else if (cleanQ === 0.5) finalPrice = 8000;
-                    else if (cleanQ === 0.75) finalPrice = 12000;
-                    else finalPrice = 16000;
-                }
-                setCart(prev => {
-                    const newCart = { ...prev };
-                    if (cleanQ <= 0) delete newCart[name];
-                    else newCart[name] = { q: cleanQ, p: finalPrice };
-                    return newCart;
+            const handleMercadoClick = () => {
+                // Configuramos el reloj estrictamente a la zona horaria de Venezuela
+                const formatter = new Intl.DateTimeFormat('en-US', { 
+                    timeZone: "America/Caracas", 
+                    hourCycle: "h23", 
+                    weekday: 'short', 
+                    hour: 'numeric' 
                 });
-            };
-
-            const cartSubtotal = Object.values(cart).reduce((sum, item) => sum + (item.p * item.q), 0);
-            const deliveryFee = 4000; 
-            const totalCOP = cartSubtotal > 0 ? cartSubtotal + deliveryFee : 0;
-            const totalVES = (totalCOP / TASA_VES_COP).toFixed(2);
-            const totalUSD = (totalCOP / TASA_USD_COP).toFixed(2);
-
-            const submitOrder = () => {
-                let payDetails = currency === 'COP' ? `${totalCOP.toLocaleString()} COP` : currency === 'VES' ? `${totalVES} VES` : `$${totalUSD} USD`;
-                let wsMsg = `*🛒 MERCADO EN CASA*%0A*Cliente:* ${user.nombre}%0A*C.I:* ${user.cedula}%0A*Tel:* ${user.telefono}%0A*Dir:* ${user.direccion}%0A%0A*PEDIDO:*%0A`;
-                Object.keys(cart).forEach(n => wsMsg += `▪ ${formatQty(cart[n].q, n)} de ${n} - ${(cart[n].p * cart[n].q).toLocaleString()} COP%0A`);
-                wsMsg += `🛵 *Delivery:* ${deliveryFee.toLocaleString()} COP%0A💵 *TOTAL:* ${payDetails}`;
                 
-                window.open(`https://wa.me/${ADMIN_PHONE}?text=${wsMsg}`, '_blank');
-                setCart({});
-                setView('success');
+                const parts = formatter.formatToParts(new Date());
+                const weekDay = parts.find(p => p.type === 'weekday').value; 
+                const hour = parseInt(parts.find(p => p.type === 'hour').value, 10);
+
+                let isAvailable = false;
+
+                // Jueves desde las 12, Viernes completo, Sábado hasta las 11:59 AM
+                if (weekDay === 'Thu' && hour >= 12) isAvailable = true;
+                if (weekDay === 'Fri') isAvailable = true;
+                if (weekDay === 'Sat' && hour < 12) isAvailable = true;
+
+                if (isAvailable) {
+                    setView('mercado');
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Horario de Mercado en Casa',
+                        text: 'Para garantizar la distribución de rubros de calidad en la puerta de su casa, solo laboraremos en este horario: Jueves a partir del mediodía (12:00 PM) hasta el Sábado a mediodía (12:00 PM).',
+                        confirmButtonColor: '#ef4444',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
             };
 
-            if (view === 'shop') return (
-                <div className="flex flex-col h-full bg-gray-50 fade-in w-full overflow-hidden">
-                    <HeaderNav title="Mercado en Casa" onBack={goBack} right={<button onClick={()=>setView('cart')} className="bg-white text-green-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm border border-green-200">🛒 {Object.keys(cart).length}</button>} />
-                    <div className={`p-3 flex items-center justify-between shadow-sm shrink-0 ${catStyles[currentCat].light} border-b-4 ${catStyles[currentCat].border} z-10 relative`}>
-                        <button onClick={()=>setCatIdx(Math.max(0, catIdx-1))} disabled={catIdx===0} className="p-2 text-xl opacity-70 disabled:opacity-30">⬅️</button>
-                        <h2 className={`text-sm font-black text-center ${catStyles[currentCat].text}`}>{currentCat}</h2>
-                        <button onClick={()=>setCatIdx(Math.min(catList.length-1, catIdx+1))} disabled={catIdx===catList.length-1} className="p-2 text-xl opacity-70 disabled:opacity-30">➡️</button>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-4 pb-24 scroll-smooth bg-gray-50">
-                        <div className="grid grid-cols-2 gap-3">
-                            {products.map(p => {
-                                const q = cart[p.n]?.q || 0;
-                                const isEgg = p.n.toLowerCase().includes("huevo");
-                                const displayPrice = isEgg ? 16000 : p.p;
-                                const style = catStyles[currentCat];
-                                return (
-                                    <div key={p.n} className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 flex flex-col items-center justify-between">
-                                        <div className="text-4xl mb-2">{p.i}</div>
-                                        <h3 className="font-bold text-xs text-center h-8 flex items-center">{p.n}</h3>
-                                        <p className={`${style.text} font-black text-[11px] my-2`}>{displayPrice.toLocaleString()} COP {isEgg?'/Cartón':'/Kg'}</p>
-                                        {q === 0 ? (
-                                            <button onClick={()=>{updateCart(p.n, 0.25, displayPrice); showToast(`${p.n} agregado`, false)}} className={`w-full ${style.light} ${style.text} border ${style.border} py-1.5 rounded-lg text-xs font-bold transition-transform active:scale-95`}>➕ Agregar</button>
-                                        ) : (
-                                            <div className="flex justify-between items-center w-full bg-gray-50 rounded-lg p-1 border">
-                                                <button onClick={()=>updateCart(p.n, q-0.25, displayPrice)} className="px-2 text-red-500 font-bold active:scale-90">-</button>
-                                                <span className="font-bold text-[10px] text-center w-full">{formatQty(q, p.n)}</span>
-                                                <button onClick={()=>updateCart(p.n, q+0.25, displayPrice)} className={`px-2 ${style.text} font-bold active:scale-90`}>+</button>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+            return (
+                <div className="min-h-screen max-w-md mx-auto bg-gray-50 shadow-2xl relative overflow-hidden">
+                    {/* Barra Superior */}
+                    <div className="bg-red-600 text-white p-4 shadow-md flex justify-between items-center rounded-b-2xl">
+                        <div className="flex items-center space-x-2">
+                            <i className="fas fa-motorcycle text-2xl"></i>
+                            <h1 className="text-xl font-bold italic">Moto UBGrit</h1>
                         </div>
-                        {catIdx < catList.length - 1 ? (
-                            <button onClick={()=>{document.querySelector('.overflow-y-auto').scrollTo(0,0); setCatIdx(catIdx+1)}} className={`w-full mt-6 py-4 rounded-xl font-bold shadow-sm border-2 ${catStyles[catList[catIdx+1]].text} ${catStyles[catList[catIdx+1]].border} bg-white transition-transform active:scale-95`}>Avanzar a {catList[catIdx+1]} ↓</button>
-                        ) : (
-                            <button onClick={()=>setView('cart')} className="w-full mt-6 bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg transition-transform active:scale-95">Ir al Carrito 🛒</button>
+                        {view !== 'menu' && (
+                            <button onClick={() => setView('menu')} className="bg-red-700 px-4 py-2 rounded-full hover:bg-red-800 text-sm font-bold transition-colors">
+                                <i className="fas fa-arrow-left"></i> Volver
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Contenido Dinámico */}
+                    <div className="p-4 pb-24">
+                        {view === 'menu' && (
+                            <div className="space-y-4 mt-6">
+                                <h2 className="text-gray-700 font-bold text-lg text-center mb-6">¿Qué servicio necesitas hoy?</h2>
+                                
+                                <button onClick={() => setView('moto')} className="w-full bg-white p-6 rounded-2xl shadow-sm border-2 border-transparent hover:border-red-500 flex items-center space-x-4 transition-all">
+                                    <div className="bg-red-100 p-4 rounded-full">
+                                        <i className="fas fa-motorcycle text-3xl text-red-600"></i>
+                                    </div>
+                                    <div className="text-left">
+                                        <h3 className="font-bold text-gray-800 text-xl">Moto Taxi</h3>
+                                        <p className="text-sm text-gray-500">Viaja rápido y seguro (Base: 4000 COP)</p>
+                                    </div>
+                                </button>
+
+                                <button onClick={handleMercadoClick} className="w-full bg-white p-6 rounded-2xl shadow-sm border-2 border-transparent hover:border-green-500 flex items-center space-x-4 transition-all">
+                                    <div className="bg-green-100 p-4 rounded-full flex-shrink-0">
+                                        <span className="text-3xl">🛒</span>
+                                    </div>
+                                    <div className="text-left">
+                                        <h3 className="font-bold text-gray-800 text-xl">Mercado en Casa</h3>
+                                        <p className="text-xs text-gray-500 font-medium leading-tight mt-1">
+                                            (Frutas, Verduras, Hortalizas, Legumbres y Especies)
+                                        </p>
+                                    </div>
+                                </button>
+                                
+                                <button onClick={() => Swal.fire('Próximamente', 'Módulo de encomiendas en desarrollo', 'info')} className="w-full bg-white p-6 rounded-2xl shadow-sm border-2 border-transparent hover:border-blue-500 flex items-center space-x-4 transition-all opacity-70">
+                                    <div className="bg-blue-100 p-4 rounded-full flex-shrink-0">
+                                        <i className="fas fa-box text-3xl text-blue-600"></i>
+                                    </div>
+                                    <div className="text-left">
+                                        <h3 className="font-bold text-gray-800 text-xl">Encomiendas</h3>
+                                        <p className="text-sm text-gray-500">Envíos rápidos</p>
+                                    </div>
+                                </button>
+                            </div>
+                        )}
+
+                        {view === 'mercado' && (
+                            <div className="bg-white p-8 rounded-xl shadow-lg text-center mt-10 border-t-4 border-green-500">
+                                <span className="text-6xl block mb-4">🛒</span>
+                                <h2 className="text-2xl font-bold mt-4 text-green-600">¡Mercado Abierto!</h2>
+                                <p className="text-gray-500 mt-2">Bienvenido a la sección de compras. Podrás ver la lista completa de frutas y verduras aquí.</p>
+                            </div>
+                        )}
+
+                        {view === 'moto' && (
+                            <div className="bg-white p-8 rounded-xl shadow-lg text-center mt-10 border-t-4 border-red-500">
+                                <i className="fas fa-map-marker-alt text-6xl text-red-500 block mb-4"></i>
+                                <h2 className="text-2xl font-bold mt-4 text-red-600">Calculadora de Viajes</h2>
+                                <p className="text-gray-500 mt-2">Aquí aparecerá el mapa y la lista de precios fijos conectada a Firebase.</p>
+                            </div>
                         )}
                     </div>
                 </div>
             );
-
-            if (view === 'cart') return (
-                <div className="flex flex-col h-full bg-gray-100 fade-in w-full relative">
-                    <HeaderNav title="Carrito de Compras" onBack={()=>setView('shop')} />
-                    <div className="flex-1 overflow-y-auto p-4 pb-32">
-                        <div className="bg-white rounded-xl shadow-sm p-4 mb-4 border border-gray-200">
-                            {Object.keys(cart).length === 0 ? <p className="text-center text-gray-500 text-sm font-bold">Carrito vacío</p> : null}
-                            {Object.keys(cart).map(n => (
-                                <div key={n} className="flex justify-between items-center py-2 border-b text-xs border-dashed">
-                                    <span>{formatQty(cart[n].q, n)} {n}</span><span className="font-bold text-gray-700">{(cart[n].p * cart[n].q).toLocaleString()} COP</span>
-                                </div>
-                            ))}
-                            {cartSubtotal > 0 && (
-                                <div className="flex justify-between items-center py-3 text-xs text-orange-600 font-bold">
-                                    <span>Delivery (La Grita)</span><span>+{deliveryFee.toLocaleString()} COP</span>
-                                </div>
-                            )}
-                        </div>
-                        
-                        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-200">
-                            <h3 className="font-bold text-xs text-center mb-3 text-gray-700">Total a Pagar</h3>
-                            <div className="grid grid-cols-3 gap-2 mb-4">
-                                {['COP', 'VES', 'USD'].map(c => (
-                                    <button key={c} onClick={()=>setCurrency(c)} className={`py-2 rounded-lg font-bold text-xs border-2 transition-colors ${currency === c ? 'bg-green-100 border-green-500 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>{c}</button>
-                                ))}
-                            </div>
-                            <div className="p-4 bg-gray-50 rounded-xl text-center border border-gray-200 shadow-inner">
-                                {currency === 'COP' && <p className="font-black text-green-700 text-3xl">{totalCOP.toLocaleString()} <span className="text-sm">COP</span></p>}
-                                {currency === 'VES' && <p className="font-black text-blue-700 text-3xl">{totalVES} <span className="text-sm">VES</span></p>}
-                                {currency === 'USD' && <p className="font-black text-emerald-700 text-3xl">${totalUSD} <span className="text-sm">USD</span></p>}
-                            </div>
-                        </div>
-                    </div>
-                    <div className="absolute bottom-0 left-0 w-full p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-50">
-                        <button onClick={submitOrder} disabled={totalCOP===0} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg flex justify-center items-center gap-2 text-sm disabled:opacity-50 transition-transform active:scale-95">📲 Enviar Pedido a WhatsApp</button>
-                    </div>
-                </div>
-            );
-
-            if (view === 'success') return (
-                <div className="flex flex-col h-full bg-green-50 fade-in w-full items-center justify-center p-6 text-center">
-                    <div className="bg-white p-8 rounded-3xl shadow-xl w-full border-t-8 border-green-600">
-                        <div className="text-5xl mb-4">✅</div>
-                        <h2 className="text-xl font-black text-green-800 mb-2">¡Pedido Enviado!</h2>
-                        <p className="text-xs text-gray-600 mb-6 font-bold">Tu recibo ha sido enviado al administrador por WhatsApp.</p>
-                        <div className="space-y-3">
-                            <button onClick={()=>{setView('shop');}} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-md hover:bg-green-700 transition-colors">🛒 Hacer otro pedido</button>
-                            <button onClick={goBack} className="w-full border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-bold bg-gray-50 hover:bg-gray-100 transition-colors">🏠 Volver al Menú</button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const TripPlanner = ({ user, type, goBack, showToast }) => {
-            const mapRef = useRef(null);
-            const mapInst = useRef(null);
-            const routeLayer = useRef(null);
-            const originMarker = useRef(null);
-            const destMarker = useRef(null);
-            const searchTimeout = useRef(null);
-
-            const [view, setView] = useState('planner');
-            const [oText, setOText] = useState('Centro La Grita');
-            const [dText, setDText] = useState('');
-            const [oCoords, setOCoords] = useState([8.1333, -71.9833]);
-            const [dCoords, setDCoords] = useState(null);
-            const [priceCOP, setPriceCOP] = useState(0);
-            const [currency, setCurrency] = useState('COP');
-            const [encDetails, setEncDetails] = useState({ queLleva: '', recibe: '', telRecibe: '' });
-            const [precioRutaFija, setPrecioRutaFija] = useState(false);
-            const [distanciaCalculadaKm, setDistanciaCalculadaKm] = useState(null);
-            
-            const [suggestions, setSuggestions] = useState({ type: null, list: [] });
-
-            useEffect(() => {
-                if (mapRef.current && !mapInst.current && view === 'planner') {
-                    mapInst.current = L.map(mapRef.current, { zoomControl: false }).setView(oCoords, 15);
-                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
-                        maxZoom: 19, attribution: 'Tiles &copy; Esri &mdash; MotoUBGrit' 
-                    }).addTo(mapInst.current);
-                }
-            }, [view]);
-
-            const actualizarPrecio = (distanciaRealMetros = 0) => {
-                let pLista = null;
-                const dUpper = dText.toUpperCase();
-                const oUpper = oText.toUpperCase();
-                
-                Object.keys(RUTAS_FIJAS).forEach(clave => {
-                    if(dUpper.includes(clave) || oUpper.includes(clave)) pLista = RUTAS_FIJAS[clave];
-                });
-                
-                if (pLista) {
-                    setPriceCOP(pLista);
-                    setPrecioRutaFija(true);
-                    if (distanciaRealMetros > 0) setDistanciaCalculadaKm((distanciaRealMetros / 1000).toFixed(1));
-                } else {
-                    setPrecioRutaFija(false);
-                    let p = 4000; 
-                    if (distanciaRealMetros > 0) {
-                        const km = (distanciaRealMetros / 1000).toFixed(1);
-                        setDistanciaCalculadaKm(km);
-                        if (distanciaRealMetros > 5000) {
-                            const kmExtra = (distanciaRealMetros - 5000) / 1000;
-                            p += Math.round(kmExtra * 1500);
-                        }
-                    } else {
-                        setDistanciaCalculadaKm(null);
-                    }
-                    setPriceCOP(p);
-                }
-            };
-
-            useEffect(() => {
-                if (dText || oText) actualizarPrecio();
-            }, [dText, oText]);
-
-            useEffect(() => {
-                if(!mapInst.current) return;
-                const getReverseGeocode = async (lat, lng, isOrigin) => {
-                    try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-                        const data = await res.json();
-                        let name = data && data.address ? (data.address.road || data.display_name.split(',')[0]) : "Ubicación en mapa";
-                        if(isOrigin) setOText(name); else setDText(name);
-                    } catch(err) {}
-                };
-
-                if (oCoords) {
-                    if (originMarker.current) mapInst.current.removeLayer(originMarker.current);
-                    originMarker.current = L.marker(oCoords, { draggable: true, icon: L.divIcon({ className: 'custom-pin text-green-500', html: '<i class="fa-solid fa-circle-dot"></i>', iconSize:[30,30], iconAnchor:[15,30] }) }).addTo(mapInst.current);
-                    originMarker.current.on('dragend', (e) => { 
-                        const { lat, lng } = e.target.getLatLng(); 
-                        setOCoords([lat, lng]); 
-                        getReverseGeocode(lat, lng, true); 
-                    });
-                }
-                
-                if (dCoords) {
-                    if (destMarker.current) mapInst.current.removeLayer(destMarker.current);
-                    destMarker.current = L.marker(dCoords, { draggable: true, icon: L.divIcon({ className: 'custom-pin text-red-600', html: '<i class="fa-solid fa-location-dot"></i>', iconSize:[30,30], iconAnchor:[15,30] }) }).addTo(mapInst.current);
-                    destMarker.current.on('dragend', (e) => { 
-                        const { lat, lng } = e.target.getLatLng(); 
-                        setDCoords([lat, lng]); 
-                        getReverseGeocode(lat, lng, false); 
-                    });
-                }
-                
-                if (oCoords && dCoords) calcRoute(oCoords, dCoords);
-            }, [oCoords, dCoords]);
-
-            const handleTextChange = (e, isOrigin) => {
-                const val = e.target.value;
-                if(isOrigin) setOText(val); else setDText(val);
-
-                if(val.length < 3) {
-                    setSuggestions({ type: null, list: [] });
-                    return;
-                }
-
-                if(searchTimeout.current) clearTimeout(searchTimeout.current);
-                
-                searchTimeout.current = setTimeout(async () => {
-                    let results = [];
-                    const valUpper = val.toUpperCase();
-                    
-                    Object.keys(RUTAS_FIJAS).forEach(clave => {
-                        if(clave.includes(valUpper)) {
-                            results.push({ name: clave, isFixed: true, price: RUTAS_FIJAS[clave] });
-                        }
-                    });
-
-                    try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val + ', Tachira, Venezuela')}&limit=4`);
-                        const data = await res.json();
-                        if(data && data.length > 0) {
-                            data.forEach(d => {
-                                const shortName = d.display_name.split(',')[0];
-                                if(!results.find(r => r.name.toUpperCase() === shortName.toUpperCase())) {
-                                    results.push({ name: shortName + (d.display_name.split(',')[1]||''), lat: parseFloat(d.lat), lon: parseFloat(d.lon), isFixed: false });
-                                }
-                            });
-                        }
-                    } catch(e) {}
-
-                    setSuggestions({ type: isOrigin ? 'origin' : 'dest', list: results.slice(0, 6) });
-                }, 500);
-            };
-
-            const selectSuggestion = (s, isOrigin) => {
-                if(isOrigin) setOText(s.name); else setDText(s.name);
-                setSuggestions({ type: null, list: [] });
-
-                if(s.lat && s.lon) {
-                    const c = [s.lat, s.lon];
-                    if(isOrigin) setOCoords(c); else setDCoords(c);
-                    mapInst.current.setView(c, 15);
-                } else {
-                    actualizarPrecio();
-                    const center = mapInst.current.getCenter();
-                    if(isOrigin) setOCoords([center.lat, center.lng]); else setDCoords([center.lat, center.lng]);
-                    showToast("Lugar de lista detectado. Mueve el pin si deseas precisión.", false);
-                }
-            };
-
-            const forceSearchOnMap = async (text, isOrigin) => {
-                setSuggestions({ type: null, list: [] });
-                if(!text) return showToast("Escribe una dirección", true);
-                
-                try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text + ', La Grita, Tachira')}`);
-                    const data = await res.json();
-                    if(data && data.length > 0) {
-                        const c = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-                        if(isOrigin) setOCoords(c); else setDCoords(c);
-                        mapInst.current.setView(c, 15);
-                    } else {
-                        const resForanea = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text + ', Tachira, Venezuela')}`);
-                        const dataForanea = await resForanea.json();
-                        if(dataForanea && dataForanea.length > 0) {
-                            const c = [parseFloat(dataForanea[0].lat), parseFloat(dataForanea[0].lon)];
-                            if(isOrigin) setOCoords(c); else setDCoords(c);
-                            mapInst.current.setView(c, 14);
-                        } else {
-                            actualizarPrecio();
-                            const center = mapInst.current.getCenter();
-                            if(isOrigin) setOCoords([center.lat, center.lng]); else setDCoords([center.lat, center.lng]);
-                            showToast("No encontrado. ¡Arrastra el pin en el mapa!", false);
-                        }
-                    }
-                } catch(e) { 
-                    actualizarPrecio(); 
-                    showToast("Arrastra el pin directamente en el mapa.", false); 
-                }
-            };
-
-            const calcRoute = async (c1, c2) => {
-                try {
-                    const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${c1[1]},${c1[0]};${c2[1]},${c2[0]}?overview=full&geometries=geojson`);
-                    const data = await res.json();
-                    if(data.routes && data.routes.length > 0) {
-                        if(routeLayer.current) mapInst.current.removeLayer(routeLayer.current);
-                        routeLayer.current = L.geoJSON(data.routes[0].geometry, { style: { color: '#2563eb', weight: 6, opacity: 0.85 } }).addTo(mapInst.current);
-                        mapInst.current.fitBounds(routeLayer.current.getBounds(), { padding: [50, 50] });
-                        actualizarPrecio(data.routes[0].distance);
-                    }
-                } catch(e){
-                    const R = 6371e3;
-                    const φ1 = c1[0] * Math.PI/180;
-                    const φ2 = c2[0] * Math.PI/180;
-                    const Δφ = (c2[0]-c1[0]) * Math.PI/180;
-                    const Δλ = (c2[1]-c1[1]) * Math.PI/180;
-                    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
-                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                    const distMetros = R * c * 1.3; 
-                    actualizarPrecio(distMetros);
-                }
-            };
-
-            const submitTrip = () => {
-                if(type === 'encomienda' && view === 'planner') return setView('details');
-                
-                const isEnc = type === 'encomienda';
-                let pVES = (priceCOP / TASA_VES_COP).toFixed(2);
-                let pUSD = (priceCOP / TASA_USD_COP).toFixed(2);
-                const infoKm = distanciaCalculadaKm ? ` (${distanciaCalculadaKm} Km)` : '';
-                
-                let msg = `*🚀 SOLICITUD MOTO UBGRIT*%0A*Cliente:* ${user.nombre}%0A*C.I:* ${user.cedula}%0A📍 *De:* ${oText}%0A🏁 *Para:* ${dText}%0A📏 *Distancia:* ${infoKm || 'Ubicación fijada'}%0A💵 *Costo:* ${priceCOP.toLocaleString()} COP | ${pVES} VES | $${pUSD} USD`;
-                if(isEnc) msg += `%0A📦 *Lleva:* ${encDetails.queLleva}%0A👤 *Recibe:* ${encDetails.recibe} (${encDetails.telRecibe})`;
-                
-                window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
-                setView('success');
-            };
-
-            return (
-                <div className="flex flex-col h-full bg-gray-100 fade-in relative w-full">
-                    {view !== 'success' && <HeaderNav title={type === 'encomienda' ? 'Ruta Encomienda' : 'Pedir Moto'} onBack={view==='planner'?goBack:()=>setView('planner')} />}
-                    
-                    {view === 'planner' && (
-                        <>
-                            <div className="absolute top-20 left-4 right-4 z-[400] space-y-2">
-                                <div className="relative">
-                                    <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-100 overflow-hidden">
-                                        <span className="p-3 bg-green-50 text-green-500 text-xs flex items-center justify-center w-10"><i className="fa-solid fa-circle-dot"></i></span>
-                                        <input placeholder="Origen (Escribe o mueve el pin)" value={oText} onChange={e=>handleTextChange(e, true)} className="flex-1 p-2 text-xs outline-none font-bold text-gray-700" />
-                                        <button onClick={()=>forceSearchOnMap(oText, true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 text-xs font-bold transition-colors"><i className="fa-solid fa-search"></i></button>
-                                    </div>
-                                    {suggestions.type === 'origin' && suggestions.list.length > 0 && (
-                                        <ul className="absolute top-full left-0 w-full bg-white mt-1 rounded-xl shadow-xl border border-gray-200 overflow-hidden z-[500] max-h-48 overflow-y-auto">
-                                            {suggestions.list.map((s, i) => (
-                                                <li key={i} onClick={()=>selectSuggestion(s, true)} className="p-3 border-b text-xs font-bold text-gray-700 hover:bg-blue-50 cursor-pointer flex justify-between">
-                                                    <span>{s.isFixed ? '📍 ' : '🗺️ '}{s.name}</span>
-                                                    {s.isFixed && <span className="text-blue-600 bg-blue-50 px-2 rounded-full">{s.price} COP</span>}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
-                                
-                                <div className="relative">
-                                    <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-100 overflow-hidden">
-                                        <span className="p-3 bg-red-50 text-red-500 text-xs flex items-center justify-center w-10"><i className="fa-solid fa-location-dot"></i></span>
-                                        <input placeholder="Destino (Escribe o mueve el pin)" value={dText} onChange={e=>handleTextChange(e, false)} className="flex-1 p-2 text-xs outline-none font-bold text-gray-700" />
-                                        <button onClick={()=>forceSearchOnMap(dText, false)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 text-xs font-bold transition-colors"><i className="fa-solid fa-search"></i></button>
-                                    </div>
-                                    {suggestions.type === 'dest' && suggestions.list.length > 0 && (
-                                        <ul className="absolute top-full left-0 w-full bg-white mt-1 rounded-xl shadow-xl border border-gray-200 overflow-hidden z-[500] max-h-48 overflow-y-auto">
-                                            {suggestions.list.map((s, i) => (
-                                                <li key={i} onClick={()=>selectSuggestion(s, false)} className="p-3 border-b text-xs font-bold text-gray-700 hover:bg-blue-50 cursor-pointer flex justify-between">
-                                                    <span>{s.isFixed ? '📍 ' : '🗺️ '}{s.name}</span>
-                                                    {s.isFixed && <span className="text-blue-600 bg-blue-50 px-2 rounded-full">{s.price} COP</span>}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
-                            </div>
-                            
-                            <div className="flex-1 relative z-0">
-                                <div ref={mapRef} className="absolute inset-0 w-full h-full" onClick={()=>setSuggestions({type:null, list:[]})}></div>
-                            </div>
-                            
-                            <div className="bg-white p-5 shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-[400] shrink-0 rounded-t-3xl pb-8 text-center relative border-t border-gray-200">
-                                {priceCOP > 0 ? (
-                                    <div className="mb-4 fade-in">
-                                        <div className="flex items-center justify-center gap-2 mb-1">
-                                            {precioRutaFija ? (
-                                                <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Tarifa de Lista (+ Mapa GPS)</span>
-                                            ) : (
-                                                <span className="text-[9px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Tarifa por Kilometraje</span>
-                                            )}
-                                            {distanciaCalculadaKm && (
-                                                <span className="text-[9px] font-black text-gray-600 bg-gray-100 px-2 py-0.5 rounded">📍 {distanciaCalculadaKm} Km</span>
-                                            )}
-                                        </div>
-                                        <div className="flex justify-center gap-2 mb-2">
-                                            {['COP','VES','USD'].map(c => <button key={c} onClick={()=>setCurrency(c)} className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all ${currency===c?'bg-black text-white shadow-md scale-105':'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{c}</button>)}
-                                        </div>
-                                        <h3 className="text-3xl font-black text-blue-600 tracking-tight">
-                                            {currency==='COP' ? `${priceCOP.toLocaleString()} COP` : currency==='VES' ? `${(priceCOP/TASA_VES_COP).toFixed(2)} VES` : `$${(priceCOP/TASA_USD_COP).toFixed(2)} USD`}
-                                        </h3>
-                                    </div>
-                                ) : (
-                                    <p className="text-xs font-bold text-gray-500 mb-4 bg-gray-50 p-3 rounded-xl border border-gray-200 shadow-inner">Escribe un destino, toca una sugerencia o arrastra los pines en el mapa.</p>
-                                )}
-                                <button onClick={submitTrip} className={`w-full text-white py-4 rounded-xl font-black shadow-lg transition-all ${priceCOP>0 ? 'bg-blue-600 hover:bg-blue-700 active:scale-95' : 'bg-gray-400 pointer-events-none'}`}>
-                                    {type === 'encomienda' ? 'Continuar Encomienda 📦' : 'Pedir Moto Ahora 🏍️'}
-                                </button>
-                            </div>
-                        </>
-                    )}
-
-                    {view === 'details' && (
-                        <div className="p-5 space-y-4 flex-1">
-                            <input placeholder="¿Qué llevas? (Ej: 2 Pizzas, Documentos)" value={encDetails.queLleva} onChange={e=>setEncDetails({...encDetails, queLleva:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                            <input placeholder="Nombre de quien recibe" value={encDetails.recibe} onChange={e=>setEncDetails({...encDetails, recibe:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                            <input placeholder="Teléfono destino" type="tel" value={encDetails.telRecibe} onChange={e=>setEncDetails({...encDetails, telRecibe:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                            <button onClick={submitTrip} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg mt-4 active:scale-95 transition-transform">Confirmar y Solicitar Moto</button>
-                        </div>
-                    )}
-
-                    {view === 'success' && (
-                        <div className="flex flex-col h-full bg-blue-50 fade-in items-center justify-center p-6 text-center w-full absolute inset-0 z-[600]">
-                            <div className="bg-white p-8 rounded-3xl shadow-xl w-full border-t-8 border-blue-600">
-                                <div className="text-5xl mb-4">✅</div>
-                                <h2 className="text-xl font-black text-blue-800 mb-2">¡Solicitud Enviada!</h2>
-                                <p className="text-xs text-gray-600 mb-6 font-bold">Hemos redirigido tu solicitud directo al administrador por WhatsApp.</p>
-                                <button onClick={()=>{setView('planner');setPriceCOP(0);setDCoords(null);setDText('');}} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow-md hover:bg-blue-700 transition-colors">📍 Pedir otro viaje</button>
-                                <button onClick={goBack} className="w-full border-2 border-gray-200 py-3 rounded-xl font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors">🏠 Volver al Menú</button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        const DriverDashboard = ({ goBack }) => {
-            const hasDB = window.db !== null && window.db !== undefined;
-            return (
-                <div className="flex flex-col h-full bg-gray-100 w-full fade-in">
-                    <HeaderNav title="Panel Conductor" onBack={goBack} />
-                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                        <i className={`fa-solid fa-helmet-safety text-6xl mb-4 ${hasDB ? 'text-green-500' : 'text-gray-400'}`}></i>
-                        <h2 className="font-black text-gray-800 text-lg mb-2">{hasDB ? 'Nube Conectada' : 'Modo WhatsApp Activo'}</h2>
-                        <p className="text-xs text-gray-500 mb-6 font-bold">
-                            {hasDB 
-                                ? 'Estás conectado a la base de datos en tiempo real. Esperando viajes...' 
-                                : 'La conexión en tiempo real a Firebase está en pausa. Espera los viajes directamente por el grupo de WhatsApp del administrador.'}
-                        </p>
-                        <button onClick={goBack} className="w-full border-2 border-gray-300 text-gray-700 py-3 px-6 rounded-xl font-bold hover:bg-gray-200 transition-colors">Volver al Menú</button>
-                    </div>
-                </div>
-            );
-        };
-        
-        const AdminDashboard = ({ goBack }) => {
-            const hasDB = window.db !== null && window.db !== undefined;
-            return (
-                <div className="flex flex-col h-full bg-gray-100 w-full fade-in">
-                    <HeaderNav title="Panel Administrador" onBack={goBack} />
-                    <div className="flex-1 overflow-y-auto p-5 pb-20 text-center flex flex-col items-center justify-center">
-                        <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 border-4 text-3xl shadow-lg ${hasDB ? 'bg-green-100 border-green-500 text-green-500' : 'bg-red-100 border-red-500 text-red-500'}`}>
-                            <i className={`fa-solid ${hasDB ? 'fa-cloud-check' : 'fa-shield-halved'}`}></i>
-                        </div>
-                        <h2 className="font-black text-xl text-gray-800 mb-2">{hasDB ? 'Nube Firebase Activa' : 'Central WhatsApp Activa'}</h2>
-                        <p className="text-xs text-gray-500 mb-6 font-bold px-4">
-                            {hasDB 
-                                ? 'Todos los choferes y clientes están sincronizados en tiempo real.' 
-                                : 'Firebase Cloud pausado temporalmente. Los clientes y comercios están registrándose en sus equipos y enviando solicitudes directo a tu número de WhatsApp. Inserta las llaves para activar la sincronización.'}
-                        </p>
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 w-full text-left">
-                            <h3 className="font-black text-xs mb-2 text-gray-700 border-b pb-2"><i className="fa-solid fa-list-check"></i> Instrucciones:</h3>
-                            <ul className="text-xs text-gray-600 space-y-2 font-medium">
-                                <li>• Atiende los mensajes entrantes de WhatsApp.</li>
-                                <li>• Reasigna a tus choferes por el grupo de trabajo.</li>
-                                {!hasDB && <li className="text-red-500 font-bold">• ⚠️ Pega las llaves de Firebase en el código `index.html` para habilitar el rastreo en vivo y billeteras automáticas.</li>}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        function App() {
-            const [view, setView] = useState('splash');
-            const [user, setUser] = useState(null);
-            const [role, setRole] = useState('');
-            const [form, setForm] = useState({});
-            const [toast, setToast] = useState(null);
-
-            useEffect(() => {
-                const u = localStorage.getItem('motoubgrit_current'); 
-                if(u) setUser(JSON.parse(u));
-                setTimeout(() => { if(view === 'splash') setView('menu'); }, 3000);
-            }, []);
-
-            const showToast = (msg, isError) => { setToast({msg, isError}); setTimeout(()=>setToast(null), 3500); };
-            const handleLogout = () => { localStorage.removeItem('motoubgrit_current'); setUser(null); showToast("Sesión cerrada", false); setView('menu'); };
-            const handleInputChange = (e) => setForm({...form, [e.target.name]: e.target.value});
-
-            const nav = (u) => { 
-                if(u.role==='admin') setView('admin');
-                else if(u.role==='driver') setView('driver_dash'); 
-                else if(u.role==='market') setView('market'); 
-                else if(u.role==='store') setView('enco'); 
-                else setView('client'); 
-            };
-
-            const handleAuth = (e) => {
-                e.preventDefault();
-                if(role === 'admin') { 
-                    if(form.email === ADMIN_EMAIL && form.password === ADMIN_PASS) { nav({role: 'admin'}); } 
-                    else showToast("Credenciales inválidas", true); 
-                    return; 
-                }
-                
-                if (form.nombre && form.cedula) { 
-                    const nu = { ...form, role: role }; 
-                    setUser(nu); localStorage.setItem('motoubgrit_current', JSON.stringify(nu));
-                    nav(nu);
-                } else if (form.email) {
-                    const nu = { email: form.email, nombre: "Usuario Autenticado", role: role };
-                    setUser(nu); localStorage.setItem('motoubgrit_current', JSON.stringify(nu));
-                    nav(nu);
-                } else {
-                    showToast("Llena los datos para continuar", true);
-                }
-            };
-
-            if(view === 'splash') return (
-                <div className="fixed inset-0 bg-[#0b0f19] flex flex-col items-center justify-center z-50 text-center">
-                    <div className="w-28 h-28 bg-red-600 rounded-full flex items-center justify-center mb-6 animate-logo border-4 border-red-500"><i className="fa-solid fa-motorcycle text-5xl text-white"></i></div>
-                    <h1 className="text-5xl font-black text-white mb-2 tracking-tighter">Moto UBGrit</h1>
-                    <div className="bg-black/40 border border-gray-800 p-4 rounded-2xl mt-4 w-10/12 backdrop-blur-sm">
-                        <p className="text-[11px] text-gray-300 font-black uppercase tracking-widest leading-relaxed">Tu Traslado / Encomienda<br/>Mercado / Medicamento</p>
-                        <div className="mt-3 bg-red-600/20 border border-red-500/50 rounded-lg py-1.5"><p className="text-red-500 font-black text-[10px] tracking-[0.2em]">RÁPIDO Y SEGURO</p></div>
-                    </div>
-                </div>
-            );
-            
-            if(view === 'menu') return (
-                <div className="flex flex-col h-full bg-[#0b0f19] w-full p-5 text-center relative overflow-y-auto">
-                    {toast && <Toast msg={toast.msg} isError={toast.isError} />}
-                    <div className="absolute top-4 right-4 flex gap-2 z-20">
-                        <button onClick={()=>{setRole('admin');setView('auth');}} className="bg-white/10 text-white px-3 py-2 rounded-lg text-[10px] font-black border border-white/20 hover:bg-white/20"><i className="fa-solid fa-shield-halved"></i> Admin</button>
-                        {user && <button onClick={handleLogout} className="bg-red-600 text-white px-3 py-2 rounded-lg text-[10px] font-black shadow-md hover:bg-red-700"><i className="fa-solid fa-right-from-bracket"></i> Salir</button>}
-                    </div>
-                    <div className="mt-10 mb-6 flex flex-col items-center">
-                        <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(220,38,38,0.4)] border-2 border-red-500"><i className="fa-solid fa-motorcycle text-3xl text-white"></i></div>
-                        <h1 className="text-3xl font-black text-white mb-2 tracking-tight">Moto UBGrit</h1>
-                        <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest leading-relaxed">Tu Traslado / Encomienda<br/>Mercado / Medicamento</p>
-                        <p className="text-red-500 font-black tracking-[0.2em] mt-2 text-[9px] bg-red-500/10 border border-red-500/30 px-3 py-1 rounded-full">RÁPIDO Y SEGURO</p>
-                    </div>
-                    <div className="space-y-3 w-full max-w-sm mx-auto pb-8">
-                        <button onClick={()=>{setRole('client'); user?.role==='client'?nav(user):setView('auth');}} className="w-full bg-white text-black font-black py-4 rounded-xl text-sm shadow-xl flex items-center justify-center gap-3 transition-transform active:scale-95"><div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"><i className="fa-solid fa-person-biking text-gray-700"></i></div> Pedir Moto (Pasajero)</button>
-                        <button onClick={()=>{setRole('store'); user?.role==='store'?nav(user):setView('auth');}} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl text-sm shadow-xl flex items-center justify-center gap-3 transition-transform active:scale-95"><div className="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center"><i className="fa-solid fa-box text-white"></i></div> Local / Encomiendas</button>
-                        <button onClick={()=>{setRole('market'); user?.role==='market'?nav(user):setView('auth');}} className="w-full bg-green-600 text-white font-black py-4 rounded-xl text-sm shadow-xl flex items-center justify-center gap-3 transition-transform active:scale-95"><div className="w-8 h-8 bg-green-700 rounded-full flex items-center justify-center"><i className="fa-solid fa-basket-shopping text-white"></i></div> Mercado en Casa</button>
-                        <button onClick={()=>showToast('Módulo de Farmacia en desarrollo', false)} className="w-full bg-purple-600 text-white font-black py-4 rounded-xl text-sm shadow-xl opacity-90 flex items-center justify-center gap-3 transition-transform active:scale-95"><div className="w-8 h-8 bg-purple-700 rounded-full flex items-center justify-center"><i className="fa-solid fa-pills text-white"></i></div> Farmacia (Próximamente)</button>
-                        <div className="pt-6 mt-6 border-t border-gray-800/50">
-                            <button onClick={()=>{setRole('driver'); user?.role==='driver'?nav(user):setView('auth');}} className="w-full bg-[#1a1a1a] text-gray-400 border-2 border-gray-800 hover:border-gray-600 py-4 rounded-xl font-black text-xs transition-colors flex items-center justify-center gap-2"><i className="fa-solid fa-helmet-safety"></i> Panel Conductor</button>
-                        </div>
-                    </div>
-                </div>
-            );
-
-            if(view === 'auth') return (
-                <div className="flex flex-col h-full bg-[#0b0f19] w-full overflow-y-auto">
-                    <HeaderNav title={role==='admin'?"Acceso Administrador": "Ingreso Seguro"} onBack={()=>setView('menu')} />
-                    <div className="p-5 pb-20">
-                        <form onSubmit={handleAuth} className="bg-white p-6 rounded-3xl space-y-4 shadow-2xl relative border-t-8 border-red-600">
-                            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-red-600 rounded-full flex items-center justify-center shadow-lg border-4 border-[#0b0f19]"><i className="fa-solid fa-lock text-white"></i></div>
-                            <h2 className="text-center font-black text-lg text-gray-800 mt-2 mb-1">Tus Datos</h2>
-                            <p className="text-[10px] text-center text-gray-500 font-bold mb-4">{role === 'admin' ? 'Solo personal autorizado.' : 'Si ya tienes cuenta, ingresa tu correo y clave. Si eres nuevo, llena todos los datos.'}</p>
-                            
-                            <div className="space-y-3">
-                                <input required name="email" type="email" placeholder="Correo electrónico" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                <input required name="password" type="password" placeholder="Contraseña" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                            </div>
-
-                            {role !== 'admin' && (
-                                <div className="border-t border-dashed border-gray-300 pt-4 mt-2 space-y-3">
-                                    <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest text-center bg-gray-50 py-1 rounded">SI ERES NUEVO, LLENA ESTO:</p>
-                                    <input name="nombre" placeholder="Nombre completo o Local" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                    <input name="cedula" type="number" placeholder="Cédula de Identidad" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                    <input name="telefono" type="tel" placeholder="WhatsApp (Ej: 584141234567)" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                    <textarea name="direccion" placeholder="Dirección exacta en La Grita" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs h-20 outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                </div>
-                            )}
-                            <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-black text-sm shadow-lg mt-4 transition-transform active:scale-95">Ingresar / Registrar</button>
-                            <button type="button" onClick={()=>setView('menu')} className="w-full text-gray-500 py-3 rounded-xl text-xs font-bold mt-1 hover:bg-gray-50"><i className="fa-solid fa-arrow-left mr-1"></i> Cancelar y Volver</button>
-                        </form>
-                    </div>
-                </div>
-            );
-
-            if(view === 'client') return <TripPlanner user={user} type="client" goBack={()=>setView('menu')} showToast={showToast} />;
-            if(view === 'enco') return <TripPlanner user={user} type="encomienda" goBack={()=>setView('menu')} showToast={showToast} />;
-            if(view === 'market') return <MercadoDashboard user={user} goBack={()=>setView('menu')} showToast={showToast} />;
-            if(view === 'driver_dash') return <DriverDashboard goBack={()=>setView('menu')} />;
-            if(view === 'admin') return <AdminDashboard goBack={()=>setView('menu')} />;
-            return null;
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
