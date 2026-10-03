@@ -282,11 +282,11 @@
 
             const submitOrder = () => {
                 let payDetails = currency === 'COP' ? `${totalCOP.toLocaleString()} COP` : currency === 'VES' ? `${totalVES} VES` : `$${totalUSD} USD`;
-                let wsMsg = `*🛒 MERCADO EN CASA*%0A*Cliente:* ${user.nombre}%0A*C.I:* ${user.cedula}%0A*Tel:* ${user.telefono}%0A*Dir:* ${user.direccion}%0A%0A*PEDIDO:*%0A`;
+                let wsMsg = `*🛒 MERCADO EN CASA*%0A*Cliente:* ${user?.nombre || 'Invitado'}%0A*Tel:* ${user?.telefono || 'No registrado'}%0A*Dir:* ${user?.direccion || 'Acordar por chat'}%0A%0A*PEDIDO:*%0A`;
                 Object.keys(cart).forEach(n => wsMsg += `▪ ${formatQty(cart[n].q, n)} de ${n} - ${cart[n].p.toLocaleString()} COP%0A`);
                 wsMsg += `🛵 *Delivery:* ${deliveryFee.toLocaleString()} COP%0A💵 *TOTAL:* ${payDetails}`;
                 
-                window.open(`https://wa.me/${ADMIN_PHONE}?text=${wsMsg}`, '_blank');
+                window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(wsMsg)}`, '_blank');
                 setCart({});
                 setView('success');
             };
@@ -433,7 +433,7 @@
                     if (distanciaRealMetros > 0) setDistanciaCalculadaKm((distanciaRealMetros / 1000).toFixed(1));
                 } else {
                     setPrecioRutaFija(false);
-                    let p = 4000; // Tarifa base
+                    let p = 4000; 
                     if (distanciaRealMetros > 0) {
                         const km = (distanciaRealMetros / 1000).toFixed(1);
                         setDistanciaCalculadaKm(km);
@@ -644,7 +644,7 @@
                                         <ul className="absolute top-full left-0 w-full bg-white mt-1 rounded-xl shadow-xl border border-gray-200 overflow-hidden z-[500] max-h-48 overflow-y-auto">
                                             {suggestions.list.map((s, i) => (
                                                 <li key={i} onClick={()=>selectSuggestion(s, false)} className="p-3 border-b text-xs font-bold text-gray-700 hover:bg-blue-50 cursor-pointer flex justify-between">
-                                                    <span>{s.isFixed ? '📍 ' : '🗺️ '}{s.name}</span>
+                                                    <span>{s.isFixed ? '📍 ' : '🗺️️ '}{s.name}</span>
                                                     {s.isFixed && <span className="text-blue-600 bg-blue-50 px-2 rounded-full">{s.price} COP</span>}
                                                 </li>
                                             ))}
@@ -735,7 +735,7 @@
                         <div className="absolute inset-0 z-50 bg-red-600 flex flex-col items-center justify-center text-white p-6 text-center">
                             <i className="fa-solid fa-triangle-exclamation text-6xl mb-4 animate-pulse"></i>
                             <h2 className="text-2xl font-black mb-2">Cuenta Suspendida</h2>
-                            <p className="font-bold text-sm mb-6">Tu acceso ha sido bloqueado por falta de pago de la mensualidad. Contacta al administrador para regularizar tu estatus y volver a recibir carreras.</p>
+                            <p className="font-bold text-sm mb-6">Tu acceso ha sido bloqueado por falta de pago de la mensualidad o falta de aprobación inicial. Contacta al administrador.</p>
                             <button onClick={goBack} className="bg-white text-red-600 font-bold px-6 py-3 rounded-full shadow-lg active:scale-95 transition-transform">Volver al Menú</button>
                         </div>
                     );
@@ -768,7 +768,7 @@
                                 <h2 className="font-black text-gray-800 text-lg mb-2">{hasDB ? 'Nube Conectada' : 'Modo WhatsApp Activo'}</h2>
                                 <p className="text-xs text-gray-500 mb-6 font-bold">
                                     {hasDB 
-                                        ? 'Estás conectado a la base de datos en tiempo real. Esperando aprobación del administrador...' 
+                                        ? 'Estás conectado a la base de datos en tiempo real. Esperando viajes...' 
                                         : 'La conexión en tiempo real a Firebase está en pausa. Espera los viajes directamente por WhatsApp.'}
                                 </p>
                                 <button onClick={goBack} className="w-full border-2 border-gray-300 text-gray-700 py-3 px-6 rounded-xl font-bold hover:bg-gray-200 transition-colors">Volver al Menú</button>
@@ -781,13 +781,15 @@
         
         const AdminDashboard = ({ goBack, showToast }) => {
             const hasDB = window.db !== null && window.db !== undefined;
-            const [adminView, setAdminView] = useState('main'); // Vistas: main, users, finances
+            const [adminView, setAdminView] = useState('main'); // main, users, pending, finances
             const [usersList, setUsersList] = useState([]);
-            const [loadingUsers, setLoadingUsers] = useState(false);
+            const [loadingUsers, setLoadingUsers] = useState(true);
 
             useEffect(() => {
-                if (!hasDB) return;
-                
+                if (!hasDB) {
+                    setLoadingUsers(false);
+                    return;
+                }
                 const fetchUsers = async () => {
                     setLoadingUsers(true);
                     try {
@@ -804,10 +806,11 @@
                     setLoadingUsers(false);
                 };
                 
-                if(adminView === 'users' || adminView === 'finances') {
+                // Fetch users for any sub-view to ensure we have fresh data
+                if(adminView !== 'main') {
                     fetchUsers();
                 }
-            }, [hasDB, adminView]); // El useEffect escucha cuando cambia adminView para recargar
+            }, [hasDB, adminView]);
 
             const exportToExcel = () => {
                 if (usersList.length === 0) {
@@ -857,9 +860,16 @@
                 }
             };
 
-            const toggleDriverStatus = async (userEmail, currentStatus, isRenew = false) => {
+            const toggleDriverStatus = async (userEmail, currentStatus, action = 'toggle') => {
                 let updates = {};
-                if (isRenew || currentStatus === 'suspended') {
+                
+                if (action === 'approve') {
+                    updates.subscriptionStatus = 'active';
+                    updates.status = 'approved'; 
+                    const nextMonth = new Date();
+                    nextMonth.setDate(nextMonth.getDate() + 30);
+                    updates.nextPaymentDate = nextMonth.toISOString();
+                } else if (action === 'renew' || (action === 'toggle' && currentStatus === 'suspended')) {
                     updates.subscriptionStatus = 'active';
                     const nextMonth = new Date();
                     nextMonth.setDate(nextMonth.getDate() + 30);
@@ -870,7 +880,7 @@
 
                 try {
                     await window.fb.updateDoc(window.fb.doc(window.db, "users", userEmail), updates);
-                    showToast(isRenew ? "Mes renovado con éxito" : `Chofer ${updates.subscriptionStatus === 'active' ? 'Reactivado' : 'Suspendido'}`, false);
+                    showToast(action === 'approve' ? "Conductor Aprobado" : (action === 'renew' ? "Mes renovado con éxito" : `Chofer ${updates.subscriptionStatus === 'active' ? 'Reactivado' : 'Suspendido'}`), false);
                     setUsersList(usersList.map(u => u.email === userEmail ? { ...u, ...updates } : u));
                 } catch (e) {
                     showToast("Error actualizando estado", true);
@@ -878,7 +888,7 @@
             };
 
             const renderMainMenu = () => (
-                <div className="flex-1 p-4 pb-20 flex flex-col items-center w-full fade-in">
+                <div className="flex-1 p-4 pb-20 flex flex-col items-center w-full">
                     <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 border-4 text-2xl shadow-md ${hasDB ? 'bg-green-100 border-green-500 text-green-500' : 'bg-red-100 border-red-500 text-red-500'}`}>
                         <i className={`fa-solid ${hasDB ? 'fa-cloud-check' : 'fa-shield-halved'}`}></i>
                     </div>
@@ -888,26 +898,26 @@
                     </p>
 
                     <div className="w-full max-w-sm space-y-3">
-                        <button onClick={() => setAdminView('users')} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-blue-500 flex items-center justify-between transition-colors cursor-pointer active:scale-95">
+                        <button onClick={() => setAdminView('users')} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-blue-500 flex items-center justify-between transition-colors">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 pointer-events-none"><i className="fa-solid fa-users"></i></div>
-                                <div className="text-left pointer-events-none">
+                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600"><i className="fa-solid fa-users"></i></div>
+                                <div className="text-left">
                                     <h3 className="font-bold text-gray-800 text-sm">Base de Datos Usuarios</h3>
                                     <p className="text-[10px] text-gray-500">Ver clientes, choferes y exportar a Excel</p>
                                 </div>
                             </div>
-                            <i className="fa-solid fa-chevron-right text-gray-300 pointer-events-none"></i>
+                            <i className="fa-solid fa-chevron-right text-gray-300"></i>
                         </button>
                         
-                        <button onClick={() => showToast('Módulo de Aprobación Activo en la Base de Datos', false)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-orange-500 flex items-center justify-between transition-colors opacity-70">
+                        <button onClick={() => setAdminView('pending')} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-orange-500 flex items-center justify-between transition-colors">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-600"><i className="fa-solid fa-id-card-clip"></i></div>
                                 <div className="text-left">
                                     <h3 className="font-bold text-gray-800 text-sm">Aprobar Choferes</h3>
-                                    <p className="text-[10px] text-gray-500">Revisa la pestaña de Finanzas</p>
+                                    <p className="text-[10px] text-gray-500">Nuevas solicitudes de conductores</p>
                                 </div>
                             </div>
-                            <i className="fa-solid fa-lock text-gray-300"></i>
+                            <i className="fa-solid fa-chevron-right text-gray-300"></i>
                         </button>
 
                         <button onClick={() => showToast('Módulo en construcción', false)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-green-500 flex items-center justify-between transition-colors opacity-70">
@@ -921,22 +931,22 @@
                             <i className="fa-solid fa-lock text-gray-300"></i>
                         </button>
 
-                        <button onClick={() => setAdminView('finances')} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-purple-500 flex items-center justify-between transition-colors cursor-pointer active:scale-95">
+                        <button onClick={() => setAdminView('finances')} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-purple-500 flex items-center justify-between transition-colors">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 pointer-events-none"><i className="fa-solid fa-sack-dollar"></i></div>
-                                <div className="text-left pointer-events-none">
+                                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600"><i className="fa-solid fa-sack-dollar"></i></div>
+                                <div className="text-left">
                                     <h3 className="font-bold text-gray-800 text-sm">Finanzas y Pagos</h3>
                                     <p className="text-[10px] text-gray-500">Ingresos totales y cobro a choferes</p>
                                 </div>
                             </div>
-                            <i className="fa-solid fa-chevron-right text-gray-300 pointer-events-none"></i>
+                            <i className="fa-solid fa-chevron-right text-gray-300"></i>
                         </button>
                     </div>
                 </div>
             );
 
             const renderUsersDatabase = () => (
-                <div className="flex-1 flex flex-col w-full h-full bg-gray-50 p-2 fade-in">
+                <div className="flex-1 flex flex-col w-full h-full bg-gray-50 p-2">
                     {!hasDB ? (
                         <p className="text-center text-xs text-red-500 py-4 font-bold">Conecta Firebase para ver la base de datos.</p>
                     ) : loadingUsers ? (
@@ -962,10 +972,38 @@
                 </div>
             );
 
-            const renderFinances = () => {
-                const drivers = usersList.filter(u => u.role === 'driver');
+            const renderPendingDrivers = () => {
+                const pendingDrivers = usersList.filter(u => u.role === 'driver' && u.status === 'pending');
                 return (
-                    <div className="flex-1 flex flex-col w-full h-full bg-gray-50 p-4 overflow-y-auto fade-in">
+                    <div className="flex-1 flex flex-col w-full h-full bg-gray-50 p-4 overflow-y-auto">
+                        <h3 className="font-black text-gray-800 mb-3"><i className="fa-solid fa-id-card-clip text-orange-400 mr-1"></i> Solicitudes Pendientes</h3>
+                        <div className="space-y-3 pb-20">
+                            {loadingUsers ? (
+                                <p className="text-center text-xs text-gray-500 py-4 font-bold"><i className="fa-solid fa-spinner fa-spin mr-1"></i> Cargando...</p>
+                            ) : pendingDrivers.length === 0 ? (
+                                <p className="text-xs text-center text-gray-500 font-bold bg-white p-4 rounded-xl border border-gray-200">No hay solicitudes pendientes.</p>
+                            ) : (
+                                pendingDrivers.map(d => (
+                                    <div key={d.id} className="bg-white p-4 rounded-xl border border-orange-200 shadow-sm relative">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <p className="font-black text-sm text-gray-800">{d.nombre}</p>
+                                            <span className="text-[9px] px-2 py-0.5 rounded font-black uppercase bg-orange-100 text-orange-700">En Revisión</span>
+                                        </div>
+                                        <p className="text-[10px] text-gray-500 font-bold mb-1">C.I: {d.cedula}</p>
+                                        <p className="text-[10px] text-gray-500 font-bold mb-3"><i className="fa-brands fa-whatsapp text-green-500"></i> {d.whatsapp || d.telefono}</p>
+                                        <button onClick={() => toggleDriverStatus(d.email, null, 'approve')} className="w-full bg-green-500 hover:bg-green-600 text-white text-xs font-black py-2 rounded-lg shadow-md transition-transform active:scale-95"><i className="fa-solid fa-check mr-1"></i> Aprobar Conductor</button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderFinances = () => {
+                const drivers = usersList.filter(u => u.role === 'driver' && u.status !== 'pending');
+                return (
+                    <div className="flex-1 flex flex-col w-full h-full bg-gray-50 p-4 overflow-y-auto">
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 text-center">
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide">Ingreso Bruto Mensual (Carreras)</h3>
                             <div className="text-3xl font-black text-green-600 mt-1 flex items-center justify-center gap-2">
@@ -983,7 +1021,7 @@
                             {loadingUsers ? (
                                 <p className="text-center text-xs text-gray-500 py-4 font-bold"><i className="fa-solid fa-spinner fa-spin mr-1"></i> Cargando choferes...</p>
                             ) : drivers.length === 0 ? (
-                                <p className="text-xs text-center text-gray-500 font-bold bg-white p-4 rounded-xl border border-gray-200">Aún no hay choferes registrados.</p>
+                                <p className="text-xs text-center text-gray-500 font-bold bg-white p-4 rounded-xl border border-gray-200">Aún no hay choferes aprobados.</p>
                             ) : (
                                 drivers.map(d => {
                                     const now = new Date().getTime();
@@ -1012,11 +1050,11 @@
                                             
                                             <div className="flex gap-2">
                                                 {isSuspended ? (
-                                                    <button onClick={() => toggleDriverStatus(d.email, d.subscriptionStatus, true)} className="flex-1 bg-green-500 hover:bg-green-600 text-white text-[10px] font-black py-2.5 rounded-lg shadow-md transition-transform active:scale-95"><i className="fa-solid fa-check-double mr-1"></i> Confirmar Pago y Reactivar</button>
+                                                    <button onClick={() => toggleDriverStatus(d.email, d.subscriptionStatus, 'renew')} className="flex-1 bg-green-500 hover:bg-green-600 text-white text-[10px] font-black py-2.5 rounded-lg shadow-md transition-transform active:scale-95"><i className="fa-solid fa-check-double mr-1"></i> Confirmar Pago y Reactivar</button>
                                                 ) : (
                                                     <>
-                                                        <button onClick={() => toggleDriverStatus(d.email, d.subscriptionStatus)} className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-[10px] font-black py-2 rounded-lg transition-transform active:scale-95"><i className="fa-solid fa-ban mr-1"></i> Suspender</button>
-                                                        <button onClick={() => toggleDriverStatus(d.email, d.subscriptionStatus, true)} className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[10px] font-black py-2 rounded-lg transition-transform active:scale-95"><i className="fa-solid fa-hand-holding-dollar mr-1"></i> Renovar 1 Mes</button>
+                                                        <button onClick={() => toggleDriverStatus(d.email, d.subscriptionStatus, 'toggle')} className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-[10px] font-black py-2 rounded-lg transition-transform active:scale-95"><i className="fa-solid fa-ban mr-1"></i> Suspender</button>
+                                                        <button onClick={() => toggleDriverStatus(d.email, d.subscriptionStatus, 'renew')} className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[10px] font-black py-2 rounded-lg transition-transform active:scale-95"><i className="fa-solid fa-hand-holding-dollar mr-1"></i> Renovar 1 Mes</button>
                                                     </>
                                                 )}
                                             </div>
@@ -1032,14 +1070,14 @@
             return (
                 <div className="flex flex-col h-full bg-gray-100 w-full fade-in relative">
                     <HeaderNav 
-                        title={adminView === 'main' ? "Panel Maestro" : adminView === 'users' ? "Base de Datos" : "Finanzas y Pagos"} 
+                        title={adminView === 'main' ? "Panel Maestro" : adminView === 'users' ? "Base de Datos" : adminView === 'pending' ? "Aprobar Choferes" : "Finanzas y Pagos"} 
                         onBack={adminView === 'main' ? goBack : () => setAdminView('main')} 
                         right={adminView === 'users' ? (
                             <button onClick={exportToExcel} disabled={!hasDB || usersList.length===0} className="text-[10px] font-bold bg-green-500 hover:bg-green-600 text-white px-2 py-1.5 rounded shadow disabled:opacity-50 transition-colors"><i className="fa-solid fa-file-excel"></i> Excel</button>
                         ) : null}
                     />
                     <div className="flex-1 overflow-y-auto">
-                        {adminView === 'main' ? renderMainMenu() : adminView === 'users' ? renderUsersDatabase() : adminView === 'finances' ? renderFinances() : null}
+                        {adminView === 'main' ? renderMainMenu() : adminView === 'users' ? renderUsersDatabase() : adminView === 'pending' ? renderPendingDrivers() : adminView === 'finances' ? renderFinances() : null}
                     </div>
                 </div>
             );
@@ -1089,20 +1127,31 @@
                         if (isNewUser) {
                             const userData = { email: authEmail, password: authPass, nombre: form.nombre, cedula: form.cedula, telefono: form.telefono || "", direccion: form.direccion || "", role: role, createdAt: new Date().toISOString() };
                             if (role === 'driver') {
-                                const nextMonth = new Date();
-                                nextMonth.setDate(nextMonth.getDate() + 30);
-                                userData.nextPaymentDate = nextMonth.toISOString();
-                                userData.subscriptionStatus = 'active'; 
+                                userData.status = 'pending';
+                                userData.subscriptionStatus = 'suspended'; 
+                            } else {
+                                userData.status = 'active'; 
                             }
                             await window.fb.setDoc(userRef, userData);
-                            setUser(userData);
-                            localStorage.setItem('motoubgrit_current', JSON.stringify(userData));
-                            showToast("Registrado y conectado", false);
-                            nav(userData);
+                            
+                            if (role === 'driver') {
+                                showToast("Registro exitoso. Esperando aprobación.", false);
+                                setView('menu'); 
+                            } else {
+                                setUser(userData);
+                                localStorage.setItem('motoubgrit_current', JSON.stringify(userData));
+                                showToast("Registrado y conectado", false);
+                                nav(userData);
+                            }
+
                         } else {
                             const docSnap = await window.fb.getDocs(window.fb.query(window.fb.collection(window.db, "users"), window.fb.where("email", "==", authEmail), window.fb.where("password", "==", authPass)));
                             if (!docSnap.empty) {
                                 const dbUser = docSnap.docs[0].data();
+                                if(dbUser.role === 'driver' && dbUser.status === 'pending') {
+                                    Swal.fire('Cuenta Pendiente', 'Tu solicitud aún está siendo revisada por el administrador.', 'info');
+                                    return; 
+                                }
                                 setUser(dbUser);
                                 localStorage.setItem('motoubgrit_current', JSON.stringify(dbUser));
                                 showToast("Bienvenido", false);
@@ -1129,7 +1178,12 @@
                 if (weekDay === 'Sat' && hour < 12) isAvailable = true;
 
                 if (isAvailable) {
-                    setRole('market'); user?.role==='market' ? nav(user) : setView('auth');
+                    setRole('client'); 
+                    if (user) {
+                        setView('market'); 
+                    } else {
+                        setView('auth'); 
+                    }
                 } else {
                     Swal.fire({
                         icon: 'warning',
@@ -1142,7 +1196,7 @@
             };
 
             if(view === 'splash') return (
-                <div className="fixed inset-0 bg-[#0b0f19] flex flex-col items-center justify-center z-50 text-center fade-in">
+                <div className="fixed inset-0 bg-[#0b0f19] flex flex-col items-center justify-center z-50 text-center">
                     <div className="w-28 h-28 bg-red-600 rounded-full flex items-center justify-center mb-6 animate-logo border-4 border-red-500"><i className="fa-solid fa-motorcycle text-5xl text-white"></i></div>
                     <h1 className="text-5xl font-black text-white mb-2 tracking-tighter">Moto UBGrit</h1>
                     <div className="bg-black/40 border border-gray-800 p-4 rounded-2xl mt-4 w-10/12 backdrop-blur-sm">
@@ -1153,7 +1207,7 @@
             );
             
             if(view === 'menu') return (
-                <div className="flex flex-col h-full bg-[#0b0f19] w-full p-5 text-center relative overflow-y-auto fade-in">
+                <div className="flex flex-col h-full bg-[#0b0f19] w-full p-5 text-center relative overflow-y-auto">
                     {toast && <Toast msg={toast.msg} isError={toast.isError} />}
                     <div className="absolute top-4 right-4 flex gap-2 z-20">
                         <button onClick={()=>{setRole('admin');setView('auth');}} className="bg-white/10 text-white px-3 py-2 rounded-lg text-[10px] font-black border border-white/20 hover:bg-white/20"><i className="fa-solid fa-shield-halved"></i> Admin</button>
@@ -1174,7 +1228,7 @@
                                 <div className="w-8 h-8 bg-green-700 rounded-full flex items-center justify-center"><i className="fa-solid fa-basket-shopping text-white"></i></div> 
                                 <span>Mercado en Casa</span>
                             </div>
-                            <span className="text-[10px] font-normal opacity-90 tracking-wide">(Frutas, Verduras, Hortalizas, Legumbres y Especies)</span>
+                            <span className="text-[10px] font-normal opacity-90 tracking-wide">(Entrada Directa Sin Registro)</span>
                         </button>
                         
                         <button onClick={()=>showToast('Módulo de Farmacia en desarrollo', false)} className="w-full bg-purple-600 text-white font-black py-4 rounded-xl text-sm shadow-xl opacity-90 flex items-center justify-center gap-3 transition-transform active:scale-95"><div className="w-8 h-8 bg-purple-700 rounded-full flex items-center justify-center"><i className="fa-solid fa-pills text-white"></i></div> Farmacia (Próximamente)</button>
@@ -1185,31 +1239,37 @@
                 </div>
             );
 
+            const [isLoginTab, setIsLoginTab] = useState(true);
+
             if(view === 'auth') return (
-                <div className="flex flex-col h-full bg-[#0b0f19] w-full overflow-y-auto fade-in">
+                <div className="flex flex-col h-full bg-[#0b0f19] w-full overflow-y-auto">
                     <HeaderNav title={role==='admin'?"Acceso Administrador": "Ingreso Seguro"} onBack={()=>setView('menu')} />
                     <div className="p-5 pb-20">
+                        {role !== 'admin' && (
+                            <div className="flex bg-gray-800 rounded-xl p-1 mb-4 shadow-inner">
+                                <button onClick={()=>setIsLoginTab(true)} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${isLoginTab ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-200'}`}>Ya tengo cuenta</button>
+                                <button onClick={()=>setIsLoginTab(false)} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${!isLoginTab ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-200'}`}>Soy Nuevo</button>
+                            </div>
+                        )}
                         <form onSubmit={handleAuth} className="bg-white p-6 rounded-3xl space-y-4 shadow-2xl relative border-t-8 border-red-600">
                             <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-red-600 rounded-full flex items-center justify-center shadow-lg border-4 border-[#0b0f19]"><i className="fa-solid fa-lock text-white"></i></div>
                             <h2 className="text-center font-black text-lg text-gray-800 mt-2 mb-1">Tus Datos</h2>
-                            <p className="text-[10px] text-center text-gray-500 font-bold mb-4">{role === 'admin' ? 'Solo personal autorizado.' : 'Si ya tienes cuenta, ingresa tu correo y clave. Si eres nuevo, llena todos los datos.'}</p>
+                            <p className="text-[10px] text-center text-gray-500 font-bold mb-4">{role === 'admin' ? 'Solo personal autorizado.' : (isLoginTab ? 'Ingresa tus credenciales.' : 'Llena todos los datos.')}</p>
                             
                             <div className="space-y-3">
                                 <input required name="email" type="email" placeholder="Correo electrónico" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
                                 <input required name="password" type="password" placeholder="Contraseña" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
                             </div>
 
-                            {role !== 'admin' && (
-                                <div className="border-t border-dashed border-gray-300 pt-4 mt-2 space-y-3">
-                                    <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest text-center bg-gray-50 py-1 rounded">SI ERES NUEVO, LLENA ESTO TAMBIÉN:</p>
-                                    <input name="nombre" placeholder="Nombre completo o Local" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                    <input name="cedula" type="number" placeholder="Cédula de Identidad" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                    <input name="telefono" type="tel" placeholder="WhatsApp (Ej: 584141234567)" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                    <textarea name="direccion" placeholder="Dirección exacta en La Grita" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs h-20 outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                            {role !== 'admin' && !isLoginTab && (
+                                <div className="border-t border-dashed border-gray-300 pt-4 mt-2 space-y-3 fade-in">
+                                    <input name="nombre" required placeholder="Nombre completo o Local" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                                    <input name="cedula" required type="number" placeholder="Cédula de Identidad" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                                    <input name="telefono" required type="tel" placeholder="WhatsApp (Ej: 584141234567)" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
+                                    <textarea name="direccion" required placeholder="Dirección exacta en La Grita" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs h-20 outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
                                 </div>
                             )}
                             <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-black text-sm shadow-lg mt-4 transition-transform active:scale-95">Ingresar / Registrar</button>
-                            <button type="button" onClick={()=>setView('menu')} className="w-full text-gray-500 py-3 rounded-xl text-xs font-bold mt-1 hover:bg-gray-50"><i className="fa-solid fa-arrow-left mr-1"></i> Cancelar y Volver</button>
                         </form>
                     </div>
                 </div>
