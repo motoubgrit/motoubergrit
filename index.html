@@ -24,6 +24,8 @@
         .animate-logo { animation: pulseLogo 2s infinite; }
         .custom-pin { filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.5)); font-size: 34px; line-height: 34px; text-align: center; cursor: pointer; transition: transform 0.1s; }
         .custom-pin:active { transform: scale(1.2) translateY(-5px); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body>
@@ -35,9 +37,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, where, updateDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // =========================================================================
-        // TUS LLAVES DE FIREBASE (YA INTEGRADAS)
-        // =========================================================================
         const firebaseConfig = {
             apiKey: "AIzaSyC4RaeKy1IjcAKK6tJtSD5-hxAbhra6wEU",
             authDomain: "moto-ubgrit.firebaseapp.com",
@@ -111,10 +110,94 @@
             "MESA DE AURA": 120000, "LA AUYAMALA": 140000, "CORDERO": 160000, "TARIBA": 180000
         };
 
-        const inventarioTexto = "Hortalizas y Verduras:Tomate|4000|🍅,Cebolla|3500|🧅,Ajo|12000|🧄,Zanahoria|3000|🥕,Remolacha|3000|🍠,Repollo|2500|🥬,Coliflor|4000|🥦,Acelga|2000|🥬,Pepino|2500|🥒,Brócoli|4500|🥦,Calabacín|2500|🥒,Pimentón|5000|🫑,Espinaca|3000|🥬,Ají dulce|4000|🌶,Ají picante|5000|🔥,Apio España|3000|🥬;Tubérculos y Vituallas:Auyama|1500|🎃,Papa|3500|🥔,Yuca|2000|🍠,Plátano Verde|3000|🍌,Plátano Maduro|3000|🍌,Apio|4000|🌿;Frutas:Lechoza|2500|🍈,Melón|3000|🍈,Guanábana|4500|🍐,Guayaba|3000|🍏,Parchita|4000|🟡,Manzana|8000|🍎,Cambur|2000|🍌,Naranja|2500|🍊,Fresa|8000|🍓,Uva|10000|🍇,Piña|3500|🍍,Patilla|2000|🍉,Limón|3000|🍋,Mango|2500|🥭,Pera|8000|🍐;Ramas, Hierbas y Especias:Cilantro|2000|🌿,Perejil|2000|🌿,Ajoporro|2500|🌱,Matadera|2000|☘️,Albahaca|2000|🌱,Romero|2500|🌿,Tomillo|2500|🌿,Menta|2000|🍃,Orégano|2000|🌿,Cebollín|2000|🌱,Comino|2000|🧂,Paprica|2500|🌶,Ajo en polvo|3000|🧄,Clavito|2000|🟤,Guayabita|2500|🫒,Canela|3000|🪵,Canela en polvo|3000|🫙,Pimienta|3000|🧂,Anís estrellado|3000|🌟,Hoja de laurel|2000|🍃;Proteínas y Huevos:Cartón de Huevos|16000|🥚";
-        const inventory = [];
-        inventarioTexto.split(';').forEach(catStr => { const [cName, itemsStr] = catStr.split(':'); itemsStr.split(',').forEach(itemStr => { const [n, p, i] = itemStr.split('|'); inventory.push({ c: cName, n, p: parseInt(p), i }); }); });
-        const catStyles = { "Hortalizas y Verduras": { bg: "bg-green-600", text: "text-green-700", border: "border-green-500", light: "bg-green-50" }, "Tubérculos y Vituallas": { bg: "bg-amber-600", text: "text-amber-700", border: "border-amber-500", light: "bg-amber-50" }, "Frutas": { bg: "bg-orange-500", text: "text-orange-700", border: "border-orange-500", light: "bg-orange-50" }, "Ramas, Hierbas y Especias": { bg: "bg-teal-600", text: "text-teal-700", border: "border-teal-500", light: "bg-teal-50" }, "Proteínas y Huevos": { bg: "bg-red-500", text: "text-red-700", border: "border-red-500", light: "bg-red-50" } };
+        const inventory = [
+            // --- HORTALIZAS Y VERDURAS ---
+            { c: "Hortalizas y Verduras", n: "Tomate", p: 4000, i: "🍅", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Hortalizas y Verduras", n: "Cebolla", p: 3500, i: "🧅", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Hortalizas y Verduras", n: "Ajo Entero", p: 12000, i: "🧄", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Hortalizas y Verduras", n: "Zanahoria", p: 3000, i: "🥕", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Hortalizas y Verduras", n: "Remolacha", p: 3000, i: "🍠", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Hortalizas y Verduras", n: "Repollo", p: 2500, i: "🥬", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Hortalizas y Verduras", n: "Coliflor", p: 4000, i: "🥦", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Hortalizas y Verduras", n: "Acelga", p: 2000, i: "🥬", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Hortalizas y Verduras", n: "Pepino", p: 2500, i: "🥒", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Hortalizas y Verduras", n: "Brócoli", p: 4500, i: "🥦", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Hortalizas y Verduras", n: "Calabacín", p: 2500, i: "🥒", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Hortalizas y Verduras", n: "Pimentón", p: 5000, i: "🫑", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Hortalizas y Verduras", n: "Espinaca", p: 3000, i: "🥬", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Hortalizas y Verduras", n: "Ají dulce", p: 4000, i: "🌶", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Hortalizas y Verduras", n: "Ají picante", p: 5000, i: "🔥", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Hortalizas y Verduras", n: "Apio España", p: 3000, i: "🥬", step: 0.25, min: 0.25, unitLabel: "kg" },
+
+            // --- TUBÉRCULOS Y VITUALLAS ---
+            { c: "Tubérculos y Vituallas", n: "Auyama", p: 1500, i: "🎃", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Tubérculos y Vituallas", n: "Papa", p: 3500, i: "🥔", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Tubérculos y Vituallas", n: "Yuca", p: 2000, i: "🍠", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Tubérculos y Vituallas", n: "Plátano Verde", p: 3000, i: "🍌", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Tubérculos y Vituallas", n: "Plátano Maduro", p: 3000, i: "🍌", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Tubérculos y Vituallas", n: "Apio", p: 4000, i: "🌿", step: 0.25, min: 0.25, unitLabel: "kg" },
+
+            // --- FRUTAS ---
+            { c: "Frutas", n: "Lechoza", p: 2500, i: "🍈", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Frutas", n: "Melón", p: 3000, i: "🍈", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Frutas", n: "Guanábana", p: 4500, i: "🍐", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Frutas", n: "Guayaba", p: 3000, i: "🍏", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Frutas", n: "Parchita", p: 4000, i: "🟡", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Frutas", n: "Manzana", p: 8000, i: "🍎", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Frutas", n: "Cambur", p: 2000, i: "🍌", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Frutas", n: "Naranja", p: 2500, i: "🍊", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Frutas", n: "Fresa", p: 8000, i: "🍓", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Frutas", n: "Uva", p: 10000, i: "🍇", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Frutas", n: "Piña", p: 3500, i: "🍍", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Frutas", n: "Patilla", p: 2000, i: "🍉", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Frutas", n: "Limón", p: 3000, i: "🍋", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Frutas", n: "Mango", p: 2500, i: "🥭", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Frutas", n: "Pera", p: 8000, i: "🍐", step: 0.25, min: 0.25, unitLabel: "kg" },
+
+            // --- PROTEÍNAS Y HUEVOS ---
+            { c: "Proteínas y Huevos", n: "Cartón de Huevos", p: 16000, i: "🥚", step: 0.5, min: 0.5, unitLabel: "carton" },
+            
+            // --- RAMAS, HIERBAS Y ESPECIAS ---
+            { c: "Ramas, Hierbas y Especias", n: "Cilantro", p: 2000, i: "🌿", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Ramas, Hierbas y Especias", n: "Perejil", p: 2000, i: "🌿", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Ramas, Hierbas y Especias", n: "Ajoporro", p: 2500, i: "🌱", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Ramas, Hierbas y Especias", n: "Matadera", p: 2000, i: "☘️", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Ramas, Hierbas y Especias", n: "Albahaca", p: 2000, i: "🌱", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Ramas, Hierbas y Especias", n: "Romero", p: 2500, i: "🌿", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Ramas, Hierbas y Especias", n: "Tomillo", p: 2500, i: "🌿", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Ramas, Hierbas y Especias", n: "Menta", p: 2000, i: "🍃", step: 0.25, min: 0.25, unitLabel: "kg" },
+            { c: "Ramas, Hierbas y Especias", n: "Cebollín", p: 2000, i: "🌱", step: 0.25, min: 0.25, unitLabel: "kg" },
+
+            // --- CONDIMENTOS Y SEMILLAS (50g, 100g, etc) ---
+            { c: "Condimentos y Semillas", n: "Sazonadores", p: 25000, i: "🥘", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
+            { c: "Condimentos y Semillas", n: "Comino", p: 75000, i: "🌿", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
+            { c: "Condimentos y Semillas", n: "Carmencita", p: 20000, i: "🍲", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
+            { c: "Condimentos y Semillas", n: "Paprika", p: 55000, i: "🌶", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
+            { c: "Condimentos y Semillas", n: "Ajo en polvo", p: 20000, i: "🧄", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
+            { c: "Condimentos y Semillas", n: "Adobo", p: 20000, i: "🧂", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
+            { c: "Condimentos y Semillas", n: "Orégano", p: 55000, i: "🍃", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
+            { c: "Condimentos y Semillas", n: "Chía", p: 55000, i: "🌑", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
+            { c: "Condimentos y Semillas", n: "Linaza", p: 25000, i: "🌾", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
+            { c: "Condimentos y Semillas", n: "Nuez moscada", p: 185000, i: "🌰", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
+            { c: "Condimentos y Semillas", n: "Flor de Jamaica", p: 65000, i: "🌺", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
+
+            // --- ESPECIAS DULCES (10g, 15g, 20g) ---
+            { c: "Especias Dulces", n: "Clavos de olor", p: 120000, i: "🍂", step: 5, min: 10, max: 20, unitLabel: "g", type: "gramos" },
+            { c: "Especias Dulces", n: "Anís estrellado", p: 120000, i: "⭐", step: 5, min: 10, max: 20, unitLabel: "g", type: "gramos" },
+            { c: "Especias Dulces", n: "Guayabita", p: 120000, i: "🫐", step: 5, min: 10, max: 20, unitLabel: "g", type: "gramos" },
+            { c: "Especias Dulces", n: "Canela", p: 95000, i: "🪵", step: 5, min: 10, max: 20, unitLabel: "g", type: "gramos" },
+            { c: "Especias Dulces", n: "Anís dulce", p: 90000, i: "🌱", step: 5, min: 10, max: 20, unitLabel: "g", type: "gramos" }
+        ];
+
+        const catStyles = { 
+            "Hortalizas y Verduras": { bg: "bg-green-600", text: "text-green-700", border: "border-green-500", light: "bg-green-50" }, 
+            "Tubérculos y Vituallas": { bg: "bg-amber-600", text: "text-amber-700", border: "border-amber-500", light: "bg-amber-50" }, 
+            "Frutas": { bg: "bg-orange-500", text: "text-orange-700", border: "border-orange-500", light: "bg-orange-50" }, 
+            "Ramas, Hierbas y Especias": { bg: "bg-teal-600", text: "text-teal-700", border: "border-teal-500", light: "bg-teal-50" }, 
+            "Condimentos y Semillas": { bg: "bg-orange-600", text: "text-orange-800", border: "border-orange-500", light: "bg-orange-50" },
+            "Especias Dulces": { bg: "bg-pink-600", text: "text-pink-800", border: "border-pink-500", light: "bg-pink-50" },
+            "Proteínas y Huevos": { bg: "bg-red-500", text: "text-red-700", border: "border-red-500", light: "bg-red-50" } 
+        };
         const catList = Object.keys(catStyles);
 
         const HeaderNav = ({ title, onBack, right }) => (
@@ -141,32 +224,57 @@
             const products = inventory.filter(p => p.c === currentCat);
 
             const formatQty = (q, name) => {
+                const product = inventory.find(p => p.n === name);
+                if (product?.type === 'gramos') return `${q}g`;
+
                 const isEgg = name.toLowerCase().includes("huevo");
                 if (q === 0.25) return isEgg ? "1/4 Cartón" : "250g";
                 if (q === 0.5) return isEgg ? "Medio Cartón" : "Medio Kg";
                 if (q === 0.75) return isEgg ? "3/4 Cartón" : "750g";
                 if (q === 1) return isEgg ? "1 Cartón" : "1 Kg";
-                return `${q} ${isEgg ? 'Cartones' : 'Kg/Und'}`;
+                return `${q} ${isEgg ? 'Cartones' : 'Kg'}`;
             };
 
-            const updateCart = (name, q, price) => {
+            const getDisplayPrice = (p) => {
+                if (p.type === 'gramos') {
+                    const priceForMin = (p.min / 1000) * p.p;
+                    return `${priceForMin.toLocaleString()} COP / ${p.min}g`;
+                }
+                const isEgg = p.n.toLowerCase().includes("huevo");
+                return `${p.p.toLocaleString()} COP ${isEgg ? '/ Cartón' : '/ Kg'}`;
+            };
+
+            const updateCart = (name, q, productRef) => {
                 const cleanQ = Math.max(0, Math.round(q * 100) / 100);
-                let finalPrice = price;
-                if (name.toLowerCase().includes("huevo")) {
+                
+                let finalPrice = productRef.p;
+                if (productRef.type === 'gramos') {
+                    finalPrice = (cleanQ / 1000) * productRef.p;
+                } else if (name.toLowerCase().includes("huevo")) {
                     if (cleanQ === 0.25) finalPrice = 4000;
                     else if (cleanQ === 0.5) finalPrice = 8000;
                     else if (cleanQ === 0.75) finalPrice = 12000;
-                    else finalPrice = 16000;
+                    else finalPrice = 16000 * cleanQ;
+                } else {
+                     finalPrice = productRef.p * cleanQ;
                 }
+
                 setCart(prev => {
                     const newCart = { ...prev };
-                    if (cleanQ <= 0) delete newCart[name];
-                    else newCart[name] = { q: cleanQ, p: finalPrice };
+                    if (cleanQ <= 0 || (productRef.type === 'gramos' && cleanQ < productRef.min)) {
+                        delete newCart[name];
+                    } else {
+                        let validatedQ = cleanQ;
+                        if (productRef.max && validatedQ > productRef.max) validatedQ = productRef.max;
+                        if (productRef.type === 'gramos') finalPrice = (validatedQ / 1000) * productRef.p;
+
+                        newCart[name] = { q: validatedQ, p: finalPrice, ref: productRef };
+                    }
                     return newCart;
                 });
             };
 
-            const cartSubtotal = Object.values(cart).reduce((sum, item) => sum + (item.p * item.q), 0);
+            const cartSubtotal = Object.values(cart).reduce((sum, item) => sum + item.p, 0);
             const deliveryFee = 4000; 
             const totalCOP = cartSubtotal > 0 ? cartSubtotal + deliveryFee : 0;
             const totalVES = (totalCOP / TASA_VES_COP).toFixed(2);
@@ -175,7 +283,7 @@
             const submitOrder = () => {
                 let payDetails = currency === 'COP' ? `${totalCOP.toLocaleString()} COP` : currency === 'VES' ? `${totalVES} VES` : `$${totalUSD} USD`;
                 let wsMsg = `*🛒 MERCADO EN CASA*%0A*Cliente:* ${user.nombre}%0A*C.I:* ${user.cedula}%0A*Tel:* ${user.telefono}%0A*Dir:* ${user.direccion}%0A%0A*PEDIDO:*%0A`;
-                Object.keys(cart).forEach(n => wsMsg += `▪ ${formatQty(cart[n].q, n)} de ${n} - ${(cart[n].p * cart[n].q).toLocaleString()} COP%0A`);
+                Object.keys(cart).forEach(n => wsMsg += `▪ ${formatQty(cart[n].q, n)} de ${n} - ${cart[n].p.toLocaleString()} COP%0A`);
                 wsMsg += `🛵 *Delivery:* ${deliveryFee.toLocaleString()} COP%0A💵 *TOTAL:* ${payDetails}`;
                 
                 window.open(`https://wa.me/${ADMIN_PHONE}?text=${wsMsg}`, '_blank');
@@ -186,30 +294,32 @@
             if (view === 'shop') return (
                 <div className="flex flex-col h-full bg-gray-50 fade-in w-full overflow-hidden">
                     <HeaderNav title="Mercado en Casa" onBack={goBack} right={<button onClick={()=>setView('cart')} className="bg-white text-green-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm border border-green-200">🛒 {Object.keys(cart).length}</button>} />
-                    <div className={`p-3 flex items-center justify-between shadow-sm shrink-0 ${catStyles[currentCat].light} border-b-4 ${catStyles[currentCat].border} z-10 relative`}>
-                        <button onClick={()=>setCatIdx(Math.max(0, catIdx-1))} disabled={catIdx===0} className="p-2 text-xl opacity-70 disabled:opacity-30">⬅️</button>
-                        <h2 className={`text-sm font-black text-center ${catStyles[currentCat].text}`}>{currentCat}</h2>
-                        <button onClick={()=>setCatIdx(Math.min(catList.length-1, catIdx+1))} disabled={catIdx===catList.length-1} className="p-2 text-xl opacity-70 disabled:opacity-30">➡️</button>
+                    <div className={`p-3 flex items-center shadow-sm shrink-0 ${catStyles[currentCat].light} border-b-4 ${catStyles[currentCat].border} z-10 relative overflow-x-auto no-scrollbar`}>
+                        <div className="flex gap-2 w-max px-2">
+                            {catList.map((c, idx) => (
+                                <button key={c} onClick={() => setCatIdx(idx)} className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-black shadow-sm transition-colors ${catIdx === idx ? catStyles[c].bg + ' text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                                    {c}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 pb-24 scroll-smooth bg-gray-50">
                         <div className="grid grid-cols-2 gap-3">
                             {products.map(p => {
                                 const q = cart[p.n]?.q || 0;
-                                const isEgg = p.n.toLowerCase().includes("huevo");
-                                const displayPrice = isEgg ? 16000 : p.p;
                                 const style = catStyles[currentCat];
                                 return (
                                     <div key={p.n} className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 flex flex-col items-center justify-between">
                                         <div className="text-4xl mb-2">{p.i}</div>
-                                        <h3 className="font-bold text-xs text-center h-8 flex items-center">{p.n}</h3>
-                                        <p className={`${style.text} font-black text-[11px] my-2`}>{displayPrice.toLocaleString()} COP {isEgg?'/Cartón':'/Kg'}</p>
+                                        <h3 className="font-bold text-xs text-center h-8 flex items-center leading-tight">{p.n}</h3>
+                                        <p className={`${style.text} font-black text-[10px] my-2 text-center bg-gray-50 px-2 py-1 rounded w-full`}>{getDisplayPrice(p)}</p>
                                         {q === 0 ? (
-                                            <button onClick={()=>{updateCart(p.n, 0.25, displayPrice); showToast(`${p.n} agregado`, false)}} className={`w-full ${style.light} ${style.text} border ${style.border} py-1.5 rounded-lg text-xs font-bold transition-transform active:scale-95`}>➕ Agregar</button>
+                                            <button onClick={()=>{updateCart(p.n, p.min || p.step, p); showToast(`${p.n} agregado`, false)}} className={`w-full ${style.light} ${style.text} border ${style.border} py-1.5 rounded-lg text-xs font-bold transition-transform active:scale-95`}>➕ Agregar</button>
                                         ) : (
                                             <div className="flex justify-between items-center w-full bg-gray-50 rounded-lg p-1 border">
-                                                <button onClick={()=>updateCart(p.n, q-0.25, displayPrice)} className="px-2 text-red-500 font-bold active:scale-90">-</button>
+                                                <button onClick={()=>updateCart(p.n, q-p.step, p)} className="px-3 text-red-500 font-black text-lg active:scale-90">-</button>
                                                 <span className="font-bold text-[10px] text-center w-full">{formatQty(q, p.n)}</span>
-                                                <button onClick={()=>updateCart(p.n, q+0.25, displayPrice)} className={`px-2 ${style.text} font-bold active:scale-90`}>+</button>
+                                                <button onClick={()=>updateCart(p.n, q+p.step, p)} className={`px-3 ${style.text} font-black text-lg active:scale-90`}>+</button>
                                             </div>
                                         )}
                                     </div>
@@ -233,7 +343,7 @@
                             {Object.keys(cart).length === 0 ? <p className="text-center text-gray-500 text-sm font-bold">Carrito vacío</p> : null}
                             {Object.keys(cart).map(n => (
                                 <div key={n} className="flex justify-between items-center py-2 border-b text-xs border-dashed">
-                                    <span>{formatQty(cart[n].q, n)} {n}</span><span className="font-bold text-gray-700">{(cart[n].p * cart[n].q).toLocaleString()} COP</span>
+                                    <span>{formatQty(cart[n].q, n)} {n}</span><span className="font-bold text-gray-700">{cart[n].p.toLocaleString()} COP</span>
                                 </div>
                             ))}
                             {cartSubtotal > 0 && (
@@ -323,11 +433,10 @@
                     if (distanciaRealMetros > 0) setDistanciaCalculadaKm((distanciaRealMetros / 1000).toFixed(1));
                 } else {
                     setPrecioRutaFija(false);
-                    let p = 4000; // Tarifa base de 4000 pesos
+                    let p = 4000; // Tarifa base
                     if (distanciaRealMetros > 0) {
                         const km = (distanciaRealMetros / 1000).toFixed(1);
                         setDistanciaCalculadaKm(km);
-                        // Primeros 3km cubiertos por la base
                         if (distanciaRealMetros > 3000) {
                             const kmExtra = (distanciaRealMetros - 3000) / 1000;
                             p += Math.round(kmExtra * 1500);
@@ -672,16 +781,15 @@
         
         const AdminDashboard = ({ goBack, showToast }) => {
             const hasDB = window.db !== null && window.db !== undefined;
-            const [adminView, setAdminView] = useState('main'); // main, users, finances
+            const [adminView, setAdminView] = useState('main'); // Vistas: main, users, finances
             const [usersList, setUsersList] = useState([]);
-            const [loadingUsers, setLoadingUsers] = useState(true);
+            const [loadingUsers, setLoadingUsers] = useState(false);
 
             useEffect(() => {
-                if (!hasDB) {
-                    setLoadingUsers(false);
-                    return;
-                }
+                if (!hasDB) return;
+                
                 const fetchUsers = async () => {
+                    setLoadingUsers(true);
                     try {
                         const querySnapshot = await window.fb.getDocs(window.fb.collection(window.db, "users"));
                         const users = [];
@@ -699,7 +807,7 @@
                 if(adminView === 'users' || adminView === 'finances') {
                     fetchUsers();
                 }
-            }, [hasDB, adminView]);
+            }, [hasDB, adminView]); // El useEffect escucha cuando cambia adminView para recargar
 
             const exportToExcel = () => {
                 if (usersList.length === 0) {
@@ -770,7 +878,7 @@
             };
 
             const renderMainMenu = () => (
-                <div className="flex-1 p-4 pb-20 flex flex-col items-center w-full">
+                <div className="flex-1 p-4 pb-20 flex flex-col items-center w-full fade-in">
                     <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 border-4 text-2xl shadow-md ${hasDB ? 'bg-green-100 border-green-500 text-green-500' : 'bg-red-100 border-red-500 text-red-500'}`}>
                         <i className={`fa-solid ${hasDB ? 'fa-cloud-check' : 'fa-shield-halved'}`}></i>
                     </div>
@@ -780,55 +888,55 @@
                     </p>
 
                     <div className="w-full max-w-sm space-y-3">
-                        <button onClick={() => setAdminView('users')} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-blue-500 flex items-center justify-between transition-colors">
+                        <button onClick={() => setAdminView('users')} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-blue-500 flex items-center justify-between transition-colors cursor-pointer active:scale-95">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600"><i className="fa-solid fa-users"></i></div>
-                                <div className="text-left">
+                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 pointer-events-none"><i className="fa-solid fa-users"></i></div>
+                                <div className="text-left pointer-events-none">
                                     <h3 className="font-bold text-gray-800 text-sm">Base de Datos Usuarios</h3>
                                     <p className="text-[10px] text-gray-500">Ver clientes, choferes y exportar a Excel</p>
                                 </div>
                             </div>
-                            <i className="fa-solid fa-chevron-right text-gray-300"></i>
+                            <i className="fa-solid fa-chevron-right text-gray-300 pointer-events-none"></i>
                         </button>
                         
-                        <button onClick={() => showToast('Módulo en construcción', false)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-orange-500 flex items-center justify-between transition-colors">
+                        <button onClick={() => showToast('Módulo de Aprobación Activo en la Base de Datos', false)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-orange-500 flex items-center justify-between transition-colors opacity-70">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-600"><i className="fa-solid fa-id-card-clip"></i></div>
                                 <div className="text-left">
                                     <h3 className="font-bold text-gray-800 text-sm">Aprobar Choferes</h3>
-                                    <p className="text-[10px] text-gray-500">Nuevas solicitudes de conductores</p>
+                                    <p className="text-[10px] text-gray-500">Revisa la pestaña de Finanzas</p>
                                 </div>
                             </div>
-                            <i className="fa-solid fa-chevron-right text-gray-300"></i>
+                            <i className="fa-solid fa-lock text-gray-300"></i>
                         </button>
 
-                        <button onClick={() => showToast('Módulo en construcción', false)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-green-500 flex items-center justify-between transition-colors">
+                        <button onClick={() => showToast('Módulo en construcción', false)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-green-500 flex items-center justify-between transition-colors opacity-70">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600"><i className="fa-solid fa-route"></i></div>
                                 <div className="text-left">
                                     <h3 className="font-bold text-gray-800 text-sm">Historial de Viajes</h3>
-                                    <p className="text-[10px] text-gray-500">Monitoreo de carreras realizadas</p>
+                                    <p className="text-[10px] text-gray-500">Monitoreo de carreras (Próximamente)</p>
                                 </div>
                             </div>
-                            <i className="fa-solid fa-chevron-right text-gray-300"></i>
+                            <i className="fa-solid fa-lock text-gray-300"></i>
                         </button>
 
-                        <button onClick={() => setAdminView('finances')} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-purple-500 flex items-center justify-between transition-colors">
+                        <button onClick={() => setAdminView('finances')} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-purple-500 flex items-center justify-between transition-colors cursor-pointer active:scale-95">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600"><i className="fa-solid fa-sack-dollar"></i></div>
-                                <div className="text-left">
+                                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 pointer-events-none"><i className="fa-solid fa-sack-dollar"></i></div>
+                                <div className="text-left pointer-events-none">
                                     <h3 className="font-bold text-gray-800 text-sm">Finanzas y Pagos</h3>
                                     <p className="text-[10px] text-gray-500">Ingresos totales y cobro a choferes</p>
                                 </div>
                             </div>
-                            <i className="fa-solid fa-chevron-right text-gray-300"></i>
+                            <i className="fa-solid fa-chevron-right text-gray-300 pointer-events-none"></i>
                         </button>
                     </div>
                 </div>
             );
 
             const renderUsersDatabase = () => (
-                <div className="flex-1 flex flex-col w-full h-full bg-gray-50 p-2">
+                <div className="flex-1 flex flex-col w-full h-full bg-gray-50 p-2 fade-in">
                     {!hasDB ? (
                         <p className="text-center text-xs text-red-500 py-4 font-bold">Conecta Firebase para ver la base de datos.</p>
                     ) : loadingUsers ? (
@@ -857,7 +965,7 @@
             const renderFinances = () => {
                 const drivers = usersList.filter(u => u.role === 'driver');
                 return (
-                    <div className="flex-1 flex flex-col w-full h-full bg-gray-50 p-4 overflow-y-auto">
+                    <div className="flex-1 flex flex-col w-full h-full bg-gray-50 p-4 overflow-y-auto fade-in">
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 text-center">
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide">Ingreso Bruto Mensual (Carreras)</h3>
                             <div className="text-3xl font-black text-green-600 mt-1 flex items-center justify-center gap-2">
@@ -872,45 +980,50 @@
 
                         <h3 className="font-black text-gray-800 mb-3"><i className="fa-solid fa-helmet-safety text-gray-400 mr-1"></i> Control Mensualidad de Choferes</h3>
                         <div className="space-y-3 pb-20">
-                            {drivers.length === 0 ? <p className="text-xs text-center text-gray-500 font-bold bg-white p-4 rounded-xl border border-gray-200">Aún no hay choferes registrados.</p> : null}
-                            {drivers.map(d => {
-                                const now = new Date().getTime();
-                                const nextDate = d.nextPaymentDate ? new Date(d.nextPaymentDate).getTime() : now;
-                                const daysLeft = Math.ceil((nextDate - now) / (1000 * 60 * 60 * 24));
-                                const isSuspended = d.subscriptionStatus === 'suspended';
-                                const isOverdue = daysLeft < 0;
+                            {loadingUsers ? (
+                                <p className="text-center text-xs text-gray-500 py-4 font-bold"><i className="fa-solid fa-spinner fa-spin mr-1"></i> Cargando choferes...</p>
+                            ) : drivers.length === 0 ? (
+                                <p className="text-xs text-center text-gray-500 font-bold bg-white p-4 rounded-xl border border-gray-200">Aún no hay choferes registrados.</p>
+                            ) : (
+                                drivers.map(d => {
+                                    const now = new Date().getTime();
+                                    const nextDate = d.nextPaymentDate ? new Date(d.nextPaymentDate).getTime() : now;
+                                    const daysLeft = Math.ceil((nextDate - now) / (1000 * 60 * 60 * 24));
+                                    const isSuspended = d.subscriptionStatus === 'suspended';
+                                    const isOverdue = daysLeft < 0;
 
-                                return (
-                                    <div key={d.id} className={`p-4 rounded-xl border-2 ${isSuspended ? 'bg-red-50 border-red-200' : isOverdue ? 'bg-yellow-50 border-yellow-400' : 'bg-white border-gray-100'} shadow-sm relative overflow-hidden`}>
-                                        <div className="flex justify-between items-center mb-1">
-                                            <p className="font-black text-sm text-gray-800">{d.nombre}</p>
-                                            <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider ${isSuspended ? 'bg-red-600 text-white shadow-sm' : isOverdue ? 'bg-yellow-500 text-white shadow-sm' : 'bg-green-100 text-green-700'}`}>
-                                                {isSuspended ? 'Suspendido' : isOverdue ? 'Vencido' : 'Activo'}
-                                            </span>
-                                        </div>
-                                        <p className="text-[10px] text-gray-500 font-bold mb-3">C.I: {d.cedula} • {d.telefono}</p>
+                                    return (
+                                        <div key={d.id} className={`p-4 rounded-xl border-2 ${isSuspended ? 'bg-red-50 border-red-200' : isOverdue ? 'bg-yellow-50 border-yellow-400' : 'bg-white border-gray-100'} shadow-sm relative overflow-hidden`}>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <p className="font-black text-sm text-gray-800">{d.nombre}</p>
+                                                <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider ${isSuspended ? 'bg-red-600 text-white shadow-sm' : isOverdue ? 'bg-yellow-500 text-white shadow-sm' : 'bg-green-100 text-green-700'}`}>
+                                                    {isSuspended ? 'Suspendido' : isOverdue ? 'Vencido' : 'Activo'}
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] text-gray-500 font-bold mb-3">C.I: {d.cedula} • {d.telefono}</p>
 
-                                        <div className={`text-[10px] p-2 rounded-lg font-bold mb-3 flex items-center gap-2 ${isOverdue && !isSuspended ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-50 text-gray-600'}`}>
-                                            <i className="fa-regular fa-calendar-check text-lg"></i>
-                                            <div>
-                                                <p>Próximo corte: <span className="text-gray-800">{d.nextPaymentDate ? new Date(d.nextPaymentDate).toLocaleDateString() : 'No definido'}</span></p>
-                                                {!isSuspended && (daysLeft >= 0 ? <p className="text-green-600">Quedan {daysLeft} días de suscripción</p> : <p className="text-red-600">Suscripción vencida hace {Math.abs(daysLeft)} días</p>)}
+                                            <div className={`text-[10px] p-2 rounded-lg font-bold mb-3 flex items-center gap-2 ${isOverdue && !isSuspended ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-50 text-gray-600'}`}>
+                                                <i className="fa-regular fa-calendar-check text-lg"></i>
+                                                <div>
+                                                    <p>Próximo corte: <span className="text-gray-800">{d.nextPaymentDate ? new Date(d.nextPaymentDate).toLocaleDateString() : 'No definido'}</span></p>
+                                                    {!isSuspended && (daysLeft >= 0 ? <p className="text-green-600">Quedan {daysLeft} días de suscripción</p> : <p className="text-red-600">Suscripción vencida hace {Math.abs(daysLeft)} días</p>)}
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex gap-2">
+                                                {isSuspended ? (
+                                                    <button onClick={() => toggleDriverStatus(d.email, d.subscriptionStatus, true)} className="flex-1 bg-green-500 hover:bg-green-600 text-white text-[10px] font-black py-2.5 rounded-lg shadow-md transition-transform active:scale-95"><i className="fa-solid fa-check-double mr-1"></i> Confirmar Pago y Reactivar</button>
+                                                ) : (
+                                                    <>
+                                                        <button onClick={() => toggleDriverStatus(d.email, d.subscriptionStatus)} className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-[10px] font-black py-2 rounded-lg transition-transform active:scale-95"><i className="fa-solid fa-ban mr-1"></i> Suspender</button>
+                                                        <button onClick={() => toggleDriverStatus(d.email, d.subscriptionStatus, true)} className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[10px] font-black py-2 rounded-lg transition-transform active:scale-95"><i className="fa-solid fa-hand-holding-dollar mr-1"></i> Renovar 1 Mes</button>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
-                                        
-                                        <div className="flex gap-2">
-                                            {isSuspended ? (
-                                                <button onClick={() => toggleDriverStatus(d.email, d.subscriptionStatus, true)} className="flex-1 bg-green-500 hover:bg-green-600 text-white text-[10px] font-black py-2.5 rounded-lg shadow-md transition-transform active:scale-95"><i className="fa-solid fa-check-double mr-1"></i> Confirmar Pago y Reactivar</button>
-                                            ) : (
-                                                <>
-                                                    <button onClick={() => toggleDriverStatus(d.email, d.subscriptionStatus)} className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-[10px] font-black py-2 rounded-lg transition-transform active:scale-95"><i className="fa-solid fa-ban mr-1"></i> Suspender</button>
-                                                    <button onClick={() => toggleDriverStatus(d.email, d.subscriptionStatus, true)} className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[10px] font-black py-2 rounded-lg transition-transform active:scale-95"><i className="fa-solid fa-hand-holding-dollar mr-1"></i> Renovar 1 Mes</button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })
+                            )}
                         </div>
                     </div>
                 );
@@ -975,7 +1088,6 @@
                         const userRef = window.fb.doc(window.db, "users", authEmail);
                         if (isNewUser) {
                             const userData = { email: authEmail, password: authPass, nombre: form.nombre, cedula: form.cedula, telefono: form.telefono || "", direccion: form.direccion || "", role: role, createdAt: new Date().toISOString() };
-                            // Si es chofer, calcular membresía 30 días
                             if (role === 'driver') {
                                 const nextMonth = new Date();
                                 nextMonth.setDate(nextMonth.getDate() + 30);
@@ -1030,7 +1142,7 @@
             };
 
             if(view === 'splash') return (
-                <div className="fixed inset-0 bg-[#0b0f19] flex flex-col items-center justify-center z-50 text-center">
+                <div className="fixed inset-0 bg-[#0b0f19] flex flex-col items-center justify-center z-50 text-center fade-in">
                     <div className="w-28 h-28 bg-red-600 rounded-full flex items-center justify-center mb-6 animate-logo border-4 border-red-500"><i className="fa-solid fa-motorcycle text-5xl text-white"></i></div>
                     <h1 className="text-5xl font-black text-white mb-2 tracking-tighter">Moto UBGrit</h1>
                     <div className="bg-black/40 border border-gray-800 p-4 rounded-2xl mt-4 w-10/12 backdrop-blur-sm">
@@ -1041,7 +1153,7 @@
             );
             
             if(view === 'menu') return (
-                <div className="flex flex-col h-full bg-[#0b0f19] w-full p-5 text-center relative overflow-y-auto">
+                <div className="flex flex-col h-full bg-[#0b0f19] w-full p-5 text-center relative overflow-y-auto fade-in">
                     {toast && <Toast msg={toast.msg} isError={toast.isError} />}
                     <div className="absolute top-4 right-4 flex gap-2 z-20">
                         <button onClick={()=>{setRole('admin');setView('auth');}} className="bg-white/10 text-white px-3 py-2 rounded-lg text-[10px] font-black border border-white/20 hover:bg-white/20"><i className="fa-solid fa-shield-halved"></i> Admin</button>
@@ -1074,7 +1186,7 @@
             );
 
             if(view === 'auth') return (
-                <div className="flex flex-col h-full bg-[#0b0f19] w-full overflow-y-auto">
+                <div className="flex flex-col h-full bg-[#0b0f19] w-full overflow-y-auto fade-in">
                     <HeaderNav title={role==='admin'?"Acceso Administrador": "Ingreso Seguro"} onBack={()=>setView('menu')} />
                     <div className="p-5 pb-20">
                         <form onSubmit={handleAuth} className="bg-white p-6 rounded-3xl space-y-4 shadow-2xl relative border-t-8 border-red-600">
@@ -1089,7 +1201,7 @@
 
                             {role !== 'admin' && (
                                 <div className="border-t border-dashed border-gray-300 pt-4 mt-2 space-y-3">
-                                    <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest text-center bg-gray-50 py-1 rounded">SI ERES NUEVO, LLENA ESTO:</p>
+                                    <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest text-center bg-gray-50 py-1 rounded">SI ERES NUEVO, LLENA ESTO TAMBIÉN:</p>
                                     <input name="nombre" placeholder="Nombre completo o Local" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
                                     <input name="cedula" type="number" placeholder="Cédula de Identidad" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
                                     <input name="telefono" type="tel" placeholder="WhatsApp (Ej: 584141234567)" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
