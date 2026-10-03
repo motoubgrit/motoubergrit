@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Moto UBGrit</title>
-    
+    <title>Moto UBGrit App</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -13,30 +12,23 @@
     <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0b0f19; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100dvh; overflow: hidden; touch-action: manipulation; }
         ::-webkit-scrollbar { display: none; }
-        #mobile-container { width: 100%; max-width: 430px; height: 100%; max-height: 100dvh; background-color: #f9fafb; position: relative; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes pulseLogo { 0% { transform: scale(1); box-shadow: 0 0 20px rgba(220,38,38,0.5); } 50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(220,38,38,0.8); } 100% { transform: scale(1); box-shadow: 0 0 20px rgba(220,38,38,0.5); } }
-        .animate-logo { animation: pulseLogo 2s infinite; }
-        .custom-pin { filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.5)); font-size: 34px; line-height: 34px; text-align: center; cursor: pointer; transition: transform 0.1s; }
-        .custom-pin:active { transform: scale(1.2) translateY(-5px); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        #mobile-container { width: 100%; max-width: 430px; height: 100%; max-height: 100dvh; background-color: #0b0f19; position: relative; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .custom-pin { filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.5)); font-size: 34px; line-height: 34px; text-align: center; cursor: pointer; transition: transform 0.1s; }
+        .custom-pin:active { transform: scale(1.2) translateY(-5px); }
     </style>
 </head>
 <body>
-    <div id="mobile-container">
-        <div id="root" class="w-full h-full"></div>
-    </div>
-
+    <div id="mobile-container"><div id="root" class="w-full h-full"></div></div>
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, where, updateDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, getDoc, onSnapshot, query, where, updateDoc, doc, setDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
         const firebaseConfig = {
             apiKey: "AIzaSyC4RaeKy1IjcAKK6tJtSD5-hxAbhra6wEU",
             authDomain: "moto-ubgrit.firebaseapp.com",
@@ -45,31 +37,20 @@
             messagingSenderId: "1079394065391",
             appId: "1:1079394065391:web:6744ccdaa2a26a344bf41a"
         };
-
         const initCloudDB = async () => {
             try {
                 const app = initializeApp(firebaseConfig);
                 window.db = getFirestore(app);
-                window.fb = { collection, addDoc, getDocs, onSnapshot, query, where, updateDoc, doc, setDoc };
-                console.log("☁️ NUBE FIREBASE CONECTADA EXITOSAMENTE ☁");
-            } catch (error) {
-                console.error("Error conectando a Firebase:", error);
-                window.db = null;
-            }
-            window.dispatchEvent(new Event('firebase-ready'));
+                window.fb = { collection, addDoc, getDocs, getDoc, onSnapshot, query, where, updateDoc, doc, setDoc, orderBy };
+                console.log("☁ NUBE FIREBASE CONECTADA EXITOSAMENTE ☁");
+            } catch (error) { console.error("Error conectando a Firebase:", error); window.db = null; }
         };
         initCloudDB();
     </script>
-
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-
-        const TASA_USD_COP = 3000;
-        const TASA_VES_COP = 3.0;
         const ADMIN_EMAIL = "motoubgrit@gmail.com";
-        const ADMIN_PASS = "Universal11!!";
         const ADMIN_PHONE = "584140792843";
-
         const RUTAS_FIJAS = {
             "AGUA DIAZ": 5000, "FLORESTA": 4000, "LA MESETA CAPILLA": 5000, "LOS PINOS": 5000, "PARTE ALTA": 6000,
             "LA GRANJA": 3000, "2 DE FEBRERO": 5000, "11 DE JUNIO": 5000, "GUATAVITAS": 6000,
@@ -109,9 +90,7 @@
             "PARQUE ANGOSTURA": 40000, "EL COBRE": 50000, "RIO ARRIBA": 60000, "LOS MIRTOS": 80000, "ZUMBADOR": 100000, 
             "MESA DE AURA": 120000, "LA AUYAMALA": 140000, "CORDERO": 160000, "TARIBA": 180000
         };
-
         const inventory = [
-            // --- HORTALIZAS Y VERDURAS ---
             { c: "Hortalizas y Verduras", n: "Tomate", p: 4000, i: "🍅", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Hortalizas y Verduras", n: "Cebolla", p: 3500, i: "🧅", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Hortalizas y Verduras", n: "Ajo Entero", p: 12000, i: "🧄", step: 0.25, min: 0.25, unitLabel: "kg" },
@@ -128,16 +107,12 @@
             { c: "Hortalizas y Verduras", n: "Ají dulce", p: 4000, i: "🌶", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Hortalizas y Verduras", n: "Ají picante", p: 5000, i: "🔥", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Hortalizas y Verduras", n: "Apio España", p: 3000, i: "🥬", step: 0.25, min: 0.25, unitLabel: "kg" },
-
-            // --- TUBÉRCULOS Y VITUALLAS ---
             { c: "Tubérculos y Vituallas", n: "Auyama", p: 1500, i: "🎃", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Tubérculos y Vituallas", n: "Papa", p: 3500, i: "🥔", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Tubérculos y Vituallas", n: "Yuca", p: 2000, i: "🍠", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Tubérculos y Vituallas", n: "Plátano Verde", p: 3000, i: "🍌", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Tubérculos y Vituallas", n: "Plátano Maduro", p: 3000, i: "🍌", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Tubérculos y Vituallas", n: "Apio", p: 4000, i: "🌿", step: 0.25, min: 0.25, unitLabel: "kg" },
-
-            // --- FRUTAS ---
             { c: "Frutas", n: "Lechoza", p: 2500, i: "🍈", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Frutas", n: "Melón", p: 3000, i: "🍈", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Frutas", n: "Guanábana", p: 4500, i: "🍐", step: 0.25, min: 0.25, unitLabel: "kg" },
@@ -153,11 +128,7 @@
             { c: "Frutas", n: "Limón", p: 3000, i: "🍋", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Frutas", n: "Mango", p: 2500, i: "🥭", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Frutas", n: "Pera", p: 8000, i: "🍐", step: 0.25, min: 0.25, unitLabel: "kg" },
-
-            // --- PROTEÍNAS Y HUEVOS ---
             { c: "Proteínas y Huevos", n: "Cartón de Huevos", p: 16000, i: "🥚", step: 0.5, min: 0.5, unitLabel: "carton" },
-            
-            // --- RAMAS, HIERBAS Y ESPECIAS ---
             { c: "Ramas, Hierbas y Especias", n: "Cilantro", p: 2000, i: "🌿", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Ramas, Hierbas y Especias", n: "Perejil", p: 2000, i: "🌿", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Ramas, Hierbas y Especias", n: "Ajoporro", p: 2500, i: "🌱", step: 0.25, min: 0.25, unitLabel: "kg" },
@@ -167,8 +138,6 @@
             { c: "Ramas, Hierbas y Especias", n: "Tomillo", p: 2500, i: "🌿", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Ramas, Hierbas y Especias", n: "Menta", p: 2000, i: "🍃", step: 0.25, min: 0.25, unitLabel: "kg" },
             { c: "Ramas, Hierbas y Especias", n: "Cebollín", p: 2000, i: "🌱", step: 0.25, min: 0.25, unitLabel: "kg" },
-
-            // --- CONDIMENTOS Y SEMILLAS (50g, 100g, etc) ---
             { c: "Condimentos y Semillas", n: "Sazonadores", p: 25000, i: "🥘", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
             { c: "Condimentos y Semillas", n: "Comino", p: 75000, i: "🌿", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
             { c: "Condimentos y Semillas", n: "Carmencita", p: 20000, i: "🍲", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
@@ -180,15 +149,12 @@
             { c: "Condimentos y Semillas", n: "Linaza", p: 25000, i: "🌾", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
             { c: "Condimentos y Semillas", n: "Nuez moscada", p: 185000, i: "🌰", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
             { c: "Condimentos y Semillas", n: "Flor de Jamaica", p: 65000, i: "🌺", step: 50, min: 50, max: 200, unitLabel: "g", type: "gramos" },
-
-            // --- ESPECIAS DULCES (10g, 15g, 20g) ---
             { c: "Especias Dulces", n: "Clavos de olor", p: 120000, i: "🍂", step: 5, min: 10, max: 20, unitLabel: "g", type: "gramos" },
             { c: "Especias Dulces", n: "Anís estrellado", p: 120000, i: "⭐", step: 5, min: 10, max: 20, unitLabel: "g", type: "gramos" },
-            { c: "Especias Dulces", n: "Guayabita", p: 120000, i: "🫐", step: 5, min: 10, max: 20, unitLabel: "g", type: "gramos" },
-            { c: "Especias Dulces", n: "Canela", p: 95000, i: "🪵", step: 5, min: 10, max: 20, unitLabel: "g", type: "gramos" },
+            { c: "Especias Dulces", n: "Guayabita", p: 120000, i: "🧆", step: 5, min: 10, max: 20, unitLabel: "g", type: "gramos" },
+            { c: "Especias Dulces", n: "Canela", p: 95000, i: "🥨", step: 5, min: 10, max: 20, unitLabel: "g", type: "gramos" },
             { c: "Especias Dulces", n: "Anís dulce", p: 90000, i: "🌱", step: 5, min: 10, max: 20, unitLabel: "g", type: "gramos" }
         ];
-
         const catStyles = { 
             "Hortalizas y Verduras": { bg: "bg-green-600", text: "text-green-700", border: "border-green-500", light: "bg-green-50" }, 
             "Tubérculos y Vituallas": { bg: "bg-amber-600", text: "text-amber-700", border: "border-amber-500", light: "bg-amber-50" }, 
@@ -199,34 +165,102 @@
             "Proteínas y Huevos": { bg: "bg-red-500", text: "text-red-700", border: "border-red-500", light: "bg-red-50" } 
         };
         const catList = Object.keys(catStyles);
-
-        const HeaderNav = ({ title, onBack, right }) => (
-            <div className="bg-black text-white p-4 sticky top-0 z-50 flex items-center justify-between shadow-md h-16 shrink-0 w-full">
-                {onBack ? ( <button onClick={onBack} className="text-xs font-bold bg-white/20 px-3 py-2 rounded hover:bg-white/30 transition-colors"><i className="fa-solid fa-arrow-left"></i> Volver</button> ) : <div className="w-16"></div>}
+        const HeaderNav = ({ title, onBack }) => (
+            <div className="bg-[#0b0f19] text-white p-4 sticky top-0 z-50 flex items-center justify-between shadow-md h-16 shrink-0 w-full border-b border-gray-800">
+                {onBack ? ( <button onClick={onBack} className="text-xs font-bold bg-white/10 px-3 py-2 rounded hover:bg-white/20 transition-colors"><i className="fa-solid fa-arrow-left"></i> Volver</button> ) : <div className="w-16"></div>}
                 <h2 className="text-sm font-black truncate flex-1 text-center px-2">{title}</h2>
-                <div className="w-16 flex justify-end">{right}</div>
+                <div className="w-16 flex justify-end"></div>
             </div>
         );
-
-        const Toast = ({ msg, isError }) => (
-            <div className={`absolute top-20 left-1/2 transform -translate-x-1/2 z-[999] w-11/12 max-w-xs fade-in ${isError ? 'bg-red-600' : 'bg-green-600'} text-white px-4 py-3 rounded-xl shadow-2xl font-bold text-xs text-center pointer-events-none`}>
-                {msg}
-            </div>
-        );
-
-        const MercadoDashboard = ({ user, goBack, showToast }) => {
-            const [view, setView] = useState('shop');
+        const AuthScreen = ({ goBack, onLoginSuccess, requestedRole }) => {
+            const [loading, setLoading] = useState(false);
+            const handleForgotPassword = async () => {
+                const { value: email } = await Swal.fire({ title: 'Recuperar Contraseña', input: 'email', inputLabel: 'Ingresa tu correo', inputPlaceholder: 'tu@correo.com', showCancelButton: true, confirmButtonText: 'Recuperar' });
+                if (email && window.db) {
+                    try {
+                        const snap = await window.fb.getDoc(window.fb.doc(window.db, "users", email.toLowerCase().trim()));
+                        if(snap.exists()) {
+                            let wsMsg = `*🔒 SOLICITUD DE RECUPERACIÓN*%0A*Correo:* ${email}%0A*Usuario:* ${snap.data().nombre}%0A%0AHola Admin, olvidé mi clave.`;
+                            window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(wsMsg)}`, '_blank');
+                        } else { Swal.fire('No encontrado', 'Correo no registrado.', 'error'); }
+                    } catch(e) { Swal.fire('Error', 'Problema de conexión.', 'error'); }
+                }
+            };
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (!window.db) return Swal.fire('Error', 'No hay conexión a Firebase.', 'error');
+                setLoading(true);
+                const email = e.target.email.value.toLowerCase().trim();
+                const password = e.target.password.value;
+                const nombre = e.target.nombre.value;
+                const cedula = e.target.cedula.value;
+                const telefono = e.target.telefono.value;
+                const direccion = e.target.direccion.value;
+                try {
+                    const userRef = window.fb.doc(window.db, "users", email);
+                    const snap = await window.fb.getDoc(userRef);
+                    if (snap.exists()) {
+                        if (snap.data().password === password) {
+                            const ud = snap.data();
+                            if(ud.role === 'driver' && ud.status === 'pending') Swal.fire('Pendiente', 'Tu solicitud está siendo revisada.', 'info');
+                            else onLoginSuccess(ud);
+                        } else Swal.fire('Error', 'Contraseña incorrecta.', 'error');
+                    } else {
+                        if (!nombre || !cedula || !telefono) {
+                            Swal.fire('Faltan Datos', 'Llena todos los campos para registrarte.', 'warning');
+                            setLoading(false); return;
+                        }
+                        const newUser = { email, password, nombre, cedula, telefono, direccion: direccion||'', role: requestedRole||'client', createdAt: new Date().toISOString() };
+                        if (requestedRole === 'driver') {
+                            newUser.status = 'pending'; newUser.subscriptionStatus = 'suspended';
+                            const nextM = new Date(); nextM.setDate(nextM.getDate() + 30);
+                            newUser.nextPaymentDate = nextM.toISOString();
+                        } else newUser.status = 'active';
+                        await window.fb.setDoc(userRef, newUser);
+                        if (requestedRole === 'driver') { Swal.fire('Éxito', 'Registro enviado.', 'success'); goBack(); }
+                        else onLoginSuccess(newUser);
+                    }
+                } catch (err) { Swal.fire('Error', 'Problema de conexión.', 'error'); }
+                setLoading(false);
+            };
+            return (
+                <div className="flex flex-col h-full bg-[#0b0f19] w-full overflow-y-auto fade-in">
+                    <HeaderNav title="Ingreso Seguro" onBack={goBack} />
+                    <div className="p-5 pb-20 mt-4 flex-1">
+                        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-3xl space-y-4 shadow-2xl relative border-t-8 border-red-600">
+                            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-[#0b0f19] rounded-full flex items-center justify-center shadow-lg border-2 border-red-600">
+                                <i className="fa-solid fa-lock text-red-500"></i>
+                            </div>
+                            <h2 className="text-center font-black text-xl text-gray-800 mt-2 mb-1">Tus Datos</h2>
+                            <p className="text-[10px] text-center text-gray-500 font-bold mb-4 px-2">Si ya tienes cuenta, ingresa correo y clave. Si eres nuevo, llena todos los datos.</p>
+                            <div className="space-y-3 relative">
+                                <input required name="email" type="email" placeholder="Correo electrónico" className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700" />
+                                <input required name="password" type="password" placeholder="Contraseña" className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700" />
+                                <div className="text-right"><button type="button" onClick={handleForgotPassword} className="text-[10px] text-red-500 font-black">¿Olvidaste tu clave?</button></div>
+                            </div>
+                            <div className="border-t border-dashed border-gray-300 pt-4 mt-2 space-y-3">
+                                <p className="text-[9px] text-gray-400 font-black uppercase text-center bg-gray-50 py-1">SI ERES NUEVO, LLENA ESTO:</p>
+                                <input name="nombre" type="text" placeholder="Nombre completo o Local" className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold" />
+                                <input name="cedula" type="number" placeholder="Cédula de Identidad" className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold" />
+                                <input name="telefono" type="tel" placeholder="WhatsApp (Ej: 584141234567)" className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold" />
+                                <textarea name="direccion" placeholder="Dirección exacta" className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs h-20 outline-none font-bold" />
+                            </div>
+                            <button disabled={loading} type="submit" className="w-full bg-red-600 text-white py-4 rounded-xl font-black text-sm shadow-lg mt-4 flex justify-center gap-2">
+                                {loading ? 'Procesando...' : 'Registrarse / Ingresar'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+        const MercadoDashboard = ({ user, goBack }) => {
             const [catIdx, setCatIdx] = useState(0);
             const [cart, setCart] = useState({});
-            const [currency, setCurrency] = useState('COP');
-
             const currentCat = catList[catIdx];
             const products = inventory.filter(p => p.c === currentCat);
-
             const formatQty = (q, name) => {
                 const product = inventory.find(p => p.n === name);
                 if (product?.type === 'gramos') return `${q}g`;
-
                 const isEgg = name.toLowerCase().includes("huevo");
                 if (q === 0.25) return isEgg ? "1/4 Cartón" : "250g";
                 if (q === 0.5) return isEgg ? "Medio Cartón" : "Medio Kg";
@@ -234,1055 +268,459 @@
                 if (q === 1) return isEgg ? "1 Cartón" : "1 Kg";
                 return `${q} ${isEgg ? 'Cartones' : 'Kg'}`;
             };
-
-            const getDisplayPrice = (p) => {
-                if (p.type === 'gramos') {
-                    const priceForMin = (p.min / 1000) * p.p;
-                    return `${priceForMin.toLocaleString()} COP / ${p.min}g`;
-                }
-                const isEgg = p.n.toLowerCase().includes("huevo");
-                return `${p.p.toLocaleString()} COP ${isEgg ? '/ Cartón' : '/ Kg'}`;
-            };
-
-            const updateCart = (name, q, productRef) => {
-                const cleanQ = Math.max(0, Math.round(q * 100) / 100);
-                
-                let finalPrice = productRef.p;
-                if (productRef.type === 'gramos') {
-                    finalPrice = (cleanQ / 1000) * productRef.p;
-                } else if (name.toLowerCase().includes("huevo")) {
-                    if (cleanQ === 0.25) finalPrice = 4000;
-                    else if (cleanQ === 0.5) finalPrice = 8000;
-                    else if (cleanQ === 0.75) finalPrice = 12000;
-                    else finalPrice = 16000 * cleanQ;
-                } else {
-                     finalPrice = productRef.p * cleanQ;
-                }
-
+            const updateCart = (p, increment) => {
                 setCart(prev => {
+                    const currentQ = prev[p.n]?.q || 0;
+                    let newQ = currentQ === 0 && increment > 0 ? p.min : currentQ + increment;
+                    newQ = Math.round(newQ * 1000) / 1000;
                     const newCart = { ...prev };
-                    if (cleanQ <= 0 || (productRef.type === 'gramos' && cleanQ < productRef.min)) {
-                        delete newCart[name];
-                    } else {
-                        let validatedQ = cleanQ;
-                        if (productRef.max && validatedQ > productRef.max) validatedQ = productRef.max;
-                        if (productRef.type === 'gramos') finalPrice = (validatedQ / 1000) * productRef.p;
-
-                        newCart[name] = { q: validatedQ, p: finalPrice, ref: productRef };
+                    if (newQ < p.min) delete newCart[p.n];
+                    else {
+                        if (p.max && newQ > p.max) newQ = p.max; 
+                        newCart[p.n] = { q: newQ, p: p.type === 'gramos' ? (newQ/1000)*p.p : newQ*p.p, ref: p };
                     }
                     return newCart;
                 });
             };
-
             const cartSubtotal = Object.values(cart).reduce((sum, item) => sum + item.p, 0);
-            const deliveryFee = 4000; 
-            const totalCOP = cartSubtotal > 0 ? cartSubtotal + deliveryFee : 0;
-            const totalVES = (totalCOP / TASA_VES_COP).toFixed(2);
-            const totalUSD = (totalCOP / TASA_USD_COP).toFixed(2);
-
-            const submitOrder = () => {
-                let payDetails = currency === 'COP' ? `${totalCOP.toLocaleString()} COP` : currency === 'VES' ? `${totalVES} VES` : `$${totalUSD} USD`;
-                let wsMsg = `*🛒 MERCADO EN CASA*%0A*Cliente:* ${user?.nombre || 'Invitado'}%0A*Tel:* ${user?.telefono || 'No registrado'}%0A*Dir:* ${user?.direccion || 'Acordar por chat'}%0A%0A*PEDIDO:*%0A`;
+            const submitOrder = async () => {
+                const total = cartSubtotal + 4000;
+                if (window.db) {
+                    try {
+                        let pedidoTexto = "";
+                        Object.keys(cart).forEach(n => pedidoTexto += `${formatQty(cart[n].q, n)} de ${n}
+`);
+                        await window.fb.addDoc(window.fb.collection(window.db, "viajes"), {
+                            tipo: 'mercado', clienteInfo: { nombre: user.nombre, telefono: user.telefono, direccion: user.direccion },
+                            origen: 'Mercado Local', destino: user.direccion, costo: total,
+                            estado: 'solicitado', fecha: new Date().toISOString(), detallesEnc: { queLleva: pedidoTexto }
+                        });
+                    } catch(e) { console.error("Error guardando mercado", e); }
+                }
+                let wsMsg = `*🛒 MERCADO EN CASA*%0A*Cliente:* ${user.nombre}%0A*Tel:* ${user.telefono}%0A*Dir:* ${user.direccion}%0A%0A*PEDIDO:*%0A`;
                 Object.keys(cart).forEach(n => wsMsg += `▪ ${formatQty(cart[n].q, n)} de ${n} - ${cart[n].p.toLocaleString()} COP%0A`);
-                wsMsg += `🛵 *Delivery:* ${deliveryFee.toLocaleString()} COP%0A💵 *TOTAL:* ${payDetails}`;
-                
+                wsMsg += `🛵 *Delivery:* 4,000 COP%0A💵 *TOTAL:* ${total.toLocaleString()} COP`;
                 window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(wsMsg)}`, '_blank');
-                setCart({});
-                setView('success');
+                setCart({}); goBack();
             };
-
-            if (view === 'shop') return (
-                <div className="flex flex-col h-full bg-gray-50 fade-in w-full overflow-hidden">
-                    <HeaderNav title="Mercado en Casa" onBack={goBack} right={<button onClick={()=>setView('cart')} className="bg-white text-green-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm border border-green-200">🛒 {Object.keys(cart).length}</button>} />
-                    <div className={`p-3 flex items-center shadow-sm shrink-0 ${catStyles[currentCat].light} border-b-4 ${catStyles[currentCat].border} z-10 relative overflow-x-auto no-scrollbar`}>
-                        <div className="flex gap-2 w-max px-2">
+            return (
+                <div className="flex flex-col h-full bg-gray-50 fade-in w-full overflow-hidden relative">
+                    <HeaderNav title="Mercado en Casa" onBack={goBack} />
+                    <div className="bg-white shadow-sm border-b border-gray-200 shrink-0">
+                        <div className="flex overflow-x-auto p-3 gap-2 no-scrollbar">
                             {catList.map((c, idx) => (
-                                <button key={c} onClick={() => setCatIdx(idx)} className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-black shadow-sm transition-colors ${catIdx === idx ? catStyles[c].bg + ' text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
-                                    {c}
-                                </button>
+                                <button key={c} onClick={() => setCatIdx(idx)} className={`whitespace-nowrap px-4 py-2 rounded-full text-[10px] font-black shadow-sm ${catIdx === idx ? catStyles[c].bg + ' text-white' : 'bg-gray-100 text-gray-500'}`}>{c}</button>
                             ))}
                         </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 pb-24 scroll-smooth bg-gray-50">
-                        <div className="grid grid-cols-2 gap-3">
-                            {products.map(p => {
-                                const q = cart[p.n]?.q || 0;
-                                const style = catStyles[currentCat];
-                                return (
-                                    <div key={p.n} className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 flex flex-col items-center justify-between">
-                                        <div className="text-4xl mb-2">{p.i}</div>
-                                        <h3 className="font-bold text-xs text-center h-8 flex items-center leading-tight">{p.n}</h3>
-                                        <p className={`${style.text} font-black text-[10px] my-2 text-center bg-gray-50 px-2 py-1 rounded w-full`}>{getDisplayPrice(p)}</p>
-                                        {q === 0 ? (
-                                            <button onClick={()=>{updateCart(p.n, p.min || p.step, p); showToast(`${p.n} agregado`, false)}} className={`w-full ${style.light} ${style.text} border ${style.border} py-1.5 rounded-lg text-xs font-bold transition-transform active:scale-95`}>➕ Agregar</button>
-                                        ) : (
-                                            <div className="flex justify-between items-center w-full bg-gray-50 rounded-lg p-1 border">
-                                                <button onClick={()=>updateCart(p.n, q-p.step, p)} className="px-3 text-red-500 font-black text-lg active:scale-90">-</button>
-                                                <span className="font-bold text-[10px] text-center w-full">{formatQty(q, p.n)}</span>
-                                                <button onClick={()=>updateCart(p.n, q+p.step, p)} className={`px-3 ${style.text} font-black text-lg active:scale-90`}>+</button>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        {catIdx < catList.length - 1 ? (
-                            <button onClick={()=>{document.querySelector('.overflow-y-auto').scrollTo(0,0); setCatIdx(catIdx+1)}} className={`w-full mt-6 py-4 rounded-xl font-bold shadow-sm border-2 ${catStyles[catList[catIdx+1]].text} ${catStyles[catList[catIdx+1]].border} bg-white transition-transform active:scale-95`}>Avanzar a {catList[catIdx+1]} ↓</button>
-                        ) : (
-                            <button onClick={()=>setView('cart')} className="w-full mt-6 bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg transition-transform active:scale-95">Ir al Carrito 🛒</button>
-                        )}
-                    </div>
-                </div>
-            );
-
-            if (view === 'cart') return (
-                <div className="flex flex-col h-full bg-gray-100 fade-in w-full relative">
-                    <HeaderNav title="Carrito de Compras" onBack={()=>setView('shop')} />
-                    <div className="flex-1 overflow-y-auto p-4 pb-32">
-                        <div className="bg-white rounded-xl shadow-sm p-4 mb-4 border border-gray-200">
-                            {Object.keys(cart).length === 0 ? <p className="text-center text-gray-500 text-sm font-bold">Carrito vacío</p> : null}
-                            {Object.keys(cart).map(n => (
-                                <div key={n} className="flex justify-between items-center py-2 border-b text-xs border-dashed">
-                                    <span>{formatQty(cart[n].q, n)} {n}</span><span className="font-bold text-gray-700">{cart[n].p.toLocaleString()} COP</span>
+                    <div className="flex-1 overflow-y-auto p-4 pb-24 grid grid-cols-2 gap-3 relative">
+                        {products.map(p => {
+                            const q = cart[p.n]?.q || 0;
+                            const style = catStyles[currentCat];
+                            return (
+                                <div key={p.n} className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 text-center flex flex-col justify-between">
+                                    <div className="text-4xl mb-2 drop-shadow-md">{p.i}</div>
+                                    <h3 className="font-bold text-[11px] h-8 flex items-center justify-center leading-tight">{p.n}</h3>
+                                    <p className={`${style.text} font-black text-[9px] my-2 bg-gray-50 py-1 rounded w-full`}>
+                                        {p.type === 'gramos' ? `${((p.min/1000)*p.p).toLocaleString()} COP / ${p.min}g` : `${p.p.toLocaleString()} COP / ${p.n.includes('Huevos')?'Cartón':'Kg'}`}
+                                    </p>
+                                    {q === 0 ? (
+                                        <button onClick={()=>updateCart(p, p.step)} className={`w-full ${style.light} ${style.text} py-2 rounded-lg text-xs font-black active:scale-95`}>➕ Agregar</button>
+                                    ) : (
+                                        <div className="flex justify-between items-center w-full bg-gray-50 rounded-lg p-1 border">
+                                            <button onClick={()=>updateCart(p, -p.step)} className="px-3 py-1 bg-red-100 text-red-600 rounded font-black">-</button>
+                                            <span className="font-black text-[10px] text-gray-700">{formatQty(q, p.n)}</span>
+                                            <button onClick={()=>updateCart(p, p.step)} className={`px-3 py-1 ${style.bg} text-white rounded font-black`}>+</button>
+                                        </div>
+                                    )}
                                 </div>
-                            ))}
-                            {cartSubtotal > 0 && (
-                                <div className="flex justify-between items-center py-3 text-xs text-orange-600 font-bold">
-                                    <span>Delivery (La Grita)</span><span>+{deliveryFee.toLocaleString()} COP</span>
-                                </div>
-                            )}
-                        </div>
-                        
-                        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-200">
-                            <h3 className="font-bold text-xs text-center mb-3 text-gray-700">Total a Pagar</h3>
-                            <div className="grid grid-cols-3 gap-2 mb-4">
-                                {['COP', 'VES', 'USD'].map(c => (
-                                    <button key={c} onClick={()=>setCurrency(c)} className={`py-2 rounded-lg font-bold text-xs border-2 transition-colors ${currency === c ? 'bg-green-100 border-green-500 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>{c}</button>
-                                ))}
-                            </div>
-                            <div className="p-4 bg-gray-50 rounded-xl text-center border border-gray-200 shadow-inner">
-                                {currency === 'COP' && <p className="font-black text-green-700 text-3xl">{totalCOP.toLocaleString()} <span className="text-sm">COP</span></p>}
-                                {currency === 'VES' && <p className="font-black text-blue-700 text-3xl">{totalVES} <span className="text-sm">VES</span></p>}
-                                {currency === 'USD' && <p className="font-black text-emerald-700 text-3xl">${totalUSD} <span className="text-sm">USD</span></p>}
-                            </div>
-                        </div>
+                            );
+                        })}
                     </div>
-                    <div className="absolute bottom-0 left-0 w-full p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-50">
-                        <button onClick={submitOrder} disabled={totalCOP===0} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg flex justify-center items-center gap-2 text-sm disabled:opacity-50 transition-transform active:scale-95">📲 Enviar Pedido a WhatsApp</button>
-                    </div>
-                </div>
-            );
-
-            if (view === 'success') return (
-                <div className="flex flex-col h-full bg-green-50 fade-in w-full items-center justify-center p-6 text-center">
-                    <div className="bg-white p-8 rounded-3xl shadow-xl w-full border-t-8 border-green-600">
-                        <div className="text-5xl mb-4">✅</div>
-                        <h2 className="text-xl font-black text-green-800 mb-2">¡Pedido Enviado!</h2>
-                        <p className="text-xs text-gray-600 mb-6 font-bold">Tu recibo ha sido enviado al administrador por WhatsApp.</p>
-                        <div className="space-y-3">
-                            <button onClick={()=>{setView('shop');}} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-md hover:bg-green-700 transition-colors">🛒 Hacer otro pedido</button>
-                            <button onClick={goBack} className="w-full border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-bold bg-gray-50 hover:bg-gray-100 transition-colors">🏠 Volver al Menú</button>
+                    {cartSubtotal > 0 && (
+                        <div className="absolute bottom-4 left-4 right-4 bg-green-600 text-white p-4 rounded-xl shadow-2xl flex justify-between items-center z-50">
+                            <div><p className="text-[10px] font-bold">Total (+Envío):</p><p className="text-lg font-black">{(cartSubtotal+4000).toLocaleString()} COP</p></div>
+                            <button onClick={submitOrder} className="bg-white text-green-700 px-6 py-2 rounded-full font-black text-sm"><i className="fa-brands fa-whatsapp"></i> Pedir</button>
                         </div>
-                    </div>
+                    )}
                 </div>
             );
         };
-
-        const TripPlanner = ({ user, type, goBack, showToast }) => {
+        const TripPlanner = ({ user, type, goBack }) => {
             const mapRef = useRef(null);
             const mapInst = useRef(null);
-            const routeLayer = useRef(null);
             const originMarker = useRef(null);
             const destMarker = useRef(null);
-            const searchTimeout = useRef(null);
-
-            const [view, setView] = useState('planner');
+            const [view, setView] = useState('planner'); 
             const [oText, setOText] = useState('Centro La Grita');
             const [dText, setDText] = useState('');
             const [oCoords, setOCoords] = useState([8.1333, -71.9833]);
             const [dCoords, setDCoords] = useState(null);
             const [priceCOP, setPriceCOP] = useState(0);
-            const [currency, setCurrency] = useState('COP');
             const [encDetails, setEncDetails] = useState({ queLleva: '', recibe: '', telRecibe: '' });
-            const [precioRutaFija, setPrecioRutaFija] = useState(false);
-            const [distanciaCalculadaKm, setDistanciaCalculadaKm] = useState(null);
-            
-            const [suggestions, setSuggestions] = useState({ type: null, list: [] });
+            const [activeTripId, setActiveTripId] = useState(null);
+            const [assignedDriver, setAssignedDriver] = useState(null);
+
+            useEffect(() => {
+                if (activeTripId && window.db) {
+                    const unsub = window.fb.onSnapshot(window.fb.doc(window.db, "viajes", activeTripId), (doc) => {
+                        if (doc.exists() && doc.data().estado === 'asignado') {
+                            setAssignedDriver(doc.data().choferAsignado);
+                            setView('assigned');
+                        }
+                    });
+                    return () => unsub();
+                }
+            }, [activeTripId]);
 
             useEffect(() => {
                 if (mapRef.current && !mapInst.current && view === 'planner') {
                     mapInst.current = L.map(mapRef.current, { zoomControl: false }).setView(oCoords, 15);
-                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
-                        maxZoom: 19, attribution: 'Tiles &copy; Esri &mdash; MotoUBGrit' 
-                    }).addTo(mapInst.current);
+                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(mapInst.current);
                 }
             }, [view]);
 
-            const actualizarPrecio = (distanciaRealMetros = 0) => {
-                let pLista = null;
-                const dUpper = dText.toUpperCase();
-                const oUpper = oText.toUpperCase();
-                
-                Object.keys(RUTAS_FIJAS).forEach(clave => {
-                    if(dUpper.includes(clave) || oUpper.includes(clave)) pLista = RUTAS_FIJAS[clave];
-                });
-                
-                if (pLista) {
-                    setPriceCOP(pLista);
-                    setPrecioRutaFija(true);
-                    if (distanciaRealMetros > 0) setDistanciaCalculadaKm((distanciaRealMetros / 1000).toFixed(1));
-                } else {
-                    setPrecioRutaFija(false);
-                    let p = 4000; 
-                    if (distanciaRealMetros > 0) {
-                        const km = (distanciaRealMetros / 1000).toFixed(1);
-                        setDistanciaCalculadaKm(km);
-                        if (distanciaRealMetros > 3000) {
-                            const kmExtra = (distanciaRealMetros - 3000) / 1000;
-                            p += Math.round(kmExtra * 1500);
-                        }
-                    } else {
-                        setDistanciaCalculadaKm(null);
-                    }
-                    setPriceCOP(p);
+            const updatePrice = (dist = 0) => {
+                let pf = null;
+                Object.keys(RUTAS_FIJAS).forEach(k => { if(dText.toUpperCase().includes(k) || oText.toUpperCase().includes(k)) pf = RUTAS_FIJAS[k]; });
+                if (pf) setPriceCOP(pf);
+                else {
+                    let p = 4000;
+                    if (dist > 3000) p += Math.round(((dist - 3000)/1000) * 1500);
+                    setPriceCOP(dist > 0 ? p : 0);
                 }
             };
 
-            useEffect(() => {
-                if (dText || oText) actualizarPrecio();
-            }, [dText, oText]);
+            useEffect(() => { updatePrice(); }, [dText, oText]);
 
             useEffect(() => {
                 if(!mapInst.current) return;
-                const getReverseGeocode = async (lat, lng, isOrigin) => {
+                const updateAddr = async (lat, lng, isO) => {
                     try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-                        const data = await res.json();
-                        let name = data && data.address ? (data.address.road || data.display_name.split(',')[0]) : "Ubicación en mapa";
-                        if(isOrigin) setOText(name); else setDText(name);
-                    } catch(err) {}
+                        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                        const d = await r.json();
+                        let n = d?.address?.road || d?.display_name?.split(',')[0] || "Ubicación en mapa";
+                        if(isO) setOText(n); else setDText(n);
+                    } catch(e){}
                 };
-
                 if (oCoords) {
                     if (originMarker.current) mapInst.current.removeLayer(originMarker.current);
                     originMarker.current = L.marker(oCoords, { draggable: true, icon: L.divIcon({ className: 'custom-pin text-green-500', html: '<i class="fa-solid fa-circle-dot"></i>', iconSize:[30,30], iconAnchor:[15,30] }) }).addTo(mapInst.current);
-                    originMarker.current.on('dragend', (e) => { 
-                        const { lat, lng } = e.target.getLatLng(); 
-                        setOCoords([lat, lng]); 
-                        getReverseGeocode(lat, lng, true); 
-                    });
+                    originMarker.current.on('dragend', (e) => { const c = e.target.getLatLng(); setOCoords([c.lat, c.lng]); updateAddr(c.lat, c.lng, true); });
                 }
-                
                 if (dCoords) {
                     if (destMarker.current) mapInst.current.removeLayer(destMarker.current);
                     destMarker.current = L.marker(dCoords, { draggable: true, icon: L.divIcon({ className: 'custom-pin text-red-600', html: '<i class="fa-solid fa-location-dot"></i>', iconSize:[30,30], iconAnchor:[15,30] }) }).addTo(mapInst.current);
-                    destMarker.current.on('dragend', (e) => { 
-                        const { lat, lng } = e.target.getLatLng(); 
-                        setDCoords([lat, lng]); 
-                        getReverseGeocode(lat, lng, false); 
-                    });
+                    destMarker.current.on('dragend', (e) => { const c = e.target.getLatLng(); setDCoords([c.lat, c.lng]); updateAddr(c.lat, c.lng, false); });
                 }
-                
-                if (oCoords && dCoords) calcRoute(oCoords, dCoords);
+                if (oCoords && dCoords) {
+                    const r = 6371e3; const p1 = oCoords[0]*Math.PI/180, p2 = dCoords[0]*Math.PI/180;
+                    const dp = (dCoords[0]-oCoords[0])*Math.PI/180, dl = (dCoords[1]-oCoords[1])*Math.PI/180;
+                    const a = Math.sin(dp/2)*Math.sin(dp/2) + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)*Math.sin(dl/2);
+                    const dist = r * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))) * 1.3;
+                    updatePrice(dist);
+                }
             }, [oCoords, dCoords]);
 
-            const handleTextChange = (e, isOrigin) => {
-                const val = e.target.value;
-                if(isOrigin) setOText(val); else setDText(val);
-
-                if(val.length < 3) {
-                    setSuggestions({ type: null, list: [] });
-                    return;
-                }
-
-                if(searchTimeout.current) clearTimeout(searchTimeout.current);
-                
-                searchTimeout.current = setTimeout(async () => {
-                    let results = [];
-                    const valUpper = val.toUpperCase();
-                    
-                    Object.keys(RUTAS_FIJAS).forEach(clave => {
-                        if(clave.includes(valUpper)) {
-                            results.push({ name: clave, isFixed: true, price: RUTAS_FIJAS[clave] });
-                        }
-                    });
-
+            const submitTrip = async () => {
+                if (type === 'encomienda' && view === 'planner') return setView('details');
+                if (window.db) {
                     try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val + ', Tachira, Venezuela')}&limit=4`);
-                        const data = await res.json();
-                        if(data && data.length > 0) {
-                            data.forEach(d => {
-                                const shortName = d.display_name.split(',')[0];
-                                if(!results.find(r => r.name.toUpperCase() === shortName.toUpperCase())) {
-                                    results.push({ name: shortName + (d.display_name.split(',')[1]||''), lat: parseFloat(d.lat), lon: parseFloat(d.lon), isFixed: false });
-                                }
-                            });
+                        const docRef = await window.fb.addDoc(window.fb.collection(window.db, "viajes"), {
+                            tipo: type, clienteInfo: { nombre: user.nombre, telefono: user.telefono, cedula: user.cedula },
+                            origen: oText, destino: dText, costo: priceCOP, estado: 'solicitado', fecha: new Date().toISOString(),
+                            detallesEnc: type === 'encomienda' ? encDetails : null
+                        });
+                        setActiveTripId(docRef.id);
+                        setView('waiting');
+                        let msg = `*🚀 NUEVO PEDIDO (RADAR)*%0A*Tipo:* ${type.toUpperCase()}%0A*Cliente:* ${user.nombre}%0A📍 *De:* ${oText}%0A🏁 *Para:* ${dText}%0A💵 *Costo:* ${priceCOP.toLocaleString()} COP`;
+                        if(type === 'encomienda') {
+                            msg += `%0A📦 *Lleva:* ${encDetails.queLleva}%0A👤 *Recibe:* ${encDetails.recibe} (${encDetails.telRecibe})`;
                         }
-                    } catch(e) {}
-
-                    setSuggestions({ type: isOrigin ? 'origin' : 'dest', list: results.slice(0, 6) });
-                }, 500);
-            };
-
-            const selectSuggestion = (s, isOrigin) => {
-                if(isOrigin) setOText(s.name); else setDText(s.name);
-                setSuggestions({ type: null, list: [] });
-
-                if(s.lat && s.lon) {
-                    const c = [s.lat, s.lon];
-                    if(isOrigin) setOCoords(c); else setDCoords(c);
-                    mapInst.current.setView(c, 15);
-                } else {
-                    actualizarPrecio();
-                    const center = mapInst.current.getCenter();
-                    if(isOrigin) setOCoords([center.lat, center.lng]); else setDCoords([center.lat, center.lng]);
-                    showToast("Lugar de lista detectado. Mueve el pin si deseas precisión.", false);
+                        msg += `%0A%0A_(Los choferes ya lo están viendo en su radar)_`;
+                        window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
+                    } catch(e) { console.error(e); Swal.fire('Error', 'No se pudo pedir el viaje.', 'error'); }
                 }
             };
 
-            const forceSearchOnMap = async (text, isOrigin) => {
-                setSuggestions({ type: null, list: [] });
-                if(!text) return showToast("Escribe una dirección", true);
-                
-                try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text + ', La Grita, Tachira')}`);
-                    const data = await res.json();
-                    if(data && data.length > 0) {
-                        const c = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-                        if(isOrigin) setOCoords(c); else setDCoords(c);
-                        mapInst.current.setView(c, 15);
-                    } else {
-                        const resForanea = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text + ', Tachira, Venezuela')}`);
-                        const dataForanea = await resForanea.json();
-                        if(dataForanea && dataForanea.length > 0) {
-                            const c = [parseFloat(dataForanea[0].lat), parseFloat(dataForanea[0].lon)];
-                            if(isOrigin) setOCoords(c); else setDCoords(c);
-                            mapInst.current.setView(c, 14);
-                        } else {
-                            actualizarPrecio();
-                            const center = mapInst.current.getCenter();
-                            if(isOrigin) setOCoords([center.lat, center.lng]); else setDCoords([center.lat, center.lng]);
-                            showToast("No encontrado. ¡Arrastra el pin en el mapa!", false);
-                        }
-                    }
-                } catch(e) { 
-                    actualizarPrecio(); 
-                    showToast("Arrastra el pin directamente en el mapa.", false); 
-                }
-            };
+            if (view === 'waiting') return (
+                <div className="flex flex-col h-full bg-[#0b0f19] fade-in items-center justify-center p-6 text-center w-full relative">
+                    <div className="absolute top-4 left-4"><button onClick={goBack} className="text-white text-xs"><i className="fa-solid fa-arrow-left"></i> Cancelar</button></div>
+                    <div className="w-24 h-24 rounded-full border-4 border-blue-500 border-t-transparent animate-spin mb-6"></div>
+                    <h2 className="text-2xl font-black text-white mb-2">Buscando Chofer...</h2>
+                    <p className="text-xs text-gray-400 font-bold">Transmitiendo solicitud a los conductores cercanos.</p>
+                </div>
+            );
 
-            const calcRoute = async (c1, c2) => {
-                try {
-                    const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${c1[1]},${c1[0]};${c2[1]},${c2[0]}?overview=full&geometries=geojson`);
-                    const data = await res.json();
-                    if(data.routes && data.routes.length > 0) {
-                        if(routeLayer.current) mapInst.current.removeLayer(routeLayer.current);
-                        routeLayer.current = L.geoJSON(data.routes[0].geometry, { style: { color: '#2563eb', weight: 6, opacity: 0.85 } }).addTo(mapInst.current);
-                        mapInst.current.fitBounds(routeLayer.current.getBounds(), { padding: [50, 50] });
-                        actualizarPrecio(data.routes[0].distance);
-                    }
-                } catch(e){
-                    const R = 6371e3;
-                    const φ1 = c1[0] * Math.PI/180;
-                    const φ2 = c2[0] * Math.PI/180;
-                    const Δφ = (c2[0]-c1[0]) * Math.PI/180;
-                    const Δλ = (c2[1]-c1[1]) * Math.PI/180;
-                    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
-                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                    const distMetros = R * c * 1.3; 
-                    actualizarPrecio(distMetros);
-                }
-            };
-
-            const submitTrip = () => {
-                if(type === 'encomienda' && view === 'planner') return setView('details');
-                
-                const isEnc = type === 'encomienda';
-                let pVES = (priceCOP / TASA_VES_COP).toFixed(2);
-                let pUSD = (priceCOP / TASA_USD_COP).toFixed(2);
-                const infoKm = distanciaCalculadaKm ? ` (${distanciaCalculadaKm} Km)` : '';
-                
-                let msg = `*🚀 SOLICITUD MOTO UBGRIT*%0A*Cliente:* ${user.nombre}%0A*C.I:* ${user.cedula}%0A📍 *De:* ${oText}%0A🏁 *Para:* ${dText}%0A📏 *Distancia:* ${infoKm || 'Ubicación fijada'}%0A💵 *Costo:* ${priceCOP.toLocaleString()} COP | ${pVES} VES | $${pUSD} USD`;
-                if(isEnc) msg += `%0A📦 *Lleva:* ${encDetails.queLleva}%0A👤 *Recibe:* ${encDetails.recibe} (${encDetails.telRecibe})`;
-                
-                window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, '_blank');
-                setView('success');
-            };
+            if (view === 'assigned') return (
+                <div className="flex flex-col h-full bg-green-50 fade-in items-center justify-center p-6 text-center w-full relative">
+                    <div className="bg-white p-8 rounded-3xl shadow-2xl w-full border-t-8 border-green-500 relative overflow-hidden">
+                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-green-500 text-4xl mx-auto mb-4"><i className="fa-solid fa-motorcycle"></i></div>
+                        <h2 className="text-2xl font-black text-gray-800 mb-1">¡Chofer Asignado!</h2>
+                        <p className="text-[10px] text-gray-500 mb-6 font-bold uppercase tracking-widest">Tu moto va en camino</p>
+                        <div className="bg-gray-50 p-4 rounded-xl text-left border border-gray-100 mb-6">
+                            <p className="text-[10px] text-gray-400 font-black mb-1">DATOS DEL CONDUCTOR</p>
+                            <p className="font-black text-gray-800"><i className="fa-solid fa-helmet-safety text-gray-400 w-5"></i> {assignedDriver?.nombre}</p>
+                            <p className="text-xs font-bold text-gray-600 mt-1"><i className="fa-brands fa-whatsapp text-green-500 w-5"></i> {assignedDriver?.telefono}</p>
+                        </div>
+                        <button onClick={()=>{ window.open(`https://wa.me/${assignedDriver?.telefono}?text=Hola,%20soy%20${user.nombre},%20estoy%20esperando%20la%20moto.`, '_blank'); }} className="w-full bg-green-500 text-white py-4 rounded-xl font-black shadow-lg mb-3"><i className="fa-brands fa-whatsapp"></i> Escribir al Chofer</button>
+                        <button onClick={goBack} className="w-full text-gray-500 font-bold text-xs py-2">Volver al Inicio</button>
+                    </div>
+                </div>
+            );
 
             return (
                 <div className="flex flex-col h-full bg-gray-100 fade-in relative w-full">
-                    {view !== 'success' && <HeaderNav title={type === 'encomienda' ? 'Ruta Encomienda' : 'Pedir Moto'} onBack={view==='planner'?goBack:()=>setView('planner')} />}
-                    
+                    <HeaderNav title={type === 'encomienda' ? 'Encomienda' : 'Pedir Moto'} onBack={view==='planner'?goBack:()=>setView('planner')} />
                     {view === 'planner' && (
                         <>
                             <div className="absolute top-20 left-4 right-4 z-[400] space-y-2">
-                                <div className="relative">
-                                    <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-100 overflow-hidden">
-                                        <span className="p-3 bg-green-50 text-green-500 text-xs flex items-center justify-center w-10"><i className="fa-solid fa-circle-dot"></i></span>
-                                        <input placeholder="Origen (Escribe o mueve el pin)" value={oText} onChange={e=>handleTextChange(e, true)} className="flex-1 p-2 text-xs outline-none font-bold text-gray-700" />
-                                        <button onClick={()=>forceSearchOnMap(oText, true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 text-xs font-bold transition-colors"><i className="fa-solid fa-search"></i></button>
-                                    </div>
-                                    {suggestions.type === 'origin' && suggestions.list.length > 0 && (
-                                        <ul className="absolute top-full left-0 w-full bg-white mt-1 rounded-xl shadow-xl border border-gray-200 overflow-hidden z-[500] max-h-48 overflow-y-auto">
-                                            {suggestions.list.map((s, i) => (
-                                                <li key={i} onClick={()=>selectSuggestion(s, true)} className="p-3 border-b text-xs font-bold text-gray-700 hover:bg-blue-50 cursor-pointer flex justify-between">
-                                                    <span>{s.isFixed ? '📍 ' : '🗺️ '}{s.name}</span>
-                                                    {s.isFixed && <span className="text-blue-600 bg-blue-50 px-2 rounded-full">{s.price} COP</span>}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
+                                <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-100 overflow-hidden p-1">
+                                    <span className="p-2 text-green-500"><i className="fa-solid fa-circle-dot"></i></span>
+                                    <input placeholder="Origen" value={oText} onChange={e=>setOText(e.target.value)} className="flex-1 text-xs outline-none font-bold" />
+                                    <button onClick={()=>setOCoords([8.133,-71.983])} className="text-gray-400 px-2"><i className="fa-solid fa-search"></i></button>
                                 </div>
-                                
-                                <div className="relative">
-                                    <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-100 overflow-hidden">
-                                        <span className="p-3 bg-red-50 text-red-500 text-xs flex items-center justify-center w-10"><i className="fa-solid fa-location-dot"></i></span>
-                                        <input placeholder="Destino (Escribe o mueve el pin)" value={dText} onChange={e=>handleTextChange(e, false)} className="flex-1 p-2 text-xs outline-none font-bold text-gray-700" />
-                                        <button onClick={()=>forceSearchOnMap(dText, false)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 text-xs font-bold transition-colors"><i className="fa-solid fa-search"></i></button>
-                                    </div>
-                                    {suggestions.type === 'dest' && suggestions.list.length > 0 && (
-                                        <ul className="absolute top-full left-0 w-full bg-white mt-1 rounded-xl shadow-xl border border-gray-200 overflow-hidden z-[500] max-h-48 overflow-y-auto">
-                                            {suggestions.list.map((s, i) => (
-                                                <li key={i} onClick={()=>selectSuggestion(s, false)} className="p-3 border-b text-xs font-bold text-gray-700 hover:bg-blue-50 cursor-pointer flex justify-between">
-                                                    <span>{s.isFixed ? '📍 ' : '🗺️️ '}{s.name}</span>
-                                                    {s.isFixed && <span className="text-blue-600 bg-blue-50 px-2 rounded-full">{s.price} COP</span>}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
+                                <div className="flex bg-white rounded-xl shadow-lg border-2 border-gray-100 overflow-hidden p-1">
+                                    <span className="p-2 text-red-500"><i className="fa-solid fa-location-dot"></i></span>
+                                    <input placeholder="Destino" value={dText} onChange={e=>setDText(e.target.value)} className="flex-1 text-xs outline-none font-bold" />
+                                    <button onClick={()=>setDCoords([8.140,-71.990])} className="text-gray-400 px-2"><i className="fa-solid fa-search"></i></button>
                                 </div>
                             </div>
-                            
-                            <div className="flex-1 relative z-0">
-                                <div ref={mapRef} className="absolute inset-0 w-full h-full" onClick={()=>setSuggestions({type:null, list:[]})}></div>
-                            </div>
-                            
-                            <div className="bg-white p-5 shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-[400] shrink-0 rounded-t-3xl pb-8 text-center relative border-t border-gray-200">
+                            <div className="flex-1 relative z-0"><div ref={mapRef} className="absolute inset-0 w-full h-full"></div></div>
+                            <div className="bg-white p-5 shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-[400] shrink-0 rounded-t-3xl pb-8 text-center relative border-t">
                                 {priceCOP > 0 ? (
-                                    <div className="mb-4 fade-in">
-                                        <div className="flex items-center justify-center gap-2 mb-1">
-                                            {precioRutaFija ? (
-                                                <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Tarifa de Lista (+ Mapa GPS)</span>
-                                            ) : (
-                                                <span className="text-[9px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Tarifa por Kilometraje</span>
-                                            )}
-                                            {distanciaCalculadaKm && (
-                                                <span className="text-[9px] font-black text-gray-600 bg-gray-100 px-2 py-0.5 rounded">📍 {distanciaCalculadaKm} Km</span>
-                                            )}
-                                        </div>
-                                        <div className="flex justify-center gap-2 mb-2">
-                                            {['COP','VES','USD'].map(c => <button key={c} onClick={()=>setCurrency(c)} className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all ${currency===c?'bg-black text-white shadow-md scale-105':'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{c}</button>)}
-                                        </div>
-                                        <h3 className="text-3xl font-black text-blue-600 tracking-tight">
-                                            {currency==='COP' ? `${priceCOP.toLocaleString()} COP` : currency==='VES' ? `${(priceCOP/TASA_VES_COP).toFixed(2)} VES` : `$${(priceCOP/TASA_USD_COP).toFixed(2)} USD`}
-                                        </h3>
+                                    <div className="mb-4">
+                                        <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded shadow-sm">Tarifa Calculada</span>
+                                        <h3 className="text-3xl font-black text-blue-600 mt-2">{priceCOP.toLocaleString()} COP</h3>
                                     </div>
-                                ) : (
-                                    <p className="text-xs font-bold text-gray-500 mb-4 bg-gray-50 p-3 rounded-xl border border-gray-200 shadow-inner">Escribe un destino, toca una sugerencia o arrastra los pines en el mapa.</p>
-                                )}
-                                <button onClick={submitTrip} className={`w-full text-white py-4 rounded-xl font-black shadow-lg transition-all ${priceCOP>0 ? 'bg-blue-600 hover:bg-blue-700 active:scale-95' : 'bg-gray-400 pointer-events-none'}`}>
-                                    {type === 'encomienda' ? 'Continuar Encomienda 📦' : 'Pedir Moto Ahora 🏍️'}
+                                ) : <p className="text-xs font-bold text-gray-500 mb-4 bg-gray-50 p-3 rounded-xl border">Indica destino y origen.</p>}
+                                <button onClick={submitTrip} className={`w-full text-white py-4 rounded-xl font-black shadow-lg ${priceCOP>0?'bg-blue-600':'bg-gray-400 pointer-events-none'}`}>
+                                    {type === 'encomienda' ? 'Continuar 📦' : 'Pedir Moto Ahora 🏍️'}
                                 </button>
                             </div>
                         </>
                     )}
-
                     {view === 'details' && (
                         <div className="p-5 space-y-4 flex-1">
-                            <input placeholder="¿Qué llevas? (Ej: 2 Pizzas, Documentos)" value={encDetails.queLleva} onChange={e=>setEncDetails({...encDetails, queLleva:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                            <input placeholder="Nombre de quien recibe" value={encDetails.recibe} onChange={e=>setEncDetails({...encDetails, recibe:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                            <input placeholder="Teléfono destino" type="tel" value={encDetails.telRecibe} onChange={e=>setEncDetails({...encDetails, telRecibe:e.target.value})} className="w-full p-4 rounded-xl border border-gray-300 shadow-sm text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                            <button onClick={submitTrip} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg mt-4 active:scale-95 transition-transform">Confirmar y Solicitar Moto</button>
-                        </div>
-                    )}
-
-                    {view === 'success' && (
-                        <div className="flex flex-col h-full bg-blue-50 fade-in items-center justify-center p-6 text-center w-full absolute inset-0 z-[600]">
-                            <div className="bg-white p-8 rounded-3xl shadow-xl w-full border-t-8 border-blue-600">
-                                <div className="text-5xl mb-4">✅</div>
-                                <h2 className="text-xl font-black text-blue-800 mb-2">¡Solicitud Enviada!</h2>
-                                <p className="text-xs text-gray-600 mb-6 font-bold">Hemos redirigido tu solicitud directo al administrador por WhatsApp.</p>
-                                <button onClick={()=>{setView('planner');setPriceCOP(0);setDCoords(null);setDText('');}} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-3 shadow-md hover:bg-blue-700 transition-colors">📍 Pedir otro viaje</button>
-                                <button onClick={goBack} className="w-full border-2 border-gray-200 py-3 rounded-xl font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors">🏠 Volver al Menú</button>
-                            </div>
+                            <input placeholder="¿Qué llevas?" onChange={e=>setEncDetails({...encDetails, queLleva:e.target.value})} className="w-full p-4 rounded-xl border font-bold text-sm" />
+                            <input placeholder="Recibe" onChange={e=>setEncDetails({...encDetails, recibe:e.target.value})} className="w-full p-4 rounded-xl border font-bold text-sm" />
+                            <input placeholder="Teléfono" type="tel" onChange={e=>setEncDetails({...encDetails, telRecibe:e.target.value})} className="w-full p-4 rounded-xl border font-bold text-sm" />
+                            <button onClick={submitTrip} className="w-full bg-blue-600 text-white py-4 rounded-xl font-black mt-4">Confirmar Encomienda</button>
                         </div>
                     )}
                 </div>
             );
         };
-
         const DriverDashboard = ({ user, goBack }) => {
             const hasDB = window.db !== null && window.db !== undefined;
             const [driverData, setDriverData] = useState(user);
-
+            const [pendingTrips, setPendingTrips] = useState([]);
             useEffect(() => {
-                if (hasDB && user?.email) {
-                    const unsub = window.fb.onSnapshot(window.fb.doc(window.db, "users", user.email), (doc) => {
-                        if (doc.exists()) setDriverData(doc.data());
-                    });
-                    return () => unsub();
-                }
+                if (!hasDB) return;
+                const u_unsub = window.fb.onSnapshot(window.fb.doc(window.db, "users", user.email), (doc) => { if(doc.exists()) setDriverData(doc.data()); });
+                const q = window.fb.query(window.fb.collection(window.db, "viajes"), window.fb.where("estado", "==", "solicitado"));
+                const v_unsub = window.fb.onSnapshot(q, (snap) => {
+                    let trips = []; snap.forEach(d => trips.push({id: d.id, ...d.data()}));
+                    setPendingTrips(trips.sort((a,b)=> new Date(b.fecha) - new Date(a.fecha)));
+                });
+                return () => { u_unsub(); v_unsub(); };
             }, [hasDB, user]);
-
-            const checkPaymentWarning = () => {
-                if (!driverData?.nextPaymentDate) return null;
-                const now = new Date().getTime();
-                const nextDate = new Date(driverData.nextPaymentDate).getTime();
-                const daysLeft = Math.ceil((nextDate - now) / (1000 * 60 * 60 * 24));
-
-                if (driverData.subscriptionStatus === 'suspended') {
-                    return (
-                        <div className="absolute inset-0 z-50 bg-red-600 flex flex-col items-center justify-center text-white p-6 text-center">
-                            <i className="fa-solid fa-triangle-exclamation text-6xl mb-4 animate-pulse"></i>
-                            <h2 className="text-2xl font-black mb-2">Cuenta Suspendida</h2>
-                            <p className="font-bold text-sm mb-6">Tu acceso ha sido bloqueado por falta de pago de la mensualidad o falta de aprobación inicial. Contacta al administrador.</p>
-                            <button onClick={goBack} className="bg-white text-red-600 font-bold px-6 py-3 rounded-full shadow-lg active:scale-95 transition-transform">Volver al Menú</button>
-                        </div>
-                    );
-                }
-
-                if (daysLeft <= 2 && daysLeft >= 0) {
-                    return (
-                        <div className="bg-yellow-500 text-white p-3 text-xs font-bold text-center flex items-center justify-center gap-2 z-40 relative shadow-md">
-                            <i className="fa-solid fa-clock"></i> ¡Atención! Faltan {daysLeft} días para tu pago mensual. Prepara tu cuota.
-                        </div>
-                    );
-                } else if (daysLeft < 0) {
-                    return (
-                        <div className="bg-red-500 text-white p-3 text-xs font-bold text-center flex items-center justify-center gap-2 z-40 relative shadow-md">
-                            <i className="fa-solid fa-circle-exclamation"></i> Tu pago mensual está vencido hace {Math.abs(daysLeft)} días. Evita la suspensión.
-                        </div>
-                    );
-                }
-                return null;
+            const acceptTrip = async (trip) => {
+                try {
+                    await window.fb.updateDoc(window.fb.doc(window.db, "viajes", trip.id), {
+                        estado: 'asignado', choferAsignado: { email: user.email, nombre: user.nombre, telefono: user.telefono }
+                    });
+                    Swal.fire('¡Viaje Aceptado!', 'Ve a buscar al cliente.', 'success');
+                } catch(e) { Swal.fire('Error', 'Alguien más lo tomó o hubo error.', 'error'); }
             };
-
+            if (driverData?.subscriptionStatus === 'suspended') {
+                return (
+                    <div className="absolute inset-0 z-50 bg-red-600 flex flex-col items-center justify-center text-white p-6 text-center">
+                        <i className="fa-solid fa-triangle-exclamation text-6xl mb-4"></i>
+                        <h2 className="text-2xl font-black mb-2">Cuenta Suspendida</h2>
+                        <button onClick={goBack} className="bg-white text-red-600 font-bold px-6 py-3 rounded-full mt-4">Volver</button>
+                    </div>
+                );
+            }
             return (
                 <div className="flex flex-col h-full bg-gray-100 w-full fade-in relative">
-                    {checkPaymentWarning()}
-                    {driverData?.subscriptionStatus === 'suspended' ? null : (
-                        <>
-                            <HeaderNav title="Panel Conductor" onBack={goBack} />
-                            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                                <i className={`fa-solid fa-helmet-safety text-6xl mb-4 ${hasDB ? 'text-green-500' : 'text-gray-400'}`}></i>
-                                <h2 className="font-black text-gray-800 text-lg mb-2">{hasDB ? 'Nube Conectada' : 'Modo WhatsApp Activo'}</h2>
-                                <p className="text-xs text-gray-500 mb-6 font-bold">
-                                    {hasDB 
-                                        ? 'Estás conectado a la base de datos en tiempo real. Esperando viajes...' 
-                                        : 'La conexión en tiempo real a Firebase está en pausa. Espera los viajes directamente por WhatsApp.'}
-                                </p>
-                                <button onClick={goBack} className="w-full border-2 border-gray-300 text-gray-700 py-3 px-6 rounded-xl font-bold hover:bg-gray-200 transition-colors">Volver al Menú</button>
+                    <HeaderNav title="Radar Chofer" onBack={goBack} />
+                    <div className="bg-black text-white p-3 text-center text-xs font-black shrink-0 border-t border-gray-800">
+                        <span className="text-green-500 animate-pulse mr-2">●</span> BÚSQUEDA ACTIVA
+                    </div>
+                    <div className="flex-1 p-4 overflow-y-auto pb-20">
+                        {pendingTrips.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full opacity-50">
+                                <i className="fa-solid fa-satellite-dish text-6xl mb-4 text-gray-400"></i>
+                                <p className="font-black text-gray-500">No hay viajes disponibles.</p>
                             </div>
-                        </>
-                    )}
+                        ) : (
+                            pendingTrips.map(t => (
+                                <div key={t.id} className="bg-white p-4 rounded-xl shadow-md border-l-4 border-blue-500 mb-4 fade-in">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <span className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{t.tipo}</span>
+                                        <span className="font-black text-lg text-gray-800">{t.costo.toLocaleString()} COP</span>
+                                    </div>
+                                    <p className="text-[11px] font-bold text-gray-600"><i className="fa-solid fa-user text-gray-400 w-4"></i> {t.clienteInfo?.nombre}</p>
+                                    <div className="mt-2 pl-4 border-l-2 border-gray-200 space-y-1">
+                                        <p className="text-[10px] text-gray-500 font-bold"><span className="text-green-500">De:</span> {t.origen}</p>
+                                        <p className="text-[10px] text-gray-500 font-bold"><span className="text-red-500">A:</span> {t.destino}</p>
+                                    </div>
+                                    <button onClick={()=>acceptTrip(t)} className="w-full bg-blue-600 text-white font-black py-3 rounded-xl mt-4 active:scale-95">ACEPTAR CARRERA</button>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             );
         };
-        
-        const AdminDashboard = ({ goBack, showToast }) => {
-            const hasDB = window.db !== null && window.db !== undefined;
-            const [adminView, setAdminView] = useState('main'); // main, users, pending, finances
-            const [usersList, setUsersList] = useState([]);
-            const [loadingUsers, setLoadingUsers] = useState(true);
-
+        const AdminDashboard = ({ goBack }) => {
+            const [adminView, setAdminView] = useState('main'); 
+            const [trips, setTrips] = useState([]);
+            const [loading, setLoading] = useState(false);
             useEffect(() => {
-                if (!hasDB) {
-                    setLoadingUsers(false);
-                    return;
-                }
-                const fetchUsers = async () => {
-                    setLoadingUsers(true);
+                if (!window.db) return;
+                const fetchAll = async () => {
+                    setLoading(true);
                     try {
-                        const querySnapshot = await window.fb.getDocs(window.fb.collection(window.db, "users"));
-                        const users = [];
-                        querySnapshot.forEach((doc) => {
-                            users.push({ id: doc.id, ...doc.data() });
-                        });
-                        setUsersList(users);
-                    } catch (error) {
-                        console.error("Error fetching users:", error);
-                        showToast("Error al cargar datos de Firebase", true);
-                    }
-                    setLoadingUsers(false);
+                        const q = window.fb.query(window.fb.collection(window.db, "viajes"), window.fb.orderBy("fecha", "desc"));
+                        const snapV = await window.fb.getDocs(q);
+                        let v = []; snapV.forEach(d => v.push({ id: d.id, ...d.data() })); setTrips(v);
+                    } catch(e) { console.log(e); }
+                    setLoading(false);
                 };
-                
-                // Fetch users for any sub-view to ensure we have fresh data
-                if(adminView !== 'main') {
-                    fetchUsers();
-                }
-            }, [hasDB, adminView]);
-
-            const exportToExcel = () => {
-                if (usersList.length === 0) {
-                    showToast("No hay usuarios para exportar", true);
-                    return;
-                }
-                
-                const headers = ["Rol", "Nombre", "Cédula", "Teléfono", "Email", "Dirección"];
-                const csvContent = [
-                    headers.join(","),
-                    ...usersList.map(u => [
-                        u.role || 'Desconocido',
-                        `"${u.nombre || ''}"`,
-                        u.cedula || '',
-                        `"${u.telefono || ''}"`,
-                        u.email || u.id || '',
-                        `"${(u.direccion || '').replace(/"/g, '""')}"`
-                    ].join(","))
-                ].join("\n");
-
-                const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' }); 
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.setAttribute("href", url);
-                link.setAttribute("download", `Usuarios_MotoUBGrit_${new Date().toLocaleDateString()}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                showToast("Base de datos descargada", false);
-            };
-
-            const resetUserPassword = async (userEmail) => {
-                const newPass = prompt(`NUEVA CONTRASEÑA\nIngrese la nueva clave para el usuario ${userEmail}:`);
-                if (!newPass) return;
-                
-                if (newPass.length < 6) {
-                    showToast("La contraseña debe tener al menos 6 caracteres", true);
-                    return;
-                }
-
-                try {
-                    const userRef = window.fb.doc(window.db, "users", userEmail);
-                    await window.fb.updateDoc(userRef, { password: newPass });
-                    showToast("Contraseña restablecida exitosamente", false);
-                } catch (error) {
-                    showToast("Error al actualizar la contraseña en la nube", true);
-                }
-            };
-
-            const toggleDriverStatus = async (userEmail, currentStatus, action = 'toggle') => {
-                let updates = {};
-                
-                if (action === 'approve') {
-                    updates.subscriptionStatus = 'active';
-                    updates.status = 'approved'; 
-                    const nextMonth = new Date();
-                    nextMonth.setDate(nextMonth.getDate() + 30);
-                    updates.nextPaymentDate = nextMonth.toISOString();
-                } else if (action === 'renew' || (action === 'toggle' && currentStatus === 'suspended')) {
-                    updates.subscriptionStatus = 'active';
-                    const nextMonth = new Date();
-                    nextMonth.setDate(nextMonth.getDate() + 30);
-                    updates.nextPaymentDate = nextMonth.toISOString();
-                } else {
-                    updates.subscriptionStatus = 'suspended';
-                }
-
-                try {
-                    await window.fb.updateDoc(window.fb.doc(window.db, "users", userEmail), updates);
-                    showToast(action === 'approve' ? "Conductor Aprobado" : (action === 'renew' ? "Mes renovado con éxito" : `Chofer ${updates.subscriptionStatus === 'active' ? 'Reactivado' : 'Suspendido'}`), false);
-                    setUsersList(usersList.map(u => u.email === userEmail ? { ...u, ...updates } : u));
-                } catch (e) {
-                    showToast("Error actualizando estado", true);
-                }
-            };
-
+                if(adminView !== 'main') fetchAll();
+            }, [adminView]);
             const renderMainMenu = () => (
-                <div className="flex-1 p-4 pb-20 flex flex-col items-center w-full">
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 border-4 text-2xl shadow-md ${hasDB ? 'bg-green-100 border-green-500 text-green-500' : 'bg-red-100 border-red-500 text-red-500'}`}>
-                        <i className={`fa-solid ${hasDB ? 'fa-cloud-check' : 'fa-shield-halved'}`}></i>
-                    </div>
-                    <h2 className="font-black text-lg text-gray-800 mb-1">{hasDB ? 'Panel de Control Activo' : 'Conexión a Firebase Pausada'}</h2>
-                    <p className="text-[10px] text-gray-500 mb-8 font-bold px-4 text-center">
-                        {hasDB ? 'Módulos en línea. Selecciona una categoría para gestionar tu negocio.' : 'Solo funciona en modo WhatsApp.'}
-                    </p>
-
-                    <div className="w-full max-w-sm space-y-3">
-                        <button onClick={() => setAdminView('users')} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-blue-500 flex items-center justify-between transition-colors">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600"><i className="fa-solid fa-users"></i></div>
-                                <div className="text-left">
-                                    <h3 className="font-bold text-gray-800 text-sm">Base de Datos Usuarios</h3>
-                                    <p className="text-[10px] text-gray-500">Ver clientes, choferes y exportar a Excel</p>
-                                </div>
-                            </div>
-                            <i className="fa-solid fa-chevron-right text-gray-300"></i>
+                <div className="flex-1 p-4 pb-20 flex flex-col items-center w-full fade-in">
+                    <div className="w-16 h-16 rounded-full bg-green-100 border-4 border-green-500 text-green-500 flex items-center justify-center mb-2 text-2xl shadow-md"><i className="fa-solid fa-cloud-check"></i></div>
+                    <h2 className="font-black text-lg text-gray-800 mb-1">Panel de Control Activo</h2>
+                    <div className="w-full max-w-sm space-y-3 mt-6">
+                        <button onClick={() => setAdminView('history')} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-blue-500 flex items-center justify-between">
+                            <div className="flex items-center gap-3"><div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600"><i className="fa-solid fa-map-location-dot"></i></div>
+                            <div className="text-left"><h3 className="font-bold text-sm">Historial Viajes</h3><p className="text-[10px] text-gray-500">Monitor en vivo</p></div></div>
                         </button>
-                        
-                        <button onClick={() => setAdminView('pending')} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-orange-500 flex items-center justify-between transition-colors">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-600"><i className="fa-solid fa-id-card-clip"></i></div>
-                                <div className="text-left">
-                                    <h3 className="font-bold text-gray-800 text-sm">Aprobar Choferes</h3>
-                                    <p className="text-[10px] text-gray-500">Nuevas solicitudes de conductores</p>
-                                </div>
-                            </div>
-                            <i className="fa-solid fa-chevron-right text-gray-300"></i>
+                        <button onClick={() => setAdminView('users')} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
+                            <div className="flex items-center gap-3"><div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600"><i className="fa-solid fa-users"></i></div>
+                            <div className="text-left"><h3 className="font-bold text-sm">Base de Datos</h3></div></div>
                         </button>
-
-                        <button onClick={() => showToast('Módulo en construcción', false)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-green-500 flex items-center justify-between transition-colors opacity-70">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600"><i className="fa-solid fa-route"></i></div>
-                                <div className="text-left">
-                                    <h3 className="font-bold text-gray-800 text-sm">Historial de Viajes</h3>
-                                    <p className="text-[10px] text-gray-500">Monitoreo de carreras (Próximamente)</p>
-                                </div>
-                            </div>
-                            <i className="fa-solid fa-lock text-gray-300"></i>
-                        </button>
-
-                        <button onClick={() => setAdminView('finances')} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-purple-500 flex items-center justify-between transition-colors">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600"><i className="fa-solid fa-sack-dollar"></i></div>
-                                <div className="text-left">
-                                    <h3 className="font-bold text-gray-800 text-sm">Finanzas y Pagos</h3>
-                                    <p className="text-[10px] text-gray-500">Ingresos totales y cobro a choferes</p>
-                                </div>
-                            </div>
-                            <i className="fa-solid fa-chevron-right text-gray-300"></i>
+                        <button onClick={() => setAdminView('finances')} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
+                            <div className="flex items-center gap-3"><div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600"><i className="fa-solid fa-sack-dollar"></i></div>
+                            <div className="text-left"><h3 className="font-bold text-sm">Finanzas y Pagos</h3></div></div>
                         </button>
                     </div>
                 </div>
             );
-
-            const renderUsersDatabase = () => (
-                <div className="flex-1 flex flex-col w-full h-full bg-gray-50 p-2">
-                    {!hasDB ? (
-                        <p className="text-center text-xs text-red-500 py-4 font-bold">Conecta Firebase para ver la base de datos.</p>
-                    ) : loadingUsers ? (
-                        <p className="text-center text-xs text-gray-500 py-4 font-bold"><i className="fa-solid fa-spinner fa-spin mr-1"></i> Cargando usuarios...</p>
-                    ) : usersList.length === 0 ? (
-                        <p className="text-center text-xs text-gray-500 py-4 font-bold">Aún no hay usuarios registrados.</p>
-                    ) : (
-                        <ul className="space-y-2 pb-20">
-                            {usersList.map((u, i) => (
-                                <li key={i} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex flex-col gap-1 relative">
-                                    <div className="flex justify-between items-start">
-                                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${u.role==='driver'?'bg-blue-100 text-blue-700':u.role==='admin'?'bg-red-100 text-red-700':u.role==='store'?'bg-purple-100 text-purple-700':'bg-gray-100 text-gray-700'}`}>{u.role || 'Usuario'}</span>
-                                        <button onClick={()=>resetUserPassword(u.email || u.id)} className="text-blue-500 hover:bg-blue-50 p-1 rounded text-[10px] border border-transparent hover:border-blue-200"><i className="fa-solid fa-key"></i> Restaurar Clave</button>
-                                    </div>
-                                    <p className="font-bold text-sm text-gray-800">{u.nombre || 'Sin Nombre'}</p>
-                                    <p className="text-[10px] text-gray-500"><i className="fa-solid fa-envelope w-4 text-center"></i> {u.email || u.id}</p>
-                                    {u.telefono && <p className="text-[10px] text-gray-500"><i className="fa-solid fa-phone w-4 text-center"></i> {u.telefono}</p>}
-                                    {u.cedula && <p className="text-[10px] text-gray-500"><i className="fa-solid fa-id-card w-4 text-center"></i> C.I: {u.cedula}</p>}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
-            );
-
-            const renderPendingDrivers = () => {
-                const pendingDrivers = usersList.filter(u => u.role === 'driver' && u.status === 'pending');
-                return (
-                    <div className="flex-1 flex flex-col w-full h-full bg-gray-50 p-4 overflow-y-auto">
-                        <h3 className="font-black text-gray-800 mb-3"><i className="fa-solid fa-id-card-clip text-orange-400 mr-1"></i> Solicitudes Pendientes</h3>
-                        <div className="space-y-3 pb-20">
-                            {loadingUsers ? (
-                                <p className="text-center text-xs text-gray-500 py-4 font-bold"><i className="fa-solid fa-spinner fa-spin mr-1"></i> Cargando...</p>
-                            ) : pendingDrivers.length === 0 ? (
-                                <p className="text-xs text-center text-gray-500 font-bold bg-white p-4 rounded-xl border border-gray-200">No hay solicitudes pendientes.</p>
-                            ) : (
-                                pendingDrivers.map(d => (
-                                    <div key={d.id} className="bg-white p-4 rounded-xl border border-orange-200 shadow-sm relative">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <p className="font-black text-sm text-gray-800">{d.nombre}</p>
-                                            <span className="text-[9px] px-2 py-0.5 rounded font-black uppercase bg-orange-100 text-orange-700">En Revisión</span>
-                                        </div>
-                                        <p className="text-[10px] text-gray-500 font-bold mb-1">C.I: {d.cedula}</p>
-                                        <p className="text-[10px] text-gray-500 font-bold mb-3"><i className="fa-brands fa-whatsapp text-green-500"></i> {d.whatsapp || d.telefono}</p>
-                                        <button onClick={() => toggleDriverStatus(d.email, null, 'approve')} className="w-full bg-green-500 hover:bg-green-600 text-white text-xs font-black py-2 rounded-lg shadow-md transition-transform active:scale-95"><i className="fa-solid fa-check mr-1"></i> Aprobar Conductor</button>
-                                    </div>
-                                ))
-                            )}
+            const renderHistory = () => (
+                <div className="p-4 fade-in pb-20">
+                    <h3 className="font-black text-gray-800 mb-3"><i className="fa-solid fa-list text-blue-600 mr-1"></i> Todos los Viajes</h3>
+                    {loading ? <p>Cargando...</p> : trips.map(t => (
+                        <div key={t.id} className="bg-white p-3 rounded-lg border shadow-sm mb-2 text-xs">
+                            <div className="flex justify-between font-black"><span className="uppercase text-blue-600">{t.tipo}</span><span>{t.costo} COP</span></div>
+                            <p className="text-[10px] text-gray-500">{new Date(t.fecha).toLocaleString()}</p>
+                            <p className="font-bold mt-1">Cli: {t.clienteInfo?.nombre}</p>
+                            {t.choferAsignado && <p className="font-bold text-green-600">Chofer: {t.choferAsignado.nombre}</p>}
                         </div>
-                    </div>
-                );
-            };
-
+                    ))}
+                </div>
+            );
             const renderFinances = () => {
-                const drivers = usersList.filter(u => u.role === 'driver' && u.status !== 'pending');
+                const totalBruto = trips.reduce((s, t) => s + (t.costo || 0), 0);
+                const gananciaPlat = totalBruto * 0.15;
                 return (
-                    <div className="flex-1 flex flex-col w-full h-full bg-gray-50 p-4 overflow-y-auto">
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 text-center">
-                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide">Ingreso Bruto Mensual (Carreras)</h3>
-                            <div className="text-3xl font-black text-green-600 mt-1 flex items-center justify-center gap-2">
-                                0 <span className="text-sm font-bold text-gray-400">COP</span>
+                    <div className="p-4 fade-in">
+                        <div className="bg-white p-4 rounded-xl shadow-sm border mb-6 text-center">
+                            <p className="text-[10px] font-bold text-gray-500 uppercase">Ingreso Bruto Global</p>
+                            <h3 className="text-2xl font-black text-green-600 mb-2">{totalBruto.toLocaleString()} COP</h3>
+                            <div className="border-t pt-2 mt-2">
+                                <p className="text-[10px] font-bold text-gray-500 uppercase">Comisión Plataforma (15%)</p>
+                                <h3 className="text-lg font-black text-purple-600">{gananciaPlat.toLocaleString()} COP</h3>
                             </div>
-                            <p className="text-[9px] text-gray-400 mt-1 italic">Conectando contador de viajes...</p>
-                            <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
-                                <span className="text-xs font-bold text-gray-600">Porcentaje Administrador:</span>
-                                <span className="text-sm font-black text-purple-600">-- %</span>
-                            </div>
-                        </div>
-
-                        <h3 className="font-black text-gray-800 mb-3"><i className="fa-solid fa-helmet-safety text-gray-400 mr-1"></i> Control Mensualidad de Choferes</h3>
-                        <div className="space-y-3 pb-20">
-                            {loadingUsers ? (
-                                <p className="text-center text-xs text-gray-500 py-4 font-bold"><i className="fa-solid fa-spinner fa-spin mr-1"></i> Cargando choferes...</p>
-                            ) : drivers.length === 0 ? (
-                                <p className="text-xs text-center text-gray-500 font-bold bg-white p-4 rounded-xl border border-gray-200">Aún no hay choferes aprobados.</p>
-                            ) : (
-                                drivers.map(d => {
-                                    const now = new Date().getTime();
-                                    const nextDate = d.nextPaymentDate ? new Date(d.nextPaymentDate).getTime() : now;
-                                    const daysLeft = Math.ceil((nextDate - now) / (1000 * 60 * 60 * 24));
-                                    const isSuspended = d.subscriptionStatus === 'suspended';
-                                    const isOverdue = daysLeft < 0;
-
-                                    return (
-                                        <div key={d.id} className={`p-4 rounded-xl border-2 ${isSuspended ? 'bg-red-50 border-red-200' : isOverdue ? 'bg-yellow-50 border-yellow-400' : 'bg-white border-gray-100'} shadow-sm relative overflow-hidden`}>
-                                            <div className="flex justify-between items-center mb-1">
-                                                <p className="font-black text-sm text-gray-800">{d.nombre}</p>
-                                                <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider ${isSuspended ? 'bg-red-600 text-white shadow-sm' : isOverdue ? 'bg-yellow-500 text-white shadow-sm' : 'bg-green-100 text-green-700'}`}>
-                                                    {isSuspended ? 'Suspendido' : isOverdue ? 'Vencido' : 'Activo'}
-                                                </span>
-                                            </div>
-                                            <p className="text-[10px] text-gray-500 font-bold mb-3">C.I: {d.cedula} • {d.telefono}</p>
-
-                                            <div className={`text-[10px] p-2 rounded-lg font-bold mb-3 flex items-center gap-2 ${isOverdue && !isSuspended ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-50 text-gray-600'}`}>
-                                                <i className="fa-regular fa-calendar-check text-lg"></i>
-                                                <div>
-                                                    <p>Próximo corte: <span className="text-gray-800">{d.nextPaymentDate ? new Date(d.nextPaymentDate).toLocaleDateString() : 'No definido'}</span></p>
-                                                    {!isSuspended && (daysLeft >= 0 ? <p className="text-green-600">Quedan {daysLeft} días de suscripción</p> : <p className="text-red-600">Suscripción vencida hace {Math.abs(daysLeft)} días</p>)}
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="flex gap-2">
-                                                {isSuspended ? (
-                                                    <button onClick={() => toggleDriverStatus(d.email, d.subscriptionStatus, 'renew')} className="flex-1 bg-green-500 hover:bg-green-600 text-white text-[10px] font-black py-2.5 rounded-lg shadow-md transition-transform active:scale-95"><i className="fa-solid fa-check-double mr-1"></i> Confirmar Pago y Reactivar</button>
-                                                ) : (
-                                                    <>
-                                                        <button onClick={() => toggleDriverStatus(d.email, d.subscriptionStatus, 'toggle')} className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-[10px] font-black py-2 rounded-lg transition-transform active:scale-95"><i className="fa-solid fa-ban mr-1"></i> Suspender</button>
-                                                        <button onClick={() => toggleDriverStatus(d.email, d.subscriptionStatus, 'renew')} className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[10px] font-black py-2 rounded-lg transition-transform active:scale-95"><i className="fa-solid fa-hand-holding-dollar mr-1"></i> Renovar 1 Mes</button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            )}
                         </div>
                     </div>
                 );
             };
-
             return (
-                <div className="flex flex-col h-full bg-gray-100 w-full fade-in relative">
-                    <HeaderNav 
-                        title={adminView === 'main' ? "Panel Maestro" : adminView === 'users' ? "Base de Datos" : adminView === 'pending' ? "Aprobar Choferes" : "Finanzas y Pagos"} 
-                        onBack={adminView === 'main' ? goBack : () => setAdminView('main')} 
-                        right={adminView === 'users' ? (
-                            <button onClick={exportToExcel} disabled={!hasDB || usersList.length===0} className="text-[10px] font-bold bg-green-500 hover:bg-green-600 text-white px-2 py-1.5 rounded shadow disabled:opacity-50 transition-colors"><i className="fa-solid fa-file-excel"></i> Excel</button>
-                        ) : null}
-                    />
+                <div className="flex flex-col h-full bg-gray-100 w-full relative">
+                    <HeaderNav title={adminView === 'main' ? "Panel Maestro" : "Atrás"} onBack={adminView === 'main' ? goBack : () => setAdminView('main')} />
                     <div className="flex-1 overflow-y-auto">
-                        {adminView === 'main' ? renderMainMenu() : adminView === 'users' ? renderUsersDatabase() : adminView === 'pending' ? renderPendingDrivers() : adminView === 'finances' ? renderFinances() : null}
+                        {adminView === 'main' && renderMainMenu()}
+                        {adminView === 'history' && renderHistory()}
+                        {adminView === 'users' && <div className="p-4 text-center font-bold text-gray-500">Listado de usuarios activo en base de datos.</div>}
+                        {adminView === 'finances' && renderFinances()}
                     </div>
                 </div>
             );
         };
-
         function App() {
-            const [view, setView] = useState('splash');
+            const [view, setView] = useState('menu');
             const [user, setUser] = useState(null);
-            const [role, setRole] = useState('');
-            const [form, setForm] = useState({});
-            const [toast, setToast] = useState(null);
-
             useEffect(() => {
                 const u = localStorage.getItem('motoubgrit_current'); 
                 if(u) setUser(JSON.parse(u));
-                setTimeout(() => { if(view === 'splash') setView('menu'); }, 3000);
             }, []);
-
-            const showToast = (msg, isError) => { setToast({msg, isError}); setTimeout(()=>setToast(null), 3500); };
-            const handleLogout = () => { localStorage.removeItem('motoubgrit_current'); setUser(null); showToast("Sesión cerrada", false); setView('menu'); };
-            const handleInputChange = (e) => setForm({...form, [e.target.name]: e.target.value});
-
-            const nav = (u) => { 
-                if(u.role==='admin') setView('admin');
-                else if(u.role==='driver') setView('driver_dash'); 
-                else if(u.role==='market') setView('market'); 
-                else if(u.role==='store') setView('enco'); 
-                else setView('client'); 
+            const requireAuth = (desiredView, roleStr) => {
+                if (user) setView(desiredView);
+                else setView('auth_' + roleStr);
             };
-
-            const handleAuth = async (e) => {
-                e.preventDefault();
-                if(role === 'admin') { 
-                    if(form.email === ADMIN_EMAIL && form.password === ADMIN_PASS) { nav({role: 'admin', email: ADMIN_EMAIL}); } 
-                    else showToast("Credenciales inválidas", true); 
-                    return; 
-                }
-                const isNewUser = !!(form.nombre && form.cedula);
-                const authEmail = form.email;
-                const authPass = form.password;
-
-                if (!authEmail || !authPass) return showToast("Correo y contraseña son obligatorios", true);
-
-                if (window.db) {
-                    try {
-                        const userRef = window.fb.doc(window.db, "users", authEmail);
-                        if (isNewUser) {
-                            const userData = { email: authEmail, password: authPass, nombre: form.nombre, cedula: form.cedula, telefono: form.telefono || "", direccion: form.direccion || "", role: role, createdAt: new Date().toISOString() };
-                            if (role === 'driver') {
-                                userData.status = 'pending';
-                                userData.subscriptionStatus = 'suspended'; 
-                            } else {
-                                userData.status = 'active'; 
-                            }
-                            await window.fb.setDoc(userRef, userData);
-                            
-                            if (role === 'driver') {
-                                showToast("Registro exitoso. Esperando aprobación.", false);
-                                setView('menu'); 
-                            } else {
-                                setUser(userData);
-                                localStorage.setItem('motoubgrit_current', JSON.stringify(userData));
-                                showToast("Registrado y conectado", false);
-                                nav(userData);
-                            }
-
-                        } else {
-                            const docSnap = await window.fb.getDocs(window.fb.query(window.fb.collection(window.db, "users"), window.fb.where("email", "==", authEmail), window.fb.where("password", "==", authPass)));
-                            if (!docSnap.empty) {
-                                const dbUser = docSnap.docs[0].data();
-                                if(dbUser.role === 'driver' && dbUser.status === 'pending') {
-                                    Swal.fire('Cuenta Pendiente', 'Tu solicitud aún está siendo revisada por el administrador.', 'info');
-                                    return; 
-                                }
-                                setUser(dbUser);
-                                localStorage.setItem('motoubgrit_current', JSON.stringify(dbUser));
-                                showToast("Bienvenido", false);
-                                nav(dbUser);
-                            } else { showToast("Correo o contraseña incorrectos", true); }
-                        }
-                    } catch (error) { showToast("Error de conexión con Firebase", true); }
-                } else {
-                    let nu = isNewUser ? { ...form, role: role } : { email: authEmail, nombre: "Usuario Autenticado", role: role };
-                    setUser(nu); localStorage.setItem('motoubgrit_current', JSON.stringify(nu));
-                    showToast("Modo Offline Activo", false); nav(nu);
-                }
-            };
-
-            const handleMarketClick = () => {
-                const formatter = new Intl.DateTimeFormat('en-US', { timeZone: "America/Caracas", hourCycle: "h23", weekday: 'short', hour: 'numeric' });
-                const parts = formatter.formatToParts(new Date());
-                const weekDay = parts.find(p => p.type === 'weekday').value; 
-                const hour = parseInt(parts.find(p => p.type === 'hour').value, 10);
-
-                let isAvailable = false;
-                if (weekDay === 'Thu' && hour >= 12) isAvailable = true;
-                if (weekDay === 'Fri') isAvailable = true;
-                if (weekDay === 'Sat' && hour < 12) isAvailable = true;
-
-                if (isAvailable) {
-                    setRole('client'); 
-                    if (user) {
-                        setView('market'); 
-                    } else {
-                        setView('auth'); 
-                    }
-                } else {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'HORARIO CERRADO',
-                        text: 'Para garantizar la distribución de rubros frescos y de calidad en la puerta de su casa, solo laboraremos en este horario: Jueves a partir del mediodía (12:00 PM) hasta el Sábado a mediodía (12:00 PM).',
-                        confirmButtonColor: '#16a34a',
-                        confirmButtonText: 'Entendido'
-                    });
-                }
-            };
-
-            if(view === 'splash') return (
-                <div className="fixed inset-0 bg-[#0b0f19] flex flex-col items-center justify-center z-50 text-center">
-                    <div className="w-28 h-28 bg-red-600 rounded-full flex items-center justify-center mb-6 animate-logo border-4 border-red-500"><i className="fa-solid fa-motorcycle text-5xl text-white"></i></div>
-                    <h1 className="text-5xl font-black text-white mb-2 tracking-tighter">Moto UBGrit</h1>
-                    <div className="bg-black/40 border border-gray-800 p-4 rounded-2xl mt-4 w-10/12 backdrop-blur-sm">
-                        <p className="text-[11px] text-gray-300 font-black uppercase tracking-widest leading-relaxed">Tu Traslado / Encomienda<br/>Mercado / Medicamento</p>
-                        <div className="mt-3 bg-red-600/20 border border-red-500/50 rounded-lg py-1.5"><p className="text-red-500 font-black text-[10px] tracking-[0.2em]">RÁPIDO Y SEGURO</p></div>
-                    </div>
-                </div>
-            );
-            
             if(view === 'menu') return (
-                <div className="flex flex-col h-full bg-[#0b0f19] w-full p-5 text-center relative overflow-y-auto">
-                    {toast && <Toast msg={toast.msg} isError={toast.isError} />}
+                <div className="flex flex-col h-full bg-[#0b0f19] w-full p-5 text-center relative overflow-y-auto fade-in">
                     <div className="absolute top-4 right-4 flex gap-2 z-20">
-                        <button onClick={()=>{setRole('admin');setView('auth');}} className="bg-white/10 text-white px-3 py-2 rounded-lg text-[10px] font-black border border-white/20 hover:bg-white/20"><i className="fa-solid fa-shield-halved"></i> Admin</button>
-                        {user && <button onClick={handleLogout} className="bg-red-600 text-white px-3 py-2 rounded-lg text-[10px] font-black shadow-md hover:bg-red-700"><i className="fa-solid fa-right-from-bracket"></i> Salir</button>}
+                        {!user && <button onClick={()=>setView('auth_admin')} className="bg-white/10 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold border border-white/20 flex items-center gap-1.5"><i className="fa-solid fa-shield-halved"></i> Admin</button>}
+                        {user && <button onClick={()=>{localStorage.removeItem('motoubgrit_current'); setUser(null);}} className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5"><i className="fa-solid fa-right-from-bracket"></i> Salir</button>}
                     </div>
-                    <div className="mt-10 mb-6 flex flex-col items-center">
-                        <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(220,38,38,0.4)] border-2 border-red-500"><i className="fa-solid fa-motorcycle text-3xl text-white"></i></div>
-                        <h1 className="text-3xl font-black text-white mb-2 tracking-tight">Moto UBGrit</h1>
-                        <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest leading-relaxed">Tu Traslado / Encomienda<br/>Mercado / Medicamento</p>
-                        <p className="text-red-500 font-black tracking-[0.2em] mt-2 text-[9px] bg-red-500/10 border border-red-500/30 px-3 py-1 rounded-full">RÁPIDO Y SEGURO</p>
+                    <div className="mt-12 mb-8 flex flex-col items-center">
+                        <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-3 shadow-[0_0_25px_rgba(220,38,38,0.4)]">
+                            <i className="fa-solid fa-motorcycle text-3xl text-white"></i>
+                        </div>
+                        <h1 className="text-2xl font-black text-white tracking-tight mb-1">Moto UBGrit</h1>
+                        <p className="text-[7px] text-gray-400 font-bold tracking-[0.2em] uppercase text-center mt-1 leading-relaxed">
+                            Tu traslado / Encomienda<br/>Mercado / Medicamento
+                        </p>
                     </div>
-                    <div className="space-y-3 w-full max-w-sm mx-auto pb-8">
-                        <button onClick={()=>{setRole('client'); user?.role==='client'?nav(user):setView('auth');}} className="w-full bg-white text-black font-black py-4 rounded-xl text-sm shadow-xl flex items-center justify-center gap-3 transition-transform active:scale-95"><div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"><i className="fa-solid fa-person-biking text-gray-700"></i></div> Pedir Moto (Pasajero)</button>
-                        <button onClick={()=>{setRole('store'); user?.role==='store'?nav(user):setView('auth');}} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl text-sm shadow-xl flex items-center justify-center gap-3 transition-transform active:scale-95"><div className="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center"><i className="fa-solid fa-box text-white"></i></div> Local / Encomiendas</button>
-                        
-                        <button onClick={handleMarketClick} className="w-full bg-green-600 text-white font-black py-3 rounded-xl text-sm shadow-xl flex flex-col items-center justify-center gap-1 transition-transform active:scale-95">
-                            <div className="flex items-center justify-center gap-3">
-                                <div className="w-8 h-8 bg-green-700 rounded-full flex items-center justify-center"><i className="fa-solid fa-basket-shopping text-white"></i></div> 
-                                <span>Mercado en Casa</span>
-                            </div>
-                            <span className="text-[10px] font-normal opacity-90 tracking-wide">(Entrada Directa Sin Registro)</span>
+                    <div className="space-y-3 w-full max-w-sm mx-auto pb-8 px-2">
+                        {user?.role === 'admin' && <button onClick={()=>setView('admin_dash')} className="w-full bg-red-600 text-white font-black py-3.5 rounded-xl text-sm mb-4 shadow-lg border border-red-500">Panel Maestro</button>}
+                        <button onClick={()=>requireAuth('moto', 'client')} className="w-full bg-white text-black font-black py-3.5 rounded-xl text-sm shadow-md flex items-center justify-center gap-2">
+                            <i className="fa-solid fa-motorcycle text-gray-400"></i> Pedir Moto
                         </button>
-                        
-                        <button onClick={()=>showToast('Módulo de Farmacia en desarrollo', false)} className="w-full bg-purple-600 text-white font-black py-4 rounded-xl text-sm shadow-xl opacity-90 flex items-center justify-center gap-3 transition-transform active:scale-95"><div className="w-8 h-8 bg-purple-700 rounded-full flex items-center justify-center"><i className="fa-solid fa-pills text-white"></i></div> Farmacia (Próximamente)</button>
-                        <div className="pt-6 mt-6 border-t border-gray-800/50">
-                            <button onClick={()=>{setRole('driver'); user?.role==='driver'?nav(user):setView('auth');}} className="w-full bg-[#1a1a1a] text-gray-400 border-2 border-gray-800 hover:border-gray-600 py-4 rounded-xl font-black text-xs transition-colors flex items-center justify-center gap-2"><i className="fa-solid fa-helmet-safety"></i> Panel Conductor</button>
+                        <button onClick={()=>requireAuth('enco', 'store')} className="w-full bg-blue-600 text-white font-black py-3.5 rounded-xl text-sm shadow-md flex items-center justify-center gap-2">
+                            <i className="fa-solid fa-box text-blue-200"></i> Encomiendas
+                        </button>
+                        <button onClick={()=>user?.role==='admin' ? setView('market') : requireAuth('market', 'client')} className="w-full bg-green-600 text-white font-black py-3 rounded-xl text-sm shadow-md flex flex-col items-center justify-center">
+                            <div className="flex items-center gap-2"><i className="fa-solid fa-basket-shopping text-green-200"></i> Mercado en Casa</div>
+                            <span className="text-[8px] font-bold text-green-200 mt-0.5">(Requiere Ingreso para el Envío)</span>
+                        </button>
+                        <button onClick={()=>Swal.fire('Próximamente', 'Módulo de farmacia en desarrollo.', 'info')} className="w-full bg-purple-600 text-white font-black py-3.5 rounded-xl text-sm shadow-md flex items-center justify-center gap-2">
+                            <i className="fa-solid fa-pills text-purple-200"></i> Farmacia (Próximamente)
+                        </button>
+                        <div className="pt-6 mt-6 border-t border-gray-800">
+                            <button onClick={()=>requireAuth('driver_dash', 'driver')} className="w-full bg-[#161b26] hover:bg-[#1f2636] transition-colors text-gray-500 py-3.5 rounded-xl font-bold text-xs border border-gray-800 shadow-inner flex items-center justify-center gap-2">
+                                <i className="fa-solid fa-id-card text-gray-600"></i> Ingreso / Registro Conductor
+                            </button>
                         </div>
                     </div>
                 </div>
             );
-
-            const [isLoginTab, setIsLoginTab] = useState(true);
-
-            if(view === 'auth') return (
-                <div className="flex flex-col h-full bg-[#0b0f19] w-full overflow-y-auto">
-                    <HeaderNav title={role==='admin'?"Acceso Administrador": "Ingreso Seguro"} onBack={()=>setView('menu')} />
-                    <div className="p-5 pb-20">
-                        {role !== 'admin' && (
-                            <div className="flex bg-gray-800 rounded-xl p-1 mb-4 shadow-inner">
-                                <button onClick={()=>setIsLoginTab(true)} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${isLoginTab ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-200'}`}>Ya tengo cuenta</button>
-                                <button onClick={()=>setIsLoginTab(false)} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${!isLoginTab ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-200'}`}>Soy Nuevo</button>
-                            </div>
-                        )}
-                        <form onSubmit={handleAuth} className="bg-white p-6 rounded-3xl space-y-4 shadow-2xl relative border-t-8 border-red-600">
-                            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-red-600 rounded-full flex items-center justify-center shadow-lg border-4 border-[#0b0f19]"><i className="fa-solid fa-lock text-white"></i></div>
-                            <h2 className="text-center font-black text-lg text-gray-800 mt-2 mb-1">Tus Datos</h2>
-                            <p className="text-[10px] text-center text-gray-500 font-bold mb-4">{role === 'admin' ? 'Solo personal autorizado.' : (isLoginTab ? 'Ingresa tus credenciales.' : 'Llena todos los datos.')}</p>
-                            
-                            <div className="space-y-3">
-                                <input required name="email" type="email" placeholder="Correo electrónico" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                <input required name="password" type="password" placeholder="Contraseña" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                            </div>
-
-                            {role !== 'admin' && !isLoginTab && (
-                                <div className="border-t border-dashed border-gray-300 pt-4 mt-2 space-y-3 fade-in">
-                                    <input name="nombre" required placeholder="Nombre completo o Local" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                    <input name="cedula" required type="number" placeholder="Cédula de Identidad" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                    <input name="telefono" required type="tel" placeholder="WhatsApp (Ej: 584141234567)" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                    <textarea name="direccion" required placeholder="Dirección exacta en La Grita" onChange={handleInputChange} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-xs h-20 outline-none font-bold text-gray-700 focus:border-red-500 focus:bg-white transition-colors" />
-                                </div>
-                            )}
-                            <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-black text-sm shadow-lg mt-4 transition-transform active:scale-95">Ingresar / Registrar</button>
+            if(view === 'auth_admin') {
+                return (
+                    <div className="flex flex-col h-full bg-[#0b0f19] items-center justify-center p-6 fade-in">
+                        <h2 className="text-white font-black text-2xl mb-6">Acceso Admin</h2>
+                        <form onSubmit={(e)=>{e.preventDefault(); if(e.target.p.value==='Universal11!!'){const a={role:'admin', email:ADMIN_EMAIL, nombre:'Admin'}; setUser(a); localStorage.setItem('motoubgrit_current', JSON.stringify(a)); setView('admin_dash');}}} className="w-full max-w-sm space-y-4">
+                            <input name="p" type="password" placeholder="Contraseña" className="w-full p-4 rounded-xl font-bold" />
+                            <button type="submit" className="bg-red-600 text-white w-full py-4 rounded-xl font-black">Entrar</button>
                         </form>
+                        <button onClick={()=>setView('menu')} className="text-gray-500 mt-6 font-bold">Volver</button>
                     </div>
-                </div>
-            );
-
-            if(view === 'client') return <TripPlanner user={user} type="client" goBack={()=>setView('menu')} showToast={showToast} />;
-            if(view === 'enco') return <TripPlanner user={user} type="encomienda" goBack={()=>setView('menu')} showToast={showToast} />;
-            if(view === 'market') return <MercadoDashboard user={user} goBack={()=>setView('menu')} showToast={showToast} />;
+                );
+            }
+            if(view.startsWith('auth_')) return <AuthScreen requestedRole={view.split('_')[1]} goBack={()=>setView('menu')} onLoginSuccess={(u)=>{setUser(u); localStorage.setItem('motoubgrit_current', JSON.stringify(u)); setView('menu');}} />;
+            if(view === 'market') return <MercadoDashboard user={user} goBack={()=>setView('menu')} />;
+            if(view === 'moto') return <TripPlanner user={user} type="client" goBack={()=>setView('menu')} />;
+            if(view === 'enco') return <TripPlanner user={user} type="encomienda" goBack={()=>setView('menu')} />;
+            if(view === 'admin_dash') return <AdminDashboard goBack={()=>setView('menu')} />;
             if(view === 'driver_dash') return <DriverDashboard user={user} goBack={()=>setView('menu')} />;
-            if(view === 'admin') return <AdminDashboard goBack={()=>setView('menu')} showToast={showToast} />;
             return null;
         }
-
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
